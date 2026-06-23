@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "start": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\" \"cd data-generator && python main.py\""
+    "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.1",
