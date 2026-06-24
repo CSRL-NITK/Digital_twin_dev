@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
-  MiniMap,
   useNodesState,
   useEdgesState,
   addEdge
@@ -223,15 +222,7 @@ export default function StarTopology() {
       >
         <Background gap={24} size={1.5} color="var(--color-border)" className="opacity-50" />
         <Controls className="bg-surface border-border fill-text-muted rounded-xl overflow-hidden shadow-sm" />
-        <MiniMap 
-          className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm" 
-          maskColor="var(--color-surface-light)"
-          nodeColor={(n) => {
-            if (n.type === 'central_tank') return 'var(--color-primary)';
-            if (n.type === 'pump') return 'var(--color-success)';
-            return 'var(--color-secondary)';
-          }}
-        />
+
       </ReactFlow>
     </div>
   );

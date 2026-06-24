@@ -41,16 +41,7 @@ function Sidebar() {
         border: '1px solid rgba(255,255,255,0.05)',
       }}
     >
-      {/* Logo badge */}
-      <div style={{
-        width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-        background: 'linear-gradient(145deg, #c8f135 0%, #a6cc1a 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 30,
-        boxShadow: '0 4px 14px rgba(200,241,53,0.38)',
-      }}>
-        <Droplets size={19} color="#17181c" strokeWidth={2.5} />
-      </div>
+
 
       {/* Nav */}
       <nav style={{
@@ -118,133 +109,151 @@ function Sidebar() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   TOP BAR  — 64px
+   TOP BAR  — 70px
    bg: #ffffff (card)  |  border-bottom: rgba(0,0,0,0.07)
 ════════════════════════════════════════════════════════════════ */
 function TopBar() {
   const { theme, setTheme } = useTheme();
   const dark = theme === 'dark';
 
-  /* circle icon button */
-  const circle: React.CSSProperties = {
-    width: 38, height: 38, borderRadius: '50%',
-    border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
-    background: dark ? '#22232a' : '#f3f3f3',
+  const iconBtn: React.CSSProperties = {
+    width: 38, height: 38, borderRadius: 10,
+    border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
+    background: dark ? '#2a2b34' : '#e8e8e8',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', flexShrink: 0,
-    color: dark ? '#6b7280' : '#5a5f6b',
-    transition: 'background 0.15s, border-color 0.15s',
+    color: dark ? '#9ca3af' : '#5a5f6b',
+    transition: 'background 0.15s',
   };
 
   return (
     <header
       id="topbar"
       style={{
-        height: 64, flexShrink: 0,
+        height: 70, flexShrink: 0,
         display: 'flex', alignItems: 'center',
-        padding: '0 20px', gap: 10,
+        padding: '0 24px',
         background: dark ? '#1c1d22' : '#ffffff',
         borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+        gap: 0,
       }}
     >
-      {/* ── Logo pill ── */}
-      <div
-        id="logo"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 9,
-          padding: '7px 15px',
-          borderRadius: 12,
-          border: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-          background: dark ? '#22232a' : '#f3f3f3',
-          flexShrink: 0,
-        }}
-      >
+
+      {/* ══ LEFT — Logo badge + wordmark ══════════════════════════════ */}
+      <div id="logo" style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
+        {/* Icon badge */}
         <div style={{
-          width: 26, height: 26, borderRadius: 8,
+          width: 38, height: 38, borderRadius: 12, flexShrink: 0,
           background: '#17181c',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
+          boxShadow: '0 2px 10px rgba(23,24,28,0.18)',
         }}>
-          <Droplets size={14} color="#c8f135" strokeWidth={2.3} />
+          <Droplets size={18} color="#c8f135" strokeWidth={2.3} />
         </div>
-        <span style={{
-          fontSize: 15, fontWeight: 800, letterSpacing: '-0.5px',
-          color: dark ? '#f0f0f2' : '#17181c',
-          fontFamily: 'var(--font)',
-        }}>
-          AquaTwin
-        </span>
+        {/* Brand text */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{
+            fontSize: 17, fontWeight: 800, letterSpacing: '-0.6px', lineHeight: 1.1,
+            color: dark ? '#f0f0f2' : '#17181c',
+            fontFamily: 'var(--font)',
+          }}>
+            AquaTwin
+          </span>
+          <span style={{
+            fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em',
+            textTransform: 'uppercase', lineHeight: 1,
+            color: dark ? '#374151' : '#c8f135',
+            fontFamily: 'var(--font)',
+            background: dark ? 'transparent' : '#17181c',
+            padding: dark ? '0' : '1px 5px',
+            borderRadius: 4,
+          }}>
+            Digital Twin
+          </span>
+        </div>
       </div>
 
-      <div style={{ flex: 1 }} />
+      {/* ══ CENTRE divider ════════════════════════════════════════════ */}
+      <div style={{
+        width: 1, height: 32, flexShrink: 0,
+        background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
+        margin: '0 22px',
+      }} />
 
-      {/* ── Topology selector ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* ══ CENTRE — Title block ══════════════════════════════════════ */}
+      <div id="title-block" style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
         <span style={{
-          fontSize: 13.5, fontWeight: 400, letterSpacing: '-0.1px',
-          color: dark ? '#6b7280' : '#9ca3af',
+          fontSize: 18, fontWeight: 800, letterSpacing: '-0.55px', lineHeight: 1.15,
+          color: dark ? '#f0f0f2' : '#17181c',
           fontFamily: 'var(--font)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          Digital twin for
+          Smart Water Distribution Testbed
         </span>
 
-        <span style={{ color: dark ? '#374151' : '#d1d5db', fontSize: 16, lineHeight: 1 }}>·</span>
+      </div>
 
-        {/* Dropdown */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          padding: '6px 13px', borderRadius: 12, cursor: 'pointer',
-          border: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-          background: dark ? '#22232a' : '#f3f3f3',
-          transition: 'background 0.15s',
-        }}>
-          {/* live dot */}
+      {/* ══ RIGHT — Topology selector + actions ═══════════════════════ */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+
+        {/* Topology pill */}
+        <div
+          id="topology-selector"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
+            border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
+            background: dark ? '#2a2b34' : '#e8e8e8',
+            transition: 'background 0.15s',
+          }}
+        >
           <span style={{
             width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
             background: '#c8f135',
-            boxShadow: '0 0 6px rgba(200,241,53,0.55)',
+            boxShadow: '0 0 7px rgba(200,241,53,0.6)',
           }} />
           <span style={{
-            fontSize: 14, fontWeight: 700, letterSpacing: '-0.3px',
+            fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
             color: dark ? '#f0f0f2' : '#17181c',
             fontFamily: 'var(--font)',
           }}>
             Star Topology
           </span>
-          <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#9ca3af'} />
+          <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#6b7280'} />
         </div>
-      </div>
 
-      <div style={{ width: 4 }} />
-
-      {/* Theme toggle */}
-      <button
-        id="theme-toggle" style={circle}
-        onClick={() => setTheme(dark ? 'light' : 'dark')}
-        title="Toggle theme"
-      >
-        {dark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
-      </button>
-
-      {/* Bell */}
-      <button
-        id="alert-bell"
-        style={{ ...circle, position: 'relative' }}
-        title="Alerts"
-      >
-        <Bell size={16} strokeWidth={2} />
-        <span style={{
-          position: 'absolute', top: 9, right: 9,
-          width: 7, height: 7, borderRadius: '50%',
-          background: '#ef4444',
-          border: '2px solid ' + (dark ? '#1c1d22' : '#ffffff'),
-          boxShadow: '0 1px 4px rgba(239,68,68,0.45)',
+        {/* Divider */}
+        <div style={{
+          width: 1, height: 28,
+          background: dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)',
         }} />
-      </button>
+
+        {/* Theme toggle */}
+        <button
+          id="theme-toggle" style={iconBtn}
+          onClick={() => setTheme(dark ? 'light' : 'dark')}
+          title="Toggle theme"
+        >
+          {dark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+        </button>
+
+        {/* Bell */}
+        <button id="alert-bell" style={{ ...iconBtn, position: 'relative' }} title="Alerts">
+          <Bell size={16} strokeWidth={2} />
+          <span style={{
+            position: 'absolute', top: 8, right: 8,
+            width: 7, height: 7, borderRadius: '50%',
+            background: '#ef4444',
+            border: '2px solid ' + (dark ? '#1c1d22' : '#ffffff'),
+            boxShadow: '0 1px 4px rgba(239,68,68,0.5)',
+          }} />
+        </button>
+      </div>
     </header>
   );
 }
+
 
 /* ════════════════════════════════════════════════════════════════
    BLANK PANEL
