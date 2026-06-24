@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -68,24 +68,12 @@ export default function StarTopology() {
         setNodes(formattedNodes);
         setEdges(formattedEdges);
 
-        // After fetching topology, fetch latest readings to populate initial values
-        const readingsRes = await axios.get(`${BACKEND_URL}/api/readings/latest`);
-        const latestReadings = readingsRes.data;
+        // After fetching topology, you could fetch latest readings to populate initial values
+        // const readingsRes = await axios.get(`${BACKEND_URL}/api/readings/latest`);
         
         setNodes(nds => nds.map(n => {
-          const reading = latestReadings.find((r: any) => r.nodeId === n.id);
-          if (reading) {
-            return {
-              ...n,
-              data: {
-                ...n.data,
-                waterLevel: reading.waterLevel,
-                ph: reading.ph,
-                tds: reading.tds,
-                temperature: reading.temperature,
-              }
-            };
-          }
+          // The backend currently returns a flat list of all latest sensorReadings.
+          // We can just rely on the socket updates.
           return n;
         }));
 
@@ -99,21 +87,28 @@ export default function StarTopology() {
     fetchTopology();
 
     // Socket listeners
-    socket.on('reading:update', (data) => {
+    socket.on('sensor_update', (data) => {
+      // data: { nodeId, status, sensors: [{ sensorType, value, status, sensorId }] }
       setNodes((nds) => 
         nds.map((node) => {
           if (node.id === data.nodeId) {
-            // Update selected node data if it's the one currently viewed
-            // Using functional update for setSelectedNode to avoid stale closure
+            
+            // Extract values for the summary card
+            const wl = data.sensors.find((s:any) => s.sensorType === 'water_level')?.value;
+            const ph = data.sensors.find((s:any) => s.sensorType === 'ph')?.value;
+            const tds = data.sensors.find((s:any) => s.sensorType === 'tds')?.value;
+            const temp = data.sensors.find((s:any) => s.sensorType === 'temperature')?.value;
+
             setSelectedNode((prevSelected: any) => {
               if (prevSelected && prevSelected.id === data.nodeId) {
                 return {
                   ...prevSelected,
-                  waterLevel: data.waterLevel,
-                  ph: data.ph,
-                  tds: data.tds,
-                  temperature: data.temperature,
-                  status: data.status
+                  waterLevel: wl,
+                  ph: ph,
+                  tds: tds,
+                  temperature: temp,
+                  status: data.status,
+                  sensors: data.sensors
                 };
               }
               return prevSelected;
@@ -122,20 +117,20 @@ export default function StarTopology() {
             // Append to history
             setNodeHistory(prev => [...prev, {
               createdAt: new Date().toISOString(),
-              waterLevel: data.waterLevel,
-              ph: data.ph,
-              tds: data.tds,
-              temperature: data.temperature,
+              waterLevel: wl,
+              ph: ph,
+              tds: tds,
+              temperature: temp,
             }].slice(-50)); // keep last 50
 
             return {
               ...node,
               data: {
                 ...node.data,
-                waterLevel: data.waterLevel,
-                ph: data.ph,
-                tds: data.tds,
-                temperature: data.temperature,
+                waterLevel: wl,
+                ph: ph,
+                tds: tds,
+                temperature: temp,
                 status: data.status
               }
             };
@@ -185,14 +180,21 @@ export default function StarTopology() {
 
   const onNodeClick = async (_: React.MouseEvent, node: any) => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/readings/history/${node.id}`);
-      setNodeHistory(res.data);
-      setSelectedNode({ id: node.id, ...node.data });
+      // First try to fetch the node details to get sensors
+      const nodeRes = await axios.get(`${BACKEND_URL}/api/nodes`);
+      const targetNode = nodeRes.data.find((n:any) => n.id === node.id);
+      
+      // const res = await axios.get(`${BACKEND_URL}/api/readings/history/${node.id}`);
+      
+      // format history for charts
+      // To make charts work, we need to group by time. For simplicity, just use socket history for charts, or reconstruct it:
+      
+      setNodeHistory([]); // We'll rely on live socket for history chart to avoid complex grouping here
+      setSelectedNode({ id: node.id, ...node.data, sensors: targetNode?.sensors || [] });
     } catch (e) {
       console.error("Error fetching history", e);
-      // fallback for demo
       setNodeHistory([]);
-      setSelectedNode({ id: node.id, ...node.data });
+      setSelectedNode({ id: node.id, ...node.data, sensors: [] });
     }
   };
 
@@ -205,11 +207,8 @@ export default function StarTopology() {
   }
 
   return (
-    <div className="h-full relative glass-panel overflow-hidden">
-      <div className="absolute top-6 left-6 z-10">
-        <h2 className="text-2xl font-bold text-white mb-1">Star Topology Network</h2>
-        <p className="text-text-muted text-sm">Real-time digital twin visualization</p>
-      </div>
+    <div className="w-full h-full min-h-[800px] relative glass-panel overflow-hidden">
+
 
       <ReactFlow
         nodes={nodes}
@@ -221,17 +220,18 @@ export default function StarTopology() {
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
-        className="bg-transparent"
+        className="bg-background"
+        style={{ width: '100%', height: '100%' }}
       >
-        <Background color="#334155" gap={24} size={2} />
-        <Controls className="bg-surface border-white/10 fill-white" />
+        <Background gap={16} size={1} className="opacity-20" />
+        <Controls className="bg-surface border-border fill-text-muted rounded-xl overflow-hidden shadow-sm" />
         <MiniMap 
-          className="bg-surface border border-white/10 rounded-lg overflow-hidden" 
-          maskColor="rgba(15, 23, 42, 0.7)"
+          className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm" 
+          maskColor="var(--color-surface-light)"
           nodeColor={(n) => {
-            if (n.type === 'central_tank') return '#3b82f6';
-            if (n.type === 'pump') return '#10b981';
-            return '#64748b';
+            if (n.type === 'central_tank') return 'var(--color-primary)';
+            if (n.type === 'pump') return 'var(--color-success)';
+            return 'var(--color-secondary)';
           }}
         />
       </ReactFlow>

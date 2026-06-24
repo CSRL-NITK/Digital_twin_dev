@@ -1,20 +1,19 @@
 import { Handle, Position } from 'reactflow';
-import { Droplets, Thermometer, Power } from 'lucide-react';
 import axios from 'axios';
 
 const BACKEND_URL = 'http://localhost:3001';
 
 export default function TankNode({ data, id }: any) {
-  const { nodeName, waterLevel, ph, temperature, status } = data;
+  const { nodeName, waterLevel, ph, tds, temperature, status } = data;
   
   const statusColors: Record<string, string> = {
-    'Healthy': 'bg-healthy',
+    'Healthy': 'bg-success',
     'Warning': 'bg-warning',
-    'Critical': 'bg-critical',
-    'Offline': 'bg-surface-light',
+    'Critical': 'bg-danger',
+    'Offline': 'bg-border',
   };
   
-  const statusColor = statusColors[status] || 'bg-surface-light';
+  const statusColor = statusColors[status] || 'bg-border';
   const isRunning = status !== 'Offline';
 
   const toggleNode = async () => {
@@ -27,60 +26,49 @@ export default function TankNode({ data, id }: any) {
   };
 
   return (
-    <div className="glass-card w-64 overflow-hidden shadow-lg transition-transform hover:scale-105 group">
-      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-primary border-2 border-surface" />
+    <div 
+      className="bg-surface border border-border rounded-[20px] w-48 shadow-soft overflow-hidden group cursor-pointer relative"
+      onClick={toggleNode}
+    >
+      {/* Status left border indicator */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`} />
       
-      <div className="p-3 border-b border-white/10 flex justify-between items-center bg-surface/50">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={toggleNode}
-            className={`p-1.5 rounded-full transition-colors ${isRunning ? 'bg-green-500/20 text-green-400 hover:bg-green-500/40' : 'bg-red-500/20 text-red-400 hover:bg-red-500/40'}`}
-          >
-            <Power size={12} />
-          </button>
-          <h3 className="font-semibold text-white truncate pr-2">{nodeName}</h3>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-text-muted">{status}</span>
-          <div className={`w-3 h-3 rounded-full ${statusColor} ${isRunning && status !== 'Healthy' ? 'animate-pulse' : ''} shadow-[0_0_8px_var(--color-${status.toLowerCase()})]`} />
-        </div>
-      </div>
+      <Handle type="target" position={Position.Top} className="w-2 h-2 bg-border border-0" />
       
-      <div className="p-4 space-y-3">
-        {/* Water Level Bar */}
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-text-muted">Water Level</span>
-            <span className="font-medium">{waterLevel && waterLevel != -999 ? Number(waterLevel).toFixed(1) : '--'}%</span>
-          </div>
-          <div className="h-2 w-full bg-surface-light rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-500 ease-out"
-              style={{ width: `${Math.min(100, Math.max(0, waterLevel && waterLevel != -999 ? Number(waterLevel) : 0))}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <div className="flex items-center gap-2 p-2 rounded-md bg-surface-light/30">
-            <Droplets size={14} className="text-blue-400" />
-            <div>
-              <p className="text-[10px] text-text-muted uppercase">pH</p>
-              <p className="text-sm font-medium">{ph && ph != -999 ? Number(ph).toFixed(2) : '--'}</p>
-            </div>
+      <div className="p-4 pl-5">
+        <h3 className="text-[18px] font-bold text-text mb-3">{nodeName}</h3>
+        
+        <div className="flex flex-col gap-2 text-[14px]">
+          <div className="flex justify-between">
+            <span className="text-text-muted">Level</span>
+            <span className="font-semibold text-text">{waterLevel && waterLevel != -999 ? Number(waterLevel).toFixed(1) : '--'}%</span>
           </div>
           
-          <div className="flex items-center gap-2 p-2 rounded-md bg-surface-light/30">
-            <Thermometer size={14} className="text-red-400" />
-            <div>
-              <p className="text-[10px] text-text-muted uppercase">Temp</p>
-              <p className="text-sm font-medium">{temperature && temperature != -999 ? Number(temperature).toFixed(1) : '--'}°</p>
-            </div>
+          <div className="flex justify-between">
+            <span className="text-text-muted">pH</span>
+            <span className="font-semibold text-text">{ph && ph != -999 ? Number(ph).toFixed(2) : '--'}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-text-muted">TDS</span>
+            <span className="font-semibold text-text">{tds && tds != -999 ? Number(tds).toFixed(0) : '--'} ppm</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-text-muted">Temp</span>
+            <span className="font-semibold text-text">{temperature && temperature != -999 ? Number(temperature).toFixed(1) : '--'}°C</span>
+          </div>
+          
+          <div className="flex justify-between mt-1 pt-2 border-t border-border">
+            <span className="text-text-muted">Status</span>
+            <span className={`font-semibold ${status === 'Healthy' ? 'text-success' : status === 'Warning' ? 'text-warning' : status === 'Critical' ? 'text-danger' : 'text-text-muted'}`}>
+              {status}
+            </span>
           </div>
         </div>
       </div>
 
-      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-primary border-2 border-surface" />
+      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-border border-0" />
     </div>
   );
 }

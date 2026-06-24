@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
@@ -22,14 +23,35 @@ async function main() {
 
   console.log(`Created Topology: ${topology.name} (${topology.id})`);
 
+  // Create or Update Admin User
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+  await prisma.user.upsert({
+    where: { username: adminUsername },
+    update: {
+      passwordHash,
+      role: 'ADMIN',
+      name: 'System Administrator'
+    },
+    create: {
+      username: adminUsername,
+      passwordHash,
+      role: 'ADMIN',
+      name: 'System Administrator'
+    }
+  });
+  console.log(`Admin user '${adminUsername}' has been configured.`);
+
   // Create Nodes
   const nodesData = [
-    { name: 'Pump P1', type: 'pump', x: 300, y: 20 },
-    { name: 'Central Tank', type: 'central_tank', x: 300, y: 150 },
-    { name: 'T1', type: 'tank', x: 300, y: 350 },
-    { name: 'T2', type: 'tank', x: 100, y: 250 },
-    { name: 'T3', type: 'tank', x: 500, y: 250 },
-    { name: 'T4', type: 'tank', x: 300, y: 500 },
+    { name: 'Pump P1', type: 'pump', x: 53, y: 192 },
+    { name: 'Central Tank', type: 'central_tank', x: 336, y: 205 },
+    { name: 'T1', type: 'tank', x: 836, y: -45 },
+    { name: 'T2', type: 'tank', x: 836, y: 165 },
+    { name: 'T3', type: 'tank', x: 836, y: 369 },
+    { name: 'T4', type: 'tank', x: 836, y: 592 },
   ];
 
   const createdNodes: Record<string, string> = {};
@@ -47,6 +69,28 @@ async function main() {
     });
     createdNodes[node.name] = created.id;
     console.log(`Created Node: ${node.name} (${created.id})`);
+
+    // Create sensors for tanks
+    if (node.type === 'tank' || node.type === 'central_tank') {
+      const sensors = [
+        { name: 'pH Sensor', type: 'ph' },
+        { name: 'TDS Sensor', type: 'tds' },
+        { name: 'Temperature Sensor', type: 'temperature' },
+        { name: 'Ultrasonic Sensor', type: 'water_level' },
+      ];
+
+      for (const s of sensors) {
+        await prisma.sensor.create({
+          data: {
+            nodeId: created.id,
+            sensorName: s.name,
+            sensorType: s.type,
+            status: 'Online',
+          }
+        });
+      }
+      console.log(`Created 4 sensors for ${node.name}`);
+    }
   }
 
   // Create Edges

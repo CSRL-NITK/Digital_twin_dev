@@ -9,7 +9,7 @@ datasource db {
 model User {
   id           String   @id @default(uuid()) @db.Uuid
   name         String   @db.VarChar(100)
-  email        String   @unique @db.VarChar(255)
+  username     String   @unique @db.VarChar(255)
   passwordHash String   @map("password_hash") @db.Text
   role         String   @db.VarChar(30)
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
@@ -43,8 +43,8 @@ model Node {
   sourceEdges Edge[] @relation("SourceEdges")
   targetEdges Edge[] @relation("TargetEdges")
 
-  readings SensorReading[]
-  alerts   Alert[]
+  sensors     Sensor[]
+  alerts      Alert[]
 
   @@map("nodes")
 }
@@ -65,14 +65,26 @@ model Edge {
   @@map("edges")
 }
 
-model SensorReading {
-  id          BigInt   @id @default(autoincrement())
+model Sensor {
+  id          String   @id @default(uuid()) @db.Uuid
   nodeId      String   @map("node_id") @db.Uuid
   node        Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-  waterLevel  Decimal  @map("water_level") @db.Decimal(5, 2)
-  ph          Decimal  @db.Decimal(4, 2)
-  tds         Decimal  @db.Decimal(8, 2)
-  temperature Decimal  @db.Decimal(5, 2)
+  sensorName  String   @map("sensor_name") @db.VarChar(100)
+  sensorType  String   @map("sensor_type") @db.VarChar(50)
+  status      String   @default("Online") @db.VarChar(30)
+  lastSeen    DateTime @default(now()) @map("last_seen") @db.Timestamp(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  readings    SensorReading[]
+
+  @@map("sensors")
+}
+
+model SensorReading {
+  id          BigInt   @id @default(autoincrement())
+  sensorId    String   @map("sensor_id") @db.Uuid
+  sensor      Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  value       Decimal  @db.Decimal(10, 2)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@map("sensor_readings")

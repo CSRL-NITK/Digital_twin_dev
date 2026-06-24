@@ -1,34 +1,91 @@
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { prisma } from './lib/prisma';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+import authRoutes from './routes/auth.routes';
+import { initMqttService } from './services/mqtt.service';
+import bcrypt from 'bcrypt';
+
+// Sync admin, operator, and viewer credentials from .env
+async function syncAdminUser() {
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+  
+  try {
+    // Admin
+    const adminHash = await bcrypt.hash(adminPassword, 10);
+    await prisma.user.upsert({
+      where: { username: adminUsername },
+      update: { passwordHash: adminHash, role: 'admin', name: 'System Administrator' },
+      create: { username: adminUsername, passwordHash: adminHash, role: 'admin', name: 'System Administrator' }
+    });
+    console.log(`User '${adminUsername}' (admin) synced`);
+
+    // Operator
+    const operatorHash = await bcrypt.hash('operator123', 10);
+    await prisma.user.upsert({
+      where: { username: 'operator' },
+      update: { passwordHash: operatorHash, role: 'operator', name: 'Field Operator' },
+      create: { username: 'operator', passwordHash: operatorHash, role: 'operator', name: 'Field Operator' }
+    });
+    console.log(`User 'operator' synced`);
+
+    // Viewer
+    const viewerHash = await bcrypt.hash('viewer123', 10);
+    await prisma.user.upsert({
+      where: { username: 'viewer' },
+      update: { passwordHash: viewerHash, role: 'viewer', name: 'Dashboard Viewer' },
+      create: { username: 'viewer', passwordHash: viewerHash, role: 'viewer', name: 'Dashboard Viewer' }
+    });
+    console.log(`User 'viewer' synced`);
+    
+  } catch (error) {
+    console.error('Failed to sync users:', error);
+  }
+}
+syncAdminUser();
 
 // Support serialization of BigInt to JSON
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
 };
 
-dotenv.config();
-
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: 'http://localhost:5173', // Must specify exact origin for credentials
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    credentials: true
   }
 });
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+// Security Middlewares
+app.use(helmet());
 
-app.use(cors());
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per `window` (here, per 15 minutes)
+  message: { error: 'Too many login attempts, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+
+// Routes
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth', authRoutes);
 
 // REST APIs
 app.get('/api/topologies', async (req, res) => {
@@ -43,7 +100,11 @@ app.get('/api/topologies/:name', async (req, res) => {
   const topology = await prisma.topology.findFirst({
     where: { name: { contains: topologyName, mode: 'insensitive' } },
     include: {
-      nodes: true,
+      nodes: {
+        include: {
+          sensors: true
+        }
+      },
       edges: true
     }
   });
@@ -54,36 +115,50 @@ app.get('/api/topologies/:name', async (req, res) => {
 });
 
 app.get('/api/nodes', async (req, res) => {
-  const nodes = await prisma.node.findMany();
+  const nodes = await prisma.node.findMany({
+    include: { sensors: true }
+  });
   res.json(nodes);
 });
 
 app.get('/api/readings/latest', async (req, res) => {
-  // Get latest reading for each node
-  const nodes = await prisma.node.findMany();
-  const latestReadings = await Promise.all(
-    nodes.map(async (node) => {
-      const reading = await prisma.sensorReading.findFirst({
-        where: { nodeId: node.id },
-        orderBy: { createdAt: 'desc' },
-      });
-      return { nodeId: node.id, reading };
-    })
-  );
+  const state = twinEngine.getTwinState();
+  const formatted = [];
   
-  const formatted = latestReadings
-    .filter(r => r.reading !== null)
-    .map(r => r.reading);
-    
+  for (const nodeState of Object.values(state)) {
+    if (nodeState.dbSensors && nodeState.lastUpdated) {
+      const vals: Record<string, number | undefined> = {
+        'water_level': nodeState.waterLevel,
+        'ph': nodeState.ph,
+        'tds': nodeState.tds,
+        'temperature': nodeState.temperature
+      };
+      
+      for (const [sType, sVal] of Object.entries(vals)) {
+        if (sVal !== undefined) {
+          const dbSensor = nodeState.dbSensors.find((s: any) => s.sensorType === sType);
+          if (dbSensor) {
+            formatted.push({
+              sensorId: dbSensor.id,
+              value: sVal,
+              createdAt: nodeState.lastUpdated
+            });
+          }
+        }
+      }
+    }
+  }
+  
   res.json(formatted);
 });
 
 app.get('/api/readings/history/:nodeId', async (req, res) => {
   const { nodeId } = req.params;
   const history = await prisma.sensorReading.findMany({
-    where: { nodeId },
+    where: { sensor: { nodeId } },
+    include: { sensor: true },
     orderBy: { createdAt: 'desc' },
-    take: 50 // limit history for UI
+    take: 200 // get history for all 4 sensors
   });
   res.json(history.reverse());
 });
@@ -130,66 +205,7 @@ app.get('/api/alerts', async (req, res) => {
 
 // Endpoint for Python generator to push new readings
 app.post('/api/telemetry', async (req, res) => {
-  try {
-    const { nodeId, waterLevel, ph, tds, temperature } = req.body;
-    
-    // Save to DB
-    const reading = await prisma.sensorReading.create({
-      data: {
-        nodeId,
-        waterLevel,
-        ph,
-        tds,
-        temperature
-      }
-    });
-    
-    // Determine status rules
-    let status = 'Healthy';
-    if (ph === -999 || temperature === -999 || tds === -999) {
-      status = 'Offline';
-    } else {
-      if (ph < 6.5 || ph > 8.5) status = 'Warning';
-      if (waterLevel < 30) status = 'Warning';
-      if (waterLevel < 15) status = 'Critical';
-    }
-    
-    // Update Node status if changed
-    const node = await prisma.node.findUnique({ where: { id: nodeId } });
-    if (node && node.status !== status) {
-      await prisma.node.update({
-        where: { id: nodeId },
-        data: { status }
-      });
-      
-      // Create Alert
-      if (status !== 'Healthy') {
-        await prisma.alert.create({
-          data: {
-            nodeId,
-            alertType: status === 'Critical' ? 'Water Level Critical' : 'Out of Bounds',
-            severity: status,
-            message: `Node ${node.nodeName} is in ${status} state (WL: ${waterLevel}, pH: ${ph})`
-          }
-        });
-      }
-    }
-
-    // Emit to clients
-    io.emit('reading:update', {
-      nodeId,
-      waterLevel,
-      ph,
-      tds,
-      temperature,
-      status
-    });
-
-    res.status(200).json({ success: true, reading });
-  } catch (error) {
-    console.error('Error inserting telemetry:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  res.status(400).json({ error: "REST telemetry ingestion is deprecated. Use MQTT." });
 });
 
 io.on('connection', (socket) => {
@@ -202,4 +218,35 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
+});
+
+// MQTT Broker Setup
+const { Aedes } = require('aedes');
+const mqttServerFactory = require('aedes-server-factory');
+const MQTT_PORT = 1883;
+
+import { twinEngine } from './services/twin.service';
+import { alertEngine } from './services/alert.service';
+
+Aedes.createBroker().then((aedes: any) => {
+  aedes.on('client', (client: any) => {
+    console.log('Aedes client connected:', client ? client.id : client);
+  });
+  aedes.on('clientError', (client: any, err: any) => console.log('Aedes Client error:', client ? client.id : '', err));
+  aedes.on('connectionError', (client: any, err: any) => console.log('Aedes Connection error:', client ? client.id : '', err));
+
+  const mqttServer = mqttServerFactory.createServer(aedes);
+  mqttServer.listen(MQTT_PORT, '0.0.0.0', () => {
+    console.log(`MQTT Broker running on port ${MQTT_PORT}`);
+    
+    // Initialize Twin Engine & Alert Engine
+    twinEngine.setSocketServer(io);
+    twinEngine.initDbMapping();
+    alertEngine.setSocketServer(io);
+
+    // Initialize the external MQTT service pipeline
+    initMqttService(io);
+  });
+}).catch((err: any) => {
+  console.error('Failed to start Aedes broker:', err);
 });
