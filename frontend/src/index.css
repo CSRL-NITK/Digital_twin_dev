@@ -1,136 +1,184 @@
+/* ════════════════════════════════════════════════════════════════════
+   AQUATWIN — DESIGN SYSTEM  v3
+   Palette provided by user:
+     #17181c  →  sidebar / dark surfaces
+     #f3f3f3  →  page background
+     #ffffff  →  card (light)
+     #e9eeea  →  card (slightly darker)
+   ════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --color-primary: var(--color-primary);
-  --color-secondary: var(--color-secondary);
-  --color-success: var(--color-success);
-  --color-warning: var(--color-warning);
-  --color-danger: var(--color-danger);
-  
-  --color-background: var(--color-background);
-  --color-surface: var(--color-surface);
-  --color-border: var(--color-border);
-  
-  --radius-base: var(--radius-base);
-  --radius-card: var(--radius-card);
-  --radius-button: var(--radius-button);
-  
-  --shadow-soft: var(--shadow-soft);
-  
-  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
+/* ── LIGHT TOKENS ───────────────────────────────────────────────── */
 :root {
-  /* Light Theme (Phase 1 Specifications) */
-  --color-primary: #2563EB;
-  --color-secondary: #06B6D4;
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  
-  --color-background: #FFFFFF;
-  --color-surface: #F8FAFC;
-  --color-border: #E2E8F0;
-  
-  /* Radii */
-  --radius-base: 16px;
-  --radius-card: 20px;
-  --radius-button: 14px;
-  
-  /* Shadows */
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.05);
+  /* ── Core palette (exact user values) ── */
+  --dt-dark:          #17181c;   /* sidebar, topbar logo bg, dark surfaces   */
+  --dt-bg:            #f3f3f3;   /* page background                          */
+  --dt-card:          #ffffff;   /* primary card / panel                     */
+  --dt-card-alt:      #e9eeea;   /* secondary card (slightly tinted)         */
+
+  /* ── Derived surfaces ── */
+  --dt-sidebar:       var(--dt-dark);
+  --dt-sidebar-border:rgba(255,255,255,0.07);
+  --dt-topbar:        #ffffff;
+  --dt-topbar-border: rgba(0,0,0,0.07);
+
+  /* ── Typography ── */
+  --dt-text:          #17181c;   /* same as sidebar dark = maximum contrast  */
+  --dt-text-2:        #5a5f6b;   /* secondary labels                         */
+  --dt-text-3:        #9ca3af;   /* muted / placeholder                      */
+
+  /* ── Accent — lime (from reference) ── */
+  --dt-accent:        #c8f135;
+  --dt-accent-dim:    rgba(200,241,53,0.15);
+  --dt-accent-dark:   #a6cc1a;   /* darker lime for icons on light bg        */
+
+  /* ── Status ── */
+  --dt-green:         #22c55e;
+  --dt-amber:         #f59e0b;
+  --dt-red:           #ef4444;
+
+  /* ── Shadows (clean, no blur) ── */
+  --dt-shadow-sm:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --dt-shadow-md:     0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+  --dt-shadow-lg:     0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+
+  /* ── Node cards ── */
+  --dt-node:          #ffffff;
+  --dt-node-border:   rgba(0,0,0,0.07);
+  --dt-node-shadow:   var(--dt-shadow-md);
+
+  /* ── Radius ── */
+  --r-xs:  6px;
+  --r-sm:  10px;
+  --r-md:  14px;
+  --r-lg:  18px;
+  --r-xl:  22px;
+
+  /* ── Font ── */
+  --font: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ── Legacy aliases (keep existing Tailwind classes working) ── */
+  --color-primary:       var(--dt-accent);
+  --color-secondary:     var(--dt-text-2);
+  --color-success:       var(--dt-green);
+  --color-warning:       var(--dt-amber);
+  --color-danger:        var(--dt-red);
+  --color-background:    var(--dt-bg);
+  --color-surface:       var(--dt-card);
+  --color-surface-light: var(--dt-card-alt);
+  --color-border:        rgba(0,0,0,0.07);
+  --color-text:          var(--dt-text);
+  --color-text-muted:    var(--dt-text-2);
+  --shadow-soft:         var(--dt-shadow-md);
+  --shadow-float:        var(--dt-shadow-lg);
+  --radius-base:         var(--r-md);
+  --radius-card:         var(--r-lg);
+  --radius-button:       var(--r-sm);
+  --font-inter:          var(--font);
 }
 
+/* ── DARK MODE ─────────────────────────────────────────────────── */
 .dark {
-  /* Dark Theme (Derived) */
-  --color-primary: #3B82F6;
-  --color-secondary: #22D3EE;
-  --color-success: #34D399;
-  --color-warning: #FBBF24;
-  --color-danger: #F87171;
-  
-  --color-background: #0F172A;
-  --color-surface: #1E293B;
-  --color-border: #334155;
-  
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.5); /* Stronger shadow for dark mode */
+  --dt-bg:            #111215;
+  --dt-card:          #1c1d22;
+  --dt-card-alt:      #22232a;
+  --dt-sidebar:       #0e0f12;
+  --dt-sidebar-border:rgba(255,255,255,0.05);
+  --dt-topbar:        #1c1d22;
+  --dt-topbar-border: rgba(255,255,255,0.06);
+  --dt-text:          #f0f0f2;
+  --dt-text-2:        #6b7280;
+  --dt-text-3:        #374151;
+  --dt-node:          #1c1d22;
+  --dt-node-border:   rgba(255,255,255,0.07);
+  --dt-shadow-sm:     0 1px 3px rgba(0,0,0,0.25);
+  --dt-shadow-md:     0 4px 16px rgba(0,0,0,0.30);
+  --dt-shadow-lg:     0 8px 32px rgba(0,0,0,0.40);
+  --color-background: var(--dt-bg);
+  --color-surface:    var(--dt-card);
+  --color-border:     rgba(255,255,255,0.06);
+  --color-text:       var(--dt-text);
+  --color-text-muted: var(--dt-text-2);
 }
+
+/* ── GLOBAL RESET ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root      { height: 100%; width: 100%; overflow: hidden; }
 
 body {
-  background-color: var(--color-background);
-  color: #111827;
-  font-family: var(--font-inter);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  margin: 0;
-  padding: 0;
+  font-family:              var(--font);
+  font-size:                14px;
+  line-height:              1.55;
+  color:                    var(--dt-text);
+  background:               var(--dt-bg);
+  -webkit-font-smoothing:   antialiased;
+  -moz-osx-font-smoothing:  grayscale;
 }
 
-.dark body {
-  color: #F8FAFC;
+/* ── CARD UTILITY CLASSES ──────────────────────────────────────── */
+.card {
+  background:    var(--dt-card);
+  border:        1px solid rgba(0,0,0,0.07);
+  border-radius: var(--r-lg);
+  box-shadow:    var(--dt-shadow-md);
+}
+.card-alt {
+  background:    var(--dt-card-alt);
+  border:        1px solid rgba(0,0,0,0.06);
+  border-radius: var(--r-lg);
+  box-shadow:    var(--dt-shadow-sm);
 }
 
-/* Typography Hierarchy (Tailwind classes will use these, but defined for raw tags as fallback) */
-h1 { font-size: 32px; font-weight: 700; line-height: 1.2; } /* Page Titles */
-h2 { font-size: 24px; font-weight: 600; line-height: 1.3; } /* Section Titles */
-h3 { font-size: 18px; font-weight: 600; line-height: 1.4; } /* Card Titles */
-p, span, div { font-size: 16px; line-height: 1.5; } /* Content */
-small { font-size: 14px; color: var(--color-border); } /* Secondary Text */
-.metadata { font-size: 12px; } /* Metadata */
+/* Legacy glass classes → map to clean cards */
+.glass        { background: var(--dt-card);     border: 1px solid rgba(0,0,0,0.07); box-shadow: var(--dt-shadow-md); }
+.glass-panel  { background: var(--dt-card);     border: 1px solid rgba(0,0,0,0.07); border-radius: var(--r-lg); box-shadow: var(--dt-shadow-md); }
+.glass-card   { background: var(--dt-card);     border: 1px solid rgba(0,0,0,0.07); border-radius: var(--r-md);  box-shadow: var(--dt-shadow-sm);
+                transition: box-shadow 0.2s, transform 0.2s; }
+.glass-card:hover { box-shadow: var(--dt-shadow-lg); transform: translateY(-1px); }
 
-/* Phase 1 Utilities */
-.glass-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  box-shadow: var(--shadow-soft);
-}
+/* ── REACT FLOW ────────────────────────────────────────────────── */
+.react-flow__node { border-radius: var(--r-lg); }
 
-.glass-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-soft);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
-}
-
-/* React Flow Custom Overrides */
-.react-flow__node {
-  border-radius: var(--radius-card);
-}
-
-.react-flow__edge-path {
-  stroke: var(--color-border);
-  stroke-width: 3;
-}
-
+.react-flow__edge-path { stroke: rgba(23,24,28,0.12); stroke-width: 2; }
 .react-flow__edge.animated .react-flow__edge-path {
-  stroke: var(--color-primary);
-  stroke-dasharray: 5;
-  animation: dashdraw 1s linear infinite;
+  stroke: var(--dt-accent); stroke-dasharray: 6;
+  animation: dash 1.2s linear infinite;
+}
+@keyframes dash { from { stroke-dashoffset: 12; } }
+
+.react-flow__background { background: var(--dt-bg) !important; }
+
+.react-flow__controls {
+  border-radius: var(--r-sm) !important; overflow: hidden;
+  box-shadow: var(--dt-shadow-md) !important;
+  border: 1px solid rgba(0,0,0,0.07) !important;
+}
+.react-flow__controls button {
+  background: var(--dt-card) !important;
+  border-color: rgba(0,0,0,0.07) !important;
+  color: var(--dt-text) !important;
+  backdrop-filter: none !important;
+}
+.react-flow__minimap {
+  border-radius: var(--r-sm) !important; overflow: hidden !important;
+  box-shadow: var(--dt-shadow-md) !important;
+  border: 1px solid rgba(0,0,0,0.07) !important;
+  background: var(--dt-card-alt) !important;
 }
 
-@keyframes dashdraw {
-  from { stroke-dashoffset: 10; }
-}
+/* ── TYPOGRAPHY ─────────────────────────────────────────────────── */
+h1 { font-size: 26px; font-weight: 800; line-height: 1.2; letter-spacing: -0.6px; }
+h2 { font-size: 18px; font-weight: 700; line-height: 1.3; letter-spacing: -0.4px; }
+h3 { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: -0.2px; }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--radius-base);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-secondary);
-}
+/* ── SCROLLBAR ──────────────────────────────────────────────────── */
+::-webkit-scrollbar             { width: 5px; height: 5px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: rgba(0,0,0,0.10); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.20); }
+
+/* ── SELECTION ──────────────────────────────────────────────────── */
+::selection { background: rgba(200,241,53,0.30); }

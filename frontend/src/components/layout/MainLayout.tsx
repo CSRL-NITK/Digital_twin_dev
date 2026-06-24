@@ -1,18 +1,481 @@
 import { Outlet } from 'react-router-dom';
-import Navbar from './Navbar';
-import StatusBar from './StatusBar';
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  ChevronDown, Bell, LogOut,
+  Activity, LayoutDashboard, BarChart2,
+  Moon, Sun, Droplets,
+  Wifi, Server, AlertTriangle,
+} from 'lucide-react';
+import axios from 'axios';
+import { useTheme } from '../ThemeProvider';
 
-export default function MainLayout() {
+/* ════════════════════════════════════════════════════════════════
+   SIDEBAR
+   bg: #17181c  |  active: lime  |  inactive: white-26
+════════════════════════════════════════════════════════════════ */
+function Sidebar() {
+  const { pathname } = useLocation();
+
+  const nav = [
+    { label: 'Live',       to: '/star-topology', Icon: Activity      },
+    { label: 'Dashboard',  to: '/dashboard',     Icon: LayoutDashboard },
+    { label: 'Simulation', to: '/analytics',     Icon: BarChart2     },
+  ];
+
+  const logout = async () => {
+    try { await axios.post('http://localhost:3001/api/auth/logout'); } catch (_) {}
+    window.location.href = '/login';
+  };
+
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background text-text">
-      <Navbar />
-      
-      {/* Main Content Area */}
-      <main className="flex-1 relative overflow-hidden bg-surface-light">
-        <Outlet />
-      </main>
+    <aside
+      id="sidebar"
+      style={{
+        width: 64, flexShrink: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        height: '100%', paddingTop: 20, paddingBottom: 20,
+        background: '#17181c',
+        borderRadius: 18,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        border: '1px solid rgba(255,255,255,0.05)',
+      }}
+    >
+      {/* Logo badge */}
+      <div style={{
+        width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+        background: 'linear-gradient(145deg, #c8f135 0%, #a6cc1a 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: 30,
+        boxShadow: '0 4px 14px rgba(200,241,53,0.38)',
+      }}>
+        <Droplets size={19} color="#17181c" strokeWidth={2.5} />
+      </div>
 
-      <StatusBar />
+      {/* Nav */}
+      <nav style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 4, flex: 1, width: '100%', padding: '0 10px',
+      }}>
+        {nav.map(({ label, to, Icon }) => {
+          const active = pathname.startsWith(to);
+          return (
+            <Link
+              key={label} to={to} title={label}
+              style={{
+                width: '100%', height: 42,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 12, textDecoration: 'none',
+                position: 'relative',
+                color:      active ? '#c8f135'                   : 'rgba(255,255,255,0.28)',
+                background: active ? 'rgba(200,241,53,0.12)'     : 'transparent',
+                border:     active ? '1px solid rgba(200,241,53,0.18)' : '1px solid transparent',
+                transition: 'all 0.16s ease',
+              }}
+            >
+              <Icon size={19} strokeWidth={active ? 2.3 : 1.8} />
+              {active && (
+                <span style={{
+                  position: 'absolute', left: -11, top: '50%', transform: 'translateY(-50%)',
+                  width: 3, height: 20, borderRadius: 99,
+                  background: '#c8f135',
+                  boxShadow: '0 0 8px rgba(200,241,53,0.5)',
+                }} />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Logout */}
+      <button
+        id="logout-btn" onClick={logout} title="Logout"
+        style={{
+          width: 40, height: 40, borderRadius: 12,
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'rgba(255,255,255,0.28)',
+          background: 'transparent', cursor: 'pointer', flexShrink: 0,
+          transition: 'all 0.16s ease',
+        }}
+        onMouseEnter={e => {
+          const b = e.currentTarget as HTMLButtonElement;
+          b.style.borderColor = 'rgba(239,68,68,0.35)';
+          b.style.color = '#f87171';
+          b.style.background = 'rgba(239,68,68,0.10)';
+        }}
+        onMouseLeave={e => {
+          const b = e.currentTarget as HTMLButtonElement;
+          b.style.borderColor = 'rgba(255,255,255,0.08)';
+          b.style.color = 'rgba(255,255,255,0.28)';
+          b.style.background = 'transparent';
+        }}
+      >
+        <LogOut size={16} strokeWidth={2} />
+      </button>
+    </aside>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TOP BAR  — 64px
+   bg: #ffffff (card)  |  border-bottom: rgba(0,0,0,0.07)
+════════════════════════════════════════════════════════════════ */
+function TopBar() {
+  const { theme, setTheme } = useTheme();
+  const dark = theme === 'dark';
+
+  /* circle icon button */
+  const circle: React.CSSProperties = {
+    width: 38, height: 38, borderRadius: '50%',
+    border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+    background: dark ? '#22232a' : '#f3f3f3',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', flexShrink: 0,
+    color: dark ? '#6b7280' : '#5a5f6b',
+    transition: 'background 0.15s, border-color 0.15s',
+  };
+
+  return (
+    <header
+      id="topbar"
+      style={{
+        height: 64, flexShrink: 0,
+        display: 'flex', alignItems: 'center',
+        padding: '0 20px', gap: 10,
+        background: dark ? '#1c1d22' : '#ffffff',
+        borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}
+    >
+      {/* ── Logo pill ── */}
+      <div
+        id="logo"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 9,
+          padding: '7px 15px',
+          borderRadius: 12,
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
+          background: dark ? '#22232a' : '#f3f3f3',
+          flexShrink: 0,
+        }}
+      >
+        <div style={{
+          width: 26, height: 26, borderRadius: 8,
+          background: '#17181c',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Droplets size={14} color="#c8f135" strokeWidth={2.3} />
+        </div>
+        <span style={{
+          fontSize: 15, fontWeight: 800, letterSpacing: '-0.5px',
+          color: dark ? '#f0f0f2' : '#17181c',
+          fontFamily: 'var(--font)',
+        }}>
+          AquaTwin
+        </span>
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      {/* ── Topology selector ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          fontSize: 13.5, fontWeight: 400, letterSpacing: '-0.1px',
+          color: dark ? '#6b7280' : '#9ca3af',
+          fontFamily: 'var(--font)',
+        }}>
+          Digital twin for
+        </span>
+
+        <span style={{ color: dark ? '#374151' : '#d1d5db', fontSize: 16, lineHeight: 1 }}>·</span>
+
+        {/* Dropdown */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          padding: '6px 13px', borderRadius: 12, cursor: 'pointer',
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
+          background: dark ? '#22232a' : '#f3f3f3',
+          transition: 'background 0.15s',
+        }}>
+          {/* live dot */}
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+            background: '#c8f135',
+            boxShadow: '0 0 6px rgba(200,241,53,0.55)',
+          }} />
+          <span style={{
+            fontSize: 14, fontWeight: 700, letterSpacing: '-0.3px',
+            color: dark ? '#f0f0f2' : '#17181c',
+            fontFamily: 'var(--font)',
+          }}>
+            Star Topology
+          </span>
+          <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#9ca3af'} />
+        </div>
+      </div>
+
+      <div style={{ width: 4 }} />
+
+      {/* Theme toggle */}
+      <button
+        id="theme-toggle" style={circle}
+        onClick={() => setTheme(dark ? 'light' : 'dark')}
+        title="Toggle theme"
+      >
+        {dark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+      </button>
+
+      {/* Bell */}
+      <button
+        id="alert-bell"
+        style={{ ...circle, position: 'relative' }}
+        title="Alerts"
+      >
+        <Bell size={16} strokeWidth={2} />
+        <span style={{
+          position: 'absolute', top: 9, right: 9,
+          width: 7, height: 7, borderRadius: '50%',
+          background: '#ef4444',
+          border: '2px solid ' + (dark ? '#1c1d22' : '#ffffff'),
+          boxShadow: '0 1px 4px rgba(239,68,68,0.45)',
+        }} />
+      </button>
+    </header>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BLANK PANEL
+   bg: #e9eeea  |  border: rgba(0,0,0,0.06)
+════════════════════════════════════════════════════════════════ */
+function BlankPanel({ id }: { id: string }) {
+  return (
+    <div
+      id={id}
+      style={{
+        width: '100%', height: '100%',
+        background: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.07)',
+        borderRadius: 18,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden', position: 'relative',
+      }}
+    >
+      {/* Inner dashed inset */}
+      <div style={{
+        position: 'absolute', inset: 10, borderRadius: 12,
+        border: '1.5px dashed rgba(0,0,0,0.10)',
+        pointerEvents: 'none',
+      }} />
+      <span style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.16em',
+        textTransform: 'uppercase', color: 'rgba(0,0,0,0.22)',
+        writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+        userSelect: 'none', fontFamily: 'var(--font)',
+      }}>
+        blank · update later
+      </span>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ANALYTICS STRIP  — 160px · 3 columns
+   bg: #ffffff  |  dividers: rgba(0,0,0,0.06)
+   col icons: tinted pill bg (amber/lime/green)
+════════════════════════════════════════════════════════════════ */
+function AnalyticsStrip() {
+  return (
+    <div
+      id="analytics-strip"
+      style={{
+        height: 200, flexShrink: 0,
+        display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
+        background: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.07)',
+        borderRadius: 18, overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      }}
+    >
+      {/* ── Col 1: Alerts ── */}
+      <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'rgba(245,158,11,0.10)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <AlertTriangle size={14} color="#f59e0b" strokeWidth={2.2} />
+          </div>
+          <span style={{
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: '#9ca3af',
+            fontFamily: 'var(--font)',
+          }}>
+            Recent Alerts
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {[
+            { time: '14:02', msg: 'T2 pH warning (6.4)',  dot: '#f59e0b' },
+            { time: '13:45', msg: 'P1 flow fluctuation',  dot: '#9ca3af' },
+          ].map(r => (
+            <div key={r.time} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.dot, flexShrink: 0 }} />
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#17181c', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.1px' }}>
+                {r.time}
+              </span>
+              <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.msg}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 9.5, color: '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          blank · will update later
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div style={{ background: 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
+
+      {/* ── Col 2: MQTT ── */}
+      <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'rgba(200,241,53,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Wifi size={14} color="#7fb200" strokeWidth={2.2} />
+          </div>
+          <span style={{
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: '#9ca3af',
+            fontFamily: 'var(--font)',
+          }}>
+            MQTT Status
+          </span>
+        </div>
+        {[
+          { label: 'Connection',   value: 'Connected', color: '#22c55e', dot: true  },
+          { label: 'Message rate', value: '12 msg/s',  color: '#17181c', dot: false },
+          { label: 'Topics',       value: '3 active',  color: '#17181c', dot: false },
+        ].map(r => (
+          <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: r.color }}>
+              {r.dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />}
+              {r.value}
+            </span>
+          </div>
+        ))}
+        <p style={{ fontSize: 9.5, color: '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          blank · will update later
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div style={{ background: 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
+
+      {/* ── Col 3: System ── */}
+      <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'rgba(34,197,94,0.10)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Server size={14} color="#22c55e" strokeWidth={2.2} />
+          </div>
+          <span style={{
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: '#9ca3af',
+            fontFamily: 'var(--font)',
+          }}>
+            System Activity
+          </span>
+        </div>
+        {[
+          { label: 'PostgreSQL',  value: 'Healthy', color: '#22c55e' },
+          { label: 'Backend API', value: 'Healthy', color: '#22c55e' },
+          { label: 'Node uptime', value: '99.9%',   color: '#17181c' },
+        ].map(r => (
+          <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: r.color }}>{r.value}</span>
+          </div>
+        ))}
+        <p style={{ fontSize: 9.5, color: '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          blank · will update later
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ROOT LAYOUT
+════════════════════════════════════════════════════════════════ */
+export default function MainLayout() {
+  const [selectedNode, setSelectedNode] = useState<any>(null);
+
+  return (
+    <div
+      id="app-root"
+      style={{
+        display: 'flex', flexDirection: 'column',
+        height: '100vh', width: '100vw', overflow: 'hidden',
+        background: '#f3f3f3',
+        fontFamily: 'var(--font)',
+        color: '#17181c',
+      }}
+    >
+      <TopBar />
+
+      <div
+        id="body"
+        style={{
+          display: 'flex', flex: 1, overflow: 'hidden',
+          padding: '12px 14px 14px', gap: 12, minHeight: 0,
+        }}
+      >
+        <Sidebar />
+
+        {/* Left blank panel  — #e9eeea */}
+        <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
+          <BlankPanel id="left-panel" />
+        </div>
+
+        {/* Center column */}
+        <div
+          id="center-col"
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0, minHeight: 0 }}
+        >
+          {/* Main visualization — #ffffff */}
+          <div
+            id="visualization-panel"
+            style={{
+              flex: 1, minHeight: 0,
+              background: '#ffffff',
+              border: '1px solid rgba(0,0,0,0.07)',
+              borderRadius: 18, overflow: 'hidden', position: 'relative',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            }}
+          >
+            <Outlet context={{ selectedNode, setSelectedNode }} />
+          </div>
+
+          {/* Analytics strip — #ffffff */}
+          <AnalyticsStrip />
+        </div>
+
+        {/* Right blank panel  — #e9eeea */}
+        <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
+          <BlankPanel id="right-panel" />
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,54 +3,69 @@ import axios from 'axios';
 
 const BACKEND_URL = 'http://localhost:3001';
 
+const STATUS: Record<string, { color: string; bg: string; bar: string }> = {
+  Healthy:  { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  bar: '#22c55e' },
+  Warning:  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', bar: '#f59e0b' },
+  Critical: { color: '#ef4444', bg: 'rgba(239,68,68,0.10)',  bar: '#ef4444' },
+  Offline:  { color: '#9ca3af', bg: 'rgba(156,163,175,0.08)',bar: '#9ca3af' },
+};
+
 export default function PumpNode({ data, id }: any) {
   const { nodeName, status } = data;
-  
-  const statusColors: Record<string, string> = {
-    'Healthy': 'bg-success',
-    'Warning': 'bg-warning',
-    'Critical': 'bg-danger',
-    'Offline': 'bg-border',
-  };
-  
-  const statusColor = statusColors[status] || 'bg-border';
-  const isRunning = status !== 'Offline';
+  const s = STATUS[status] ?? STATUS.Offline;
+  const isOnline = status !== 'Offline';
 
-  const toggleNode = async () => {
+  const toggle = async () => {
     try {
-      const newStatus = isRunning ? 'Offline' : 'Healthy';
-      await axios.patch(`${BACKEND_URL}/api/nodes/${id}/status`, { status: newStatus });
-    } catch (e) {
-      console.error("Failed to toggle node", e);
-    }
+      await axios.patch(`${BACKEND_URL}/api/nodes/${id}/status`, {
+        status: isOnline ? 'Offline' : 'Healthy',
+      });
+    } catch (e) { console.error(e); }
   };
 
   return (
-    <div 
-      className="bg-surface border border-border rounded-[20px] w-48 shadow-soft overflow-hidden group cursor-pointer relative"
-      onClick={toggleNode}
+    <div
+      onClick={toggle}
+      style={{
+        width: 152,
+        background: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.07)',
+        borderRadius: 16,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)',
+        overflow: 'hidden', cursor: 'pointer', position: 'relative',
+        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
+      }}
     >
-      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`} />
-      
-      <div className="p-4 pl-5">
-        <h3 className="text-[18px] font-bold text-text mb-3">{nodeName}</h3>
-        
-        <div className="flex flex-col gap-2 text-[14px]">
-          <div className="flex justify-between">
-            <span className="text-text-muted">Pump State</span>
-            <span className="font-semibold text-text">{isRunning ? 'Running' : 'Stopped'}</span>
-          </div>
-          
-          <div className="flex justify-between mt-1 pt-2 border-t border-border">
-            <span className="text-text-muted">Status</span>
-            <span className={`font-semibold ${status === 'Healthy' ? 'text-success' : status === 'Warning' ? 'text-warning' : status === 'Critical' ? 'text-danger' : 'text-text-muted'}`}>
-              {status}
-            </span>
-          </div>
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: s.bar }} />
+
+      <Handle type="target" position={Position.Top}
+        style={{ background: '#e9eeea', border: '1px solid rgba(0,0,0,0.10)', width: 8, height: 8 }} />
+
+      <div style={{ padding: '13px 14px 13px 17px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#17181c', letterSpacing: '-0.4px' }}>
+            {nodeName}
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, color: '#5a5f6b' }}>State</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: isOnline ? '#22c55e' : '#9ca3af' }}>
+            {isOnline ? 'Running' : 'Stopped'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: '#5a5f6b' }}>Status</span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+            background: s.bg, color: s.color,
+          }}>
+            {status}
+          </span>
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-border border-0" />
+      <Handle type="source" position={Position.Bottom}
+        style={{ background: '#e9eeea', border: '1px solid rgba(0,0,0,0.10)', width: 8, height: 8 }} />
     </div>
   );
 }

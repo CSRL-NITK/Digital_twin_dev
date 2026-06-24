@@ -3,72 +3,76 @@ import axios from 'axios';
 
 const BACKEND_URL = 'http://localhost:3001';
 
+const STATUS: Record<string, { color: string; bg: string; bar: string }> = {
+  Healthy:  { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  bar: '#22c55e' },
+  Warning:  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', bar: '#f59e0b' },
+  Critical: { color: '#ef4444', bg: 'rgba(239,68,68,0.10)',  bar: '#ef4444' },
+  Offline:  { color: '#9ca3af', bg: 'rgba(156,163,175,0.08)',bar: '#9ca3af' },
+};
+
 export default function TankNode({ data, id }: any) {
   const { nodeName, waterLevel, ph, tds, temperature, status } = data;
-  
-  const statusColors: Record<string, string> = {
-    'Healthy': 'bg-success',
-    'Warning': 'bg-warning',
-    'Critical': 'bg-danger',
-    'Offline': 'bg-border',
-  };
-  
-  const statusColor = statusColors[status] || 'bg-border';
-  const isRunning = status !== 'Offline';
+  const s = STATUS[status] ?? STATUS.Offline;
+  const isOnline = status !== 'Offline';
+  const fmt = (v: any, d = 1) => v != null && v !== -999 ? Number(v).toFixed(d) : '--';
 
-  const toggleNode = async () => {
+  const toggle = async () => {
     try {
-      const newStatus = isRunning ? 'Offline' : 'Healthy';
-      await axios.patch(`${BACKEND_URL}/api/nodes/${id}/status`, { status: newStatus });
-    } catch (e) {
-      console.error("Failed to toggle node", e);
-    }
+      await axios.patch(`${BACKEND_URL}/api/nodes/${id}/status`, {
+        status: isOnline ? 'Offline' : 'Healthy',
+      });
+    } catch (e) { console.error(e); }
   };
 
   return (
-    <div 
-      className="bg-surface border border-border rounded-[20px] w-48 shadow-soft overflow-hidden group cursor-pointer relative"
-      onClick={toggleNode}
+    <div
+      onClick={toggle}
+      style={{
+        width: 178,
+        background: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.07)',
+        borderRadius: 16,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)',
+        overflow: 'hidden', cursor: 'pointer', position: 'relative',
+        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
+      }}
     >
-      {/* Status left border indicator */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`} />
-      
-      <Handle type="target" position={Position.Top} className="w-2 h-2 bg-border border-0" />
-      
-      <div className="p-4 pl-5">
-        <h3 className="text-[18px] font-bold text-text mb-3">{nodeName}</h3>
-        
-        <div className="flex flex-col gap-2 text-[14px]">
-          <div className="flex justify-between">
-            <span className="text-text-muted">Level</span>
-            <span className="font-semibold text-text">{waterLevel && waterLevel != -999 ? Number(waterLevel).toFixed(1) : '--'}%</span>
-          </div>
-          
-          <div className="flex justify-between">
-            <span className="text-text-muted">pH</span>
-            <span className="font-semibold text-text">{ph && ph != -999 ? Number(ph).toFixed(2) : '--'}</span>
-          </div>
-          
-          <div className="flex justify-between">
-            <span className="text-text-muted">TDS</span>
-            <span className="font-semibold text-text">{tds && tds != -999 ? Number(tds).toFixed(0) : '--'} ppm</span>
-          </div>
-          
-          <div className="flex justify-between">
-            <span className="text-text-muted">Temp</span>
-            <span className="font-semibold text-text">{temperature && temperature != -999 ? Number(temperature).toFixed(1) : '--'}°C</span>
-          </div>
-          
-          <div className="flex justify-between mt-1 pt-2 border-t border-border">
-            <span className="text-text-muted">Status</span>
-            <span className={`font-semibold ${status === 'Healthy' ? 'text-success' : status === 'Warning' ? 'text-warning' : status === 'Critical' ? 'text-danger' : 'text-text-muted'}`}>
-              {status}
-            </span>
-          </div>
+      {/* Status left bar */}
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: s.bar }} />
+
+      <Handle type="target" position={Position.Top}
+        style={{ background: '#e9eeea', border: '1px solid rgba(0,0,0,0.10)', width: 8, height: 8 }} />
+
+      <div style={{ padding: '13px 14px 13px 17px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#17181c', letterSpacing: '-0.4px' }}>
+            {nodeName}
+          </span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+            background: s.bg, color: s.color, letterSpacing: '0.04em',
+          }}>
+            {status}
+          </span>
         </div>
+
+        {/* Metrics */}
+        {[
+          { label: 'Level', value: `${fmt(waterLevel)}%` },
+          { label: 'pH',    value: fmt(ph, 2) },
+          { label: 'TDS',   value: `${fmt(tds, 0)} ppm` },
+          { label: 'Temp',  value: `${fmt(temperature)}°C` },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+            <span style={{ fontSize: 12, color: '#5a5f6b' }}>{label}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#17181c', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+          </div>
+        ))}
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-border border-0" />
+      <Handle type="source" position={Position.Bottom}
+        style={{ background: '#e9eeea', border: '1px solid rgba(0,0,0,0.10)', width: 8, height: 8 }} />
     </div>
   );
 }

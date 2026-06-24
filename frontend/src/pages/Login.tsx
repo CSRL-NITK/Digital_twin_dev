@@ -3,163 +3,217 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import axios from 'axios';
-import { Waves, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Droplets, Loader2, AlertCircle, CheckCircle2, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
 
-import { Button } from '@/components/ui/button';
-
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ThemeToggle } from '@/components/ThemeToggle';
-
-// Global axios defaults for HTTP-Only cookies
 axios.defaults.withCredentials = true;
 
-const formSchema = z.object({
-  username: z.string().min(3, { message: 'Username must be at least 3 characters' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters' }),
+const schema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
+type FormData = z.infer<typeof schema>;
+
+const FONT = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
 
 export default function Login() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading]  = useState(false);
+  const [error,   setError]    = useState('');
+  const [success, setSuccess]  = useState(false);
+  const { theme, setTheme } = useTheme();
+  const dark = theme === 'dark';
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: '',
-      password: '',
-    },
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { username: '', password: '' },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    setErrorMsg('');
-    
+  const onSubmit = async (values: FormData) => {
+    setLoading(true); setError('');
     try {
-      // Backend expects /api/auth/login
       const res = await axios.post('http://localhost:3001/api/auth/login', values);
       if (res.status === 200) {
         setSuccess(true);
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
+        setTimeout(() => { window.location.href = '/'; }, 1000);
       }
     } catch (err: any) {
-      if (err.response?.status === 429) {
-         setErrorMsg('Too many login attempts. Please try again later.');
-      } else {
-         setErrorMsg(err.response?.data?.error || 'Failed to login');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }
+      if (err.response?.status === 429) setError('Too many attempts. Try again later.');
+      else setError(err.response?.data?.error || 'Login failed');
+    } finally { setLoading(false); }
+  };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row relative">
-      {/* Absolute Theme Toggle */}
-      <div className="absolute top-4 right-4 z-50">
-        <ThemeToggle />
-      </div>
+    <div style={{
+      minHeight: '100vh', width: '100vw',
+      background: dark ? '#111215' : '#f3f3f3',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: FONT, position: 'relative',
+    }}>
+      {/* Theme toggle */}
+      <button
+        onClick={() => setTheme(dark ? 'light' : 'dark')}
+        style={{
+          position: 'absolute', top: 20, right: 20,
+          width: 38, height: 38, borderRadius: '50%',
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+          background: dark ? '#22232a' : '#ffffff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: dark ? '#6b7280' : '#5a5f6b', cursor: 'pointer',
+        }}
+      >
+        {dark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+      </button>
 
-      {/* Left side: branding/illustration */}
-      <div className="hidden md:flex flex-1 flex-col justify-center items-center p-12 relative overflow-hidden bg-surface">
-        {/* Subtle decorative background blur */}
-        <div className="absolute w-[600px] h-[600px] rounded-full bg-primary/10 blur-[100px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        
-        <div className="z-10 flex flex-col items-center text-center space-y-6 max-w-md">
-          <div className="p-4 bg-primary/10 rounded-2xl ring-1 ring-primary/20 shadow-2xl shadow-primary/20 mb-4">
-             <Waves className="w-16 h-16 text-primary" strokeWidth={1.5} />
+      {/* Card */}
+      <div style={{
+        width: '100%', maxWidth: 400,
+        background: dark ? '#1c1d22' : '#ffffff',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
+        borderRadius: 22,
+        boxShadow: dark
+          ? '0 8px 40px rgba(0,0,0,0.40)'
+          : '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+        padding: '40px 36px',
+        position: 'relative', zIndex: 1,
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: 12,
+            background: '#17181c',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.20)',
+          }}>
+            <Droplets size={21} color="#c8f135" strokeWidth={2.3} />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-text">
-            Smart Water<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-              Digital Twin
-            </span>
-          </h1>
-         
+          <div>
+            <p style={{ fontSize: 16, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.5px', lineHeight: 1.2 }}>AquaTwin</p>
+            <p style={{ fontSize: 11, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+              Digital Twin Platform
+            </p>
+          </div>
         </div>
-        
-        {/* Abstract wavy lines */}
-        <div className="absolute bottom-0 w-full h-1/3 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(ellipse at bottom, var(--color-primary) 0%, transparent 70%)' }}></div>
-      </div>
 
-      {/* Right side: Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
-        <Card className="w-full max-w-md border-border bg-surface/50 backdrop-blur-xl shadow-2xl">
-          <CardHeader className="space-y-2 pb-6">
-            <CardTitle className="text-2xl font-semibold tracking-tight text-text">Welcome back</CardTitle>
-            <CardDescription className="text-text-muted">
-              Enter your credentials to access the digital twin.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {errorMsg && (
-              <div className="mb-6 p-4 rounded-md bg-critical/10 border border-critical/20 flex items-center gap-3 text-critical text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <p>{errorMsg}</p>
-              </div>
-            )}
-            
-            {success ? (
-              <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <div className="w-16 h-16 bg-healthy/10 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-healthy" />
-                </div>
-                <p className="text-text font-medium">Authentication successful</p>
-                <p className="text-text-muted text-sm">Redirecting to dashboard...</p>
-              </div>
-            ) : (
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-text font-medium text-sm">Username</label>
-                  <Input 
-                    placeholder="admin" 
-                    {...form.register("username")}
-                    className="bg-background border-border text-text placeholder:text-text-muted focus-visible:ring-primary h-11"
-                  />
-                  {form.formState.errors.username && (
-                    <p className="text-critical text-sm mt-1">{form.formState.errors.username.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-text font-medium text-sm">Password</label>
-                    <a href="#" className="text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-                      Forgot password?
-                    </a>
-                  </div>
-                  <Input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    {...form.register("password")}
-                    className="bg-background border-border text-text placeholder:text-text-muted focus-visible:ring-primary h-11"
-                  />
-                  {form.formState.errors.password && (
-                    <p className="text-critical text-sm mt-1">{form.formState.errors.password.message}</p>
-                  )}
-                </div>
+        <p style={{ fontSize: 22, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.6px', marginBottom: 4 }}>
+          Welcome back
+        </p>
+        <p style={{ fontSize: 13.5, color: '#9ca3af', marginBottom: 28 }}>
+          Sign in to access the monitoring dashboard.
+        </p>
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 bg-primary hover:bg-primary-dark text-white shadow-md transition-all font-medium mt-4"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Authenticating
-                    </>
-                  ) : (
-                    'Sign In'
-                  )}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+        {/* Error */}
+        {error && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '11px 14px', borderRadius: 10,
+            background: 'rgba(239,68,68,0.07)',
+            border: '1px solid rgba(239,68,68,0.18)',
+            marginBottom: 20,
+          }}>
+            <AlertCircle size={15} color="#ef4444" />
+            <p style={{ fontSize: 13, color: '#ef4444' }}>{error}</p>
+          </div>
+        )}
+
+        {/* Success */}
+        {success ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0', gap: 12 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: 'rgba(34,197,94,0.10)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CheckCircle2 size={28} color="#22c55e" />
+            </div>
+            <p style={{ fontSize: 15, fontWeight: 700, color: dark ? '#f0f0f2' : '#17181c' }}>Authentication successful</p>
+            <p style={{ fontSize: 13, color: '#9ca3af' }}>Redirecting to dashboard…</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Username */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.2px' }}>
+                Username
+              </label>
+              <input
+                {...register('username')}
+                placeholder="admin"
+                autoComplete="username"
+                style={{
+                  height: 44, padding: '0 14px', borderRadius: 10, width: '100%',
+                  border: `1px solid ${errors.username ? 'rgba(239,68,68,0.45)' : dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)'}`,
+                  background: dark ? '#22232a' : '#f3f3f3',
+                  fontSize: 14, color: dark ? '#f0f0f2' : '#17181c',
+                  outline: 'none', fontFamily: FONT,
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                }}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'rgba(200,241,53,0.65)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,241,53,0.14)';
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = errors.username ? 'rgba(239,68,68,0.45)' : dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              />
+              {errors.username && <p style={{ fontSize: 12, color: '#ef4444' }}>{errors.username.message}</p>}
+            </div>
+
+            {/* Password */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.2px' }}>
+                  Password
+                </label>
+                <a href="#" style={{ fontSize: 12.5, color: '#9ca3af', textDecoration: 'none' }}>Forgot?</a>
+              </div>
+              <input
+                {...register('password')}
+                type="password" placeholder="••••••••"
+                autoComplete="current-password"
+                style={{
+                  height: 44, padding: '0 14px', borderRadius: 10, width: '100%',
+                  border: `1px solid ${errors.password ? 'rgba(239,68,68,0.45)' : dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)'}`,
+                  background: dark ? '#22232a' : '#f3f3f3',
+                  fontSize: 14, color: dark ? '#f0f0f2' : '#17181c',
+                  outline: 'none', fontFamily: FONT,
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                }}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'rgba(200,241,53,0.65)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,241,53,0.14)';
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = errors.password ? 'rgba(239,68,68,0.45)' : dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              />
+              {errors.password && <p style={{ fontSize: 12, color: '#ef4444' }}>{errors.password.message}</p>}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit" disabled={loading}
+              style={{
+                height: 46, borderRadius: 12, border: 'none',
+                background: loading ? '#e9eeea' : '#17181c',
+                color: loading ? '#9ca3af' : '#c8f135',
+                fontSize: 14.5, fontWeight: 800, letterSpacing: '-0.2px',
+                cursor: loading ? 'not-allowed' : 'pointer', fontFamily: FONT,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                marginTop: 8, transition: 'all 0.16s ease',
+                boxShadow: loading ? 'none' : '0 2px 14px rgba(23,24,28,0.22)',
+              }}
+              onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = '#22242a'; }}
+              onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = '#17181c'; }}
+            >
+              {loading
+                ? <><Loader2 size={16} className="animate-spin" /> Authenticating…</>
+                : 'Sign In'
+              }
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -11,11 +11,11 @@ import type { Connection, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import { useOutletContext } from 'react-router-dom';
 
 import TankNode from '../components/nodes/TankNode';
 import CentralTankNode from '../components/nodes/CentralTankNode';
 import PumpNode from '../components/nodes/PumpNode';
-import NodeDetailsPanel from '../components/NodeDetailsPanel';
 
 const nodeTypes = {
   tank: TankNode,
@@ -28,7 +28,7 @@ const BACKEND_URL = 'http://localhost:3001';
 export default function StarTopology() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const { selectedNode, setSelectedNode } = useOutletContext<any>();
   const [nodeHistory, setNodeHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,13 +56,12 @@ export default function StarTopology() {
           }
         }));
 
-        // Format edges for React Flow
         const formattedEdges = data.edges.map((edge: any) => ({
           id: edge.id,
           source: edge.sourceNodeId,
           target: edge.targetNodeId,
           animated: true,
-          style: { stroke: '#3b82f6', strokeWidth: 2 },
+          style: { stroke: 'var(--dt-accent)', strokeWidth: 1.5, opacity: 0.7 },
         }));
 
         setNodes(formattedNodes);
@@ -163,7 +162,7 @@ export default function StarTopology() {
     return () => {
       socket.disconnect();
     };
-  }, [setNodes, setEdges]); // socket is now internal
+  }, [setNodes, setEdges, setSelectedNode]);
 
   const onConnect = useCallback((params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
@@ -174,7 +173,7 @@ export default function StarTopology() {
         positionY: Math.round(node.position.y)
       });
     } catch (e) {
-      console.error("Failed to save node position", e);
+      console.error("Failed to save position", e);
     }
   };
 
@@ -183,11 +182,6 @@ export default function StarTopology() {
       // First try to fetch the node details to get sensors
       const nodeRes = await axios.get(`${BACKEND_URL}/api/nodes`);
       const targetNode = nodeRes.data.find((n:any) => n.id === node.id);
-      
-      // const res = await axios.get(`${BACKEND_URL}/api/readings/history/${node.id}`);
-      
-      // format history for charts
-      // To make charts work, we need to group by time. For simplicity, just use socket history for charts, or reconstruct it:
       
       setNodeHistory([]); // We'll rely on live socket for history chart to avoid complex grouping here
       setSelectedNode({ id: node.id, ...node.data, sensors: targetNode?.sensors || [] });
@@ -206,10 +200,13 @@ export default function StarTopology() {
     );
   }
 
+  // Handle click on canvas background to deselect node
+  const onPaneClick = () => {
+    setSelectedNode(null);
+  };
+
   return (
-    <div className="w-full h-full min-h-[800px] relative glass-panel overflow-hidden">
-
-
+    <div className="w-full h-full relative overflow-hidden bg-transparent rounded-[24px]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -218,12 +215,13 @@ export default function StarTopology() {
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
-        className="bg-background"
+        className="bg-transparent"
         style={{ width: '100%', height: '100%' }}
       >
-        <Background gap={16} size={1} className="opacity-20" />
+        <Background gap={24} size={1.5} color="var(--color-border)" className="opacity-50" />
         <Controls className="bg-surface border-border fill-text-muted rounded-xl overflow-hidden shadow-sm" />
         <MiniMap 
           className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm" 
@@ -235,14 +233,6 @@ export default function StarTopology() {
           }}
         />
       </ReactFlow>
-
-      {selectedNode && (
-        <NodeDetailsPanel 
-          node={selectedNode} 
-          history={nodeHistory}
-          onClose={() => setSelectedNode(null)} 
-        />
-      )}
     </div>
   );
 }
