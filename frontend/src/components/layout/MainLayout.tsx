@@ -158,7 +158,7 @@ function TopBar() {
             color: dark ? '#f0f0f2' : '#17181c',
             fontFamily: 'var(--font)',
           }}>
-            AquaTwin
+            BrandName
           </span>
           <span style={{
             fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em',
@@ -285,7 +285,7 @@ function BlankPanel({ id }: { id: string }) {
         writingMode: 'vertical-rl', transform: 'rotate(180deg)',
         userSelect: 'none', fontFamily: 'var(--font)',
       }}>
-        blank · update later
+        blank yet to integrate grafana 
       </span>
     </div>
   );
