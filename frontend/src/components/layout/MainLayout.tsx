@@ -24,7 +24,7 @@ function Sidebar() {
   ];
 
   const logout = async () => {
-    try { await axios.post('http://localhost:3001/api/auth/logout'); } catch (_) {}
+    try { await axios.post('http://localhost:3001/api/auth/logout'); } catch (err) { console.error(err); }
     window.location.href = '/login';
   };
 
