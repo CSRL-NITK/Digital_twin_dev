@@ -12,13 +12,14 @@ import ReactFlow, {
 import type { Connection, Edge, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
 import axios from 'axios';
+import Switch from '../components/ui/Switch';
 import { io } from 'socket.io-client';
 import { useOutletContext } from 'react-router-dom';
-import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, ScanLine, Frame, Crosshair, Move } from 'lucide-react';
+import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair, Move, Undo, Redo } from 'lucide-react';
 
 import NodeDetailsPanel from '../components/NodeDetailsPanel';
 import { WaterTank as TankWaterTank } from '../components/nodes/WaterTank';
-import { WaterTank as CentralWaterTank } from '../components/nodes/CentralWaterTank';
+import { CentralWaterTank } from '../components/nodes/CentralWaterTank';
 import { WaterTank as SourceWaterTank } from '../components/nodes/SourceWaterTank';
 import { CentrifugalPumpSvg } from '../components/nodes/CentrifugalPump';
 import { useAuth } from '../hooks/useAuth';
@@ -35,6 +36,8 @@ type LiveNodeData = {
   sensors?: any[];
   /* edit-mode extras */
   editMode?: boolean;
+  allowMoveResize?: boolean;
+  onResizeEnd?: (params: any) => void;
 };
 
 /* ─── helpers ────────────────────────────────────────────────────── */
@@ -59,8 +62,9 @@ function TankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 200, minHeight: 160 }}>
-      {data.editMode && (
+      {data.allowMoveResize && (
         <NodeResizer
+          keepAspectRatio={true}
           minWidth={200} minHeight={160}
           isVisible={selected}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
@@ -83,8 +87,9 @@ function CentralTankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 220, minHeight: 160 }}>
-      {data.editMode && (
+      {data.allowMoveResize && (
         <NodeResizer
+          keepAspectRatio={true}
           minWidth={220} minHeight={160}
           isVisible={selected}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
@@ -107,8 +112,9 @@ function SourceTankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 220, minHeight: 160 }}>
-      {data.editMode && (
+      {data.allowMoveResize && (
         <NodeResizer
+          keepAspectRatio={true}
           minWidth={220} minHeight={160}
           isVisible={selected}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
@@ -133,8 +139,9 @@ function PumpNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   const vibrationBoost = status === 'Critical' ? 1.5 : status === 'Warning' ? 1.15 : 1;
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 200, minHeight: 160 }}>
-      {data.editMode && (
+      {data.allowMoveResize && (
         <NodeResizer
+          keepAspectRatio={true}
           minWidth={200} minHeight={160}
           isVisible={selected}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
@@ -154,7 +161,42 @@ function PumpNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   );
 }
 
+
+function ViewportGuideNode({ data, selected }: NodeProps<any>) {
+  const { allowMoveResize } = data;
+  return (
+    <div style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
+      {allowMoveResize && (
+        <NodeResizer
+          minWidth={200}
+          keepAspectRatio={true}
+          isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params)}
+          lineStyle={{ borderColor: 'rgba(200,241,53,0.9)', borderWidth: 2, borderStyle: 'dashed', pointerEvents: 'auto' }}
+          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3, pointerEvents: 'auto' }}
+        />
+      )}
+      <div style={{
+        width: '100%', height: '100%',
+        border: '2px dashed rgba(200,241,53,0.90)',
+        borderRadius: 20,
+        boxShadow: `0 0 0 4000px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(200,241,53,0.18)`,
+      }}>
+        <span style={{
+          position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)',
+          fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif", fontSize: 11, fontWeight: 700, color: '#c8f135',
+          background: 'rgba(23,24,28,0.90)', padding: '3px 12px', borderRadius: 6, whiteSpace: 'nowrap',
+        }}>
+          DASHBOARD VIEWPORT CAMERA
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const nodeTypes = {
+  viewportGuide: ViewportGuideNode,
   tank: TankNodeView,
   central_tank: CentralTankNodeView,
   source_tank: SourceTankNodeView,
@@ -168,12 +210,11 @@ const FONT = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
 /* ─── CUSTOM CONTROLS ─────────────────────────────────────────────
    Must be rendered INSIDE <ReactFlow> so useReactFlow() works.
 ─────────────────────────────────────────────────────────────────── */
-function CustomControls({ containerRef }: { containerRef: React.RefObject<HTMLDivElement> }) {
-  const { fitView } = useReactFlow();
+function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { containerRef: React.RefObject<HTMLDivElement | null>, onUndo?: () => void, onRedo?: () => void, canUndo?: boolean, canRedo?: boolean }) {
+  const { setCenter, fitBounds, getNodes } = useReactFlow();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [resetFlash, setResetFlash] = useState(false);
 
-  /* sync fullscreen state with browser events */
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', onChange);
@@ -189,7 +230,13 @@ function CustomControls({ containerRef }: { containerRef: React.RefObject<HTMLDi
   };
 
   const handleReset = () => {
-    fitView({ duration: 400, padding: 0.12 });
+    const nodes = getNodes();
+    const vpNode = nodes.find(n => n.id === 'viewport-box');
+    if (vpNode) {
+      fitBounds({ x: vpNode.position.x, y: vpNode.position.y, width: parseFloat(vpNode.style?.width as string), height: parseFloat(vpNode.style?.height as string) }, { duration: 400 });
+    } else {
+      setCenter(0, 0, { zoom: 1, duration: 400 });
+    }
     setResetFlash(true);
     setTimeout(() => setResetFlash(false), 600);
   };
@@ -234,6 +281,36 @@ function CustomControls({ containerRef }: { containerRef: React.RefObject<HTMLDi
           }}
         />
       </button>
+
+      {/* Undo */}
+      {isFullscreen && onUndo && (
+        <>
+          <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
+          <button
+            style={{...btn(), opacity: canUndo ? 1 : 0.4, cursor: canUndo ? 'pointer' : 'not-allowed'}} title="Undo"
+            onMouseEnter={canUndo ? hoverIn : undefined} onMouseLeave={hoverOut}
+            onClick={onUndo}
+            disabled={!canUndo}
+          >
+            <Undo size={15} strokeWidth={2.2} />
+          </button>
+        </>
+      )}
+
+      {/* Redo */}
+      {isFullscreen && onRedo && (
+        <>
+          <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
+          <button
+            style={{...btn(), opacity: canRedo ? 1 : 0.4, cursor: canRedo ? 'pointer' : 'not-allowed'}} title="Redo"
+            onMouseEnter={canRedo ? hoverIn : undefined} onMouseLeave={hoverOut}
+            onClick={onRedo}
+            disabled={!canRedo}
+          >
+            <Redo size={15} strokeWidth={2.2} />
+          </button>
+        </>
+      )}
 
       {/* divider */}
       <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
@@ -330,7 +407,7 @@ function EditModeBanner() {
         ADMIN EDIT MODE
       </span>
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', letterSpacing: '-0.1px' }}>
-        Drag to reposition · Select to resize
+        Arrange components & customize the canvas
       </span>
     </div>
   );
@@ -339,56 +416,6 @@ function EditModeBanner() {
 /* ─── DASHBOARD VIEWPORT BOX ──────────────────────────────────────────
    Screen-centred overlay: shows the exact pixel area that
    dashboard viewers see. Does NOT need ReactFlow context.         */
-function DashboardViewportBox({
-  show, size, font,
-}: {
-  show: boolean;
-  size: { w: number; h: number } | null;
-  font: string;
-}) {
-  if (!show || !size) return null;
-
-  return (
-    <div style={{
-      position: 'absolute', zIndex: 18, pointerEvents: 'none',
-      // Always screen-centred — this IS the viewer's pixel window
-      top: '50%', left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width:  size.w,
-      height: size.h,
-      border: '2px dashed rgba(200,241,53,0.90)',
-      borderRadius: 20,
-      // Vignette outside the box
-      boxShadow: '0 0 0 2000px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(200,241,53,0.18)',
-      background: 'transparent',
-    }}>
-      {/* Top-centre label */}
-      <span style={{
-        position: 'absolute', top: -28, left: '50%',
-        transform: 'translateX(-50%)',
-        fontFamily: font, fontSize: 11, fontWeight: 700,
-        color: '#c8f135', letterSpacing: '0.06em',
-        background: 'rgba(23,24,28,0.90)', padding: '3px 12px',
-        borderRadius: 6, whiteSpace: 'nowrap',
-      }}>
-        DASHBOARD VIEWPORT — {size.w} × {size.h}px  |  centred at (0, 0)
-      </span>
-      {/* Corner dots */}
-      {(['0%','0%'] as const) && [
-        ['0%','0%'], ['100%','0%'], ['0%','100%'], ['100%','100%'],
-      ].map(([cx, cy], i) => (
-        <span key={i} style={{
-          position: 'absolute', left: cx, top: cy,
-          width: 12, height: 12,
-          transform: 'translate(-50%,-50%)',
-          borderRadius: '50%',
-          background: '#c8f135',
-          boxShadow: '0 0 8px rgba(200,241,53,0.85)',
-        }} />
-      ))}
-    </div>
-  );
-}
 
 /* ─── CANVAS CROSSHAIR ───────────────────────────────────────────────
    Must be INSIDE <ReactFlow> so useViewport() has context.
@@ -467,20 +494,37 @@ function CanvasCrosshair({ show }: { show: boolean }) {
   );
 }
 
-/* ─── MAIN COMPONENT ─────────────────────────────────────────────── */
+type HistoryAction = {
+  type: 'move' | 'resize';
+  nodeId: string;
+  oldValue: { x: number, y: number, w?: number, h?: number };
+  newValue: { x: number, y: number, w?: number, h?: number };
+};
+
+/* ── MAIN COMPONENT ── */
 export default function StarTopology() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+  const [rfInstance, setRfInstance] = useState<any>(null);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { selectedNode, setSelectedNode } = useOutletContext<any>();
   const [nodeHistory, setNodeHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [undoStack, setUndoStack] = useState<HistoryAction[]>([]);
+  const [redoStack, setRedoStack] = useState<HistoryAction[]>([]);
+  const dragStartPos = useRef<any>(null);
+  const resizeStartDim = useRef<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Three independent sub-toggles — only active while editMode is ON
   const [showViewport, setShowViewport]       = useState(false); // dashboard viewport box
   const [showCrosshair, setShowCrosshair]     = useState(false); // X/Y axis guides
-  const [allowMoveResize, setAllowMoveResize] = useState(false); // drag + resize nodes
-  const [dashboardViewSize, setDashboardViewSize] = useState<{ w: number; h: number } | null>(null);
+  const [allowMoveResize, setAllowMoveResize] = useState(false);
+  const [allowMoveNodes, setAllowMoveNodes] = useState(false);
+  const [allowResizeNodes, setAllowResizeNodes] = useState(false);
+  const [allowMoveViewport, setAllowMoveViewport] = useState(false);
+  const [allowResizeViewport, setAllowResizeViewport] = useState(false); // drag + resize nodes
+  const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
+  
   const { isAdmin } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -495,35 +539,40 @@ export default function StarTopology() {
     }
   }, []);
 
-  /* ── push/pull editMode into node data + clear panel/sub-toggles on change ─ */
+  /* ── Unified Effect: push editMode/allowMoveResize/showViewport into nodes ─ */
   useEffect(() => {
     if (editMode) {
       setSelectedNode(null);
     } else {
       // Reset all sub-toggles when edit mode turns off
+      // eslint-disable-next-line
       setShowViewport(false);
       setShowCrosshair(false);
       setAllowMoveResize(false);
+      setUndoStack([]);
+      setRedoStack([]);
     }
-    setNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        draggable: editMode && allowMoveResize,
-        data: { ...n.data, editMode, allowMoveResize },
-      }))
-    );
-  }, [editMode, allowMoveResize, setNodes, setSelectedNode]);
 
-  /* ── sync allowMoveResize into node data independently ─────────────── */
-  useEffect(() => {
     setNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        draggable: editMode && allowMoveResize,
-        data: { ...n.data, allowMoveResize },
-      }))
+      nds.map((n) => {
+        if (n.id === 'viewport-box') {
+          const isViewportInteractive = allowMoveResize && (allowMoveViewport || allowResizeViewport);
+          return {
+            ...n,
+            hidden: !(editMode && showViewport),
+            draggable: editMode && allowMoveResize && allowMoveViewport,
+            style: { ...n.style, pointerEvents: isViewportInteractive ? 'auto' : 'none' },
+            data: { ...n.data, allowMoveResize: allowMoveResize && allowResizeViewport }
+          };
+        }
+        return {
+          ...n,
+          draggable: editMode && allowMoveResize && allowMoveNodes,
+          data: { ...n.data, editMode, allowMoveResize: allowMoveResize && allowResizeNodes },
+        };
+      })
     );
-  }, [allowMoveResize, editMode, setNodes]);
+  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveViewport, allowResizeViewport, showViewport, setNodes, setSelectedNode]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -537,7 +586,7 @@ export default function StarTopology() {
     const size = { w: Math.round(r.width), h: Math.round(r.height) };
     if (size.w > 0 && size.h > 0) {
       dashboardSizeRef.current = size;
-      setDashboardViewSize(size);
+      
     }
   }, []);
 
@@ -578,6 +627,21 @@ export default function StarTopology() {
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
+  /* ── Sync Viewport when both ReactFlow and Topology data are ready ── */
+  useEffect(() => {
+    if (rfInstance && initialViewportConfig) {
+      // Delay slightly just to ensure DOM is fully painted
+      setTimeout(() => {
+        rfInstance.fitBounds({ 
+          x: initialViewportConfig.x, 
+          y: initialViewportConfig.y, 
+          width: initialViewportConfig.w, 
+          height: initialViewportConfig.h 
+        }, { duration: 0 });
+      }, 50);
+    }
+  }, [rfInstance, initialViewportConfig]);
+
   /* ── initial fetch + socket ─────────────────────────────── */
   useEffect(() => {
     const socket = io(BACKEND_URL);
@@ -611,9 +675,54 @@ export default function StarTopology() {
           style: { stroke: 'var(--dt-accent)', strokeWidth: 1.5, opacity: 0.7 },
         }));
 
-        setNodes(formattedNodes);
+        let vpConfig = { x: -500, y: -250, w: 1000, h: 500 };
+        if (data.description) {
+          try {
+            const parsed = JSON.parse(data.description);
+            if (parsed.viewport && parsed.viewport.w) vpConfig = parsed.viewport;
+          } catch (e) {}
+        }
+        
+        const viewportNode = {
+          id: 'viewport-box',
+          type: 'viewportGuide',
+          position: { x: vpConfig.x, y: vpConfig.y },
+          style: { width: vpConfig.w, height: vpConfig.h, zIndex: 9999 },
+          hidden: true,
+          draggable: false,
+          data: {
+            allowMoveResize: false,
+            onResizeStart: (params: any) => {
+              resizeStartDim.current = { x: Math.round(params.x), y: Math.round(params.y), w: Math.round(params.width), h: Math.round(params.height) };
+            },
+            onResizeEnd: (params: any) => {
+              if (resizeStartDim.current) {
+                const newX = Math.round(params.x); const newY = Math.round(params.y);
+                const newW = Math.round(params.width); const newH = Math.round(params.height);
+                if (Math.abs(newW - resizeStartDim.current.w) > 1 || Math.abs(newH - resizeStartDim.current.h) > 1) {
+                  setUndoStack(prev => [...prev, {
+                    type: 'resize',
+                    nodeId: 'viewport-box',
+                    oldValue: resizeStartDim.current,
+                    newValue: { x: newX, y: newY, w: newW, h: newH }
+                  }]);
+                  setRedoStack([]);
+                }
+              }
+              axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
+                x: Math.round(params.x), y: Math.round(params.y),
+                w: Math.round(params.width), h: Math.round(params.height)
+              }).catch(console.error);
+            }
+          }
+        };
+
+        setNodes([...formattedNodes, viewportNode]);
+        
         setEdges(formattedEdges);
         setLoading(false);
+        setInitialViewportConfig(vpConfig);
+
       } catch (error) {
         console.error('Error fetching topology:', error);
         setLoading(false);
@@ -659,26 +768,124 @@ export default function StarTopology() {
     return () => { socket.disconnect(); };
   }, [setNodes, setEdges, setSelectedNode]);
 
-  /* ── save position on drag stop ─────────────────────────── */
+  
+  const handleUndo = async () => {
+    if (undoStack.length === 0) return;
+    const action = undoStack[undoStack.length - 1];
+    setUndoStack(prev => prev.slice(0, -1));
+    setRedoStack(prev => [...prev, action]);
+
+    // Apply visually
+    setNodes(nds => nds.map(n => {
+      if (n.id === action.nodeId) {
+        const updated = { ...n, position: { x: action.oldValue.x, y: action.oldValue.y } };
+        if (action.oldValue.w) {
+          updated.style = { ...updated.style, width: action.oldValue.w, height: action.oldValue.h };
+        }
+        return updated;
+      }
+      return n;
+    }));
+
+    // Apply to DB
+    if (action.nodeId === 'viewport-box') {
+      try {
+        await axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
+          x: action.oldValue.x, y: action.oldValue.y,
+          w: action.oldValue.w || 1000, h: action.oldValue.h || 500
+        });
+      } catch (e) {}
+    } else {
+      try {
+        await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
+          positionX: action.oldValue.x, positionY: action.oldValue.y,
+        });
+      } catch (e) {}
+    }
+  };
+
+  const handleRedo = async () => {
+    if (redoStack.length === 0) return;
+    const action = redoStack[redoStack.length - 1];
+    setRedoStack(prev => prev.slice(0, -1));
+    setUndoStack(prev => [...prev, action]);
+
+    // Apply visually
+    setNodes(nds => nds.map(n => {
+      if (n.id === action.nodeId) {
+        const updated = { ...n, position: { x: action.newValue.x, y: action.newValue.y } };
+        if (action.newValue.w) {
+          updated.style = { ...updated.style, width: action.newValue.w, height: action.newValue.h };
+        }
+        return updated;
+      }
+      return n;
+    }));
+
+    // Apply to DB
+    if (action.nodeId === 'viewport-box') {
+      try {
+        await axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
+          x: action.newValue.x, y: action.newValue.y,
+          w: action.newValue.w || 1000, h: action.newValue.h || 500
+        });
+      } catch (e) {}
+    } else {
+      try {
+        await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
+          positionX: action.newValue.x, positionY: action.newValue.y,
+        });
+      } catch (e) {}
+    }
+  };
+
+  /* ── save position on drag stop ── */
+  const onNodeDragStart = (_: React.MouseEvent, node: any) => {
+    dragStartPos.current = { x: Math.round(node.position.x), y: Math.round(node.position.y) };
+    if (node.id === 'viewport-box') {
+      dragStartPos.current.w = parseFloat(node.style?.width as string) || 1000;
+      dragStartPos.current.h = parseFloat(node.style?.height as string) || 500;
+    }
+  };
+
   const onNodeDragStop = async (_: React.MouseEvent, node: any) => {
+    if (!dragStartPos.current) return;
+    
+    const newX = Math.round(node.position.x);
+    const newY = Math.round(node.position.y);
+    const newW = node.id === 'viewport-box' ? (parseFloat(node.style?.width as string) || 1000) : undefined;
+    const newH = node.id === 'viewport-box' ? (parseFloat(node.style?.height as string) || 500) : undefined;
+
+    const dx = Math.abs(newX - dragStartPos.current.x);
+    const dy = Math.abs(newY - dragStartPos.current.y);
+    if (dx < 1 && dy < 1) return; // ignore accidental clicks
+
+    const action: HistoryAction = {
+      type: 'move',
+      nodeId: node.id,
+      oldValue: { ...dragStartPos.current },
+      newValue: { x: newX, y: newY, w: newW, h: newH }
+    };
+
+    setUndoStack(prev => [...prev, action]);
+    setRedoStack([]);
+
+    if (node.id === 'viewport-box') {
+      try {
+        await axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
+          x: newX, y: newY, w: newW, h: newH
+        });
+      } catch (e) {}
+      return;
+    }
+    
     try {
       await axios.patch(`${BACKEND_URL}/api/nodes/${node.id}/position`, {
-        positionX: Math.round(node.position.x),
-        positionY: Math.round(node.position.y),
+        positionX: newX, positionY: newY,
       });
     } catch (e) { console.error('Failed to save position', e); }
   };
 
-  /* ── save size on resize stop ────────────────────────────── */
-  const onNodeResizeEnd = async (_: any, node: any) => {
-    if (!node.style?.width && !node.style?.height) return;
-    try {
-      await axios.patch(`${BACKEND_URL}/api/nodes/${node.id}/position`, {
-        positionX: Math.round(node.position.x),
-        positionY: Math.round(node.position.y),
-      });
-    } catch (e) { console.error('Failed to save size', e); }
-  };
 
   /* ── node click ─────────────────────────────────────────── */
   const onNodeClick = async (_: React.MouseEvent, node: any) => {
@@ -714,6 +921,78 @@ export default function StarTopology() {
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden rounded-[24px]" style={{ background: '#ffffff' }}>
 
+      {/* Top-left admin buttons (Viewport, Guide) */}
+      {isAdmin && editMode && (
+        <div style={{
+          position: 'absolute', top: 16, left: 16, zIndex: 20,
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <button
+            id="btn-viewport"
+            onClick={() => setShowViewport(v => !v)}
+            title="Viewport"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+              border: showViewport
+                ? '1.5px solid rgba(200,241,53,0.50)'
+                : '1.5px solid rgba(0,0,0,0.09)',
+              background: showViewport ? '#17181c' : '#ffffff',
+              boxShadow: showViewport
+                ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                : '0 2px 6px rgba(0,0,0,0.07)',
+              fontFamily: FONT, transition: 'all 0.15s ease',
+            }}
+          >
+            <Frame size={13} strokeWidth={2.2} color={showViewport ? '#c8f135' : '#9ca3af'} />
+            <span style={{
+              fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
+              color: showViewport ? '#c8f135' : '#5a5f6b',
+            }}>
+              Viewport
+            </span>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+              background: showViewport ? '#c8f135' : 'transparent',
+              boxShadow: showViewport ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+              transition: 'all 0.15s ease',
+            }} />
+          </button>
+          
+          <button
+            id="btn-guide"
+            onClick={() => setShowCrosshair(v => !v)}
+            title="Guide"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+              border: showCrosshair
+                ? '1.5px solid rgba(200,241,53,0.50)'
+                : '1.5px solid rgba(0,0,0,0.09)',
+              background: showCrosshair ? '#17181c' : '#ffffff',
+              boxShadow: showCrosshair
+                ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                : '0 2px 6px rgba(0,0,0,0.07)',
+              fontFamily: FONT, transition: 'all 0.15s ease',
+            }}
+          >
+            <Crosshair size={13} strokeWidth={2.2} color={showCrosshair ? '#c8f135' : '#9ca3af'} />
+            <span style={{
+              fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
+              color: showCrosshair ? '#c8f135' : '#5a5f6b',
+            }}>
+              Guide
+            </span>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+              background: showCrosshair ? '#c8f135' : 'transparent',
+              boxShadow: showCrosshair ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+              transition: 'all 0.15s ease',
+            }} />
+          </button>
+        </div>
+      )}
+
       {/* Top-right admin button row */}
       {isAdmin && (
         <div style={{
@@ -721,96 +1000,83 @@ export default function StarTopology() {
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
 
-          {/* ── 3 sub-toggle buttons, only when edit mode is ON ─── */}
-          {editMode && (() => {
-            const SubBtn = ({
-              id, icon: Icon, label, active, onToggle,
-            }: {
-              id: string;
-              icon: React.ElementType;
-              label: string;
-              active: boolean;
-              onToggle: () => void;
-            }) => (
+          {/* ── Move & Resize toggle button, only when edit mode is ON ─── */}
+          {editMode && (
+            <>
+              {/* Divider */}
+              <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
               <button
-                id={id}
-                onClick={onToggle}
-                title={label}
+                id="btn-move"
+                onClick={() => {
+                  if (allowMoveResize) {
+                    setAllowMoveNodes(false);
+                    setAllowResizeNodes(false);
+                    setAllowMoveViewport(false);
+                    setAllowResizeViewport(false);
+                  }
+                  setAllowMoveResize(v => !v);
+                }}
+                title="Move & Resize"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-                  border: active
+                  border: allowMoveResize
                     ? '1.5px solid rgba(200,241,53,0.50)'
                     : '1.5px solid rgba(0,0,0,0.09)',
-                  background: active ? '#17181c' : '#ffffff',
-                  boxShadow: active
+                  background: allowMoveResize ? '#17181c' : '#ffffff',
+                  boxShadow: allowMoveResize
                     ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                     : '0 2px 6px rgba(0,0,0,0.07)',
                   fontFamily: FONT, transition: 'all 0.15s ease',
                 }}
               >
-                <Icon size={13} strokeWidth={2.2} color={active ? '#c8f135' : '#9ca3af'} />
+                <Move size={13} strokeWidth={2.2} color={allowMoveResize ? '#c8f135' : '#9ca3af'} />
                 <span style={{
                   fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                  color: active ? '#c8f135' : '#5a5f6b',
+                  color: allowMoveResize ? '#c8f135' : '#5a5f6b',
                 }}>
-                  {label}
+                  Move & Resize
                 </span>
                 {/* ON indicator dot */}
                 <span style={{
                   width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                  background: active ? '#c8f135' : 'transparent',
-                  boxShadow: active ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+                  background: allowMoveResize ? '#c8f135' : 'transparent',
+                  boxShadow: allowMoveResize ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
                   transition: 'all 0.15s ease',
                 }} />
               </button>
-            );
-
-            return (
-              <>
-                {/* Divider */}
-                <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
-                <SubBtn
-                  id="btn-viewport"
-                  icon={Frame}
-                  label="Viewport"
-                  active={showViewport}
-                  onToggle={() => setShowViewport(v => !v)}
-                />
-                <SubBtn
-                  id="btn-guide"
-                  icon={Crosshair}
-                  label="Guide"
-                  active={showCrosshair}
-                  onToggle={() => setShowCrosshair(v => !v)}
-                />
-                <SubBtn
-                  id="btn-move"
-                  icon={Move}
-                  label="Move & Resize"
-                  active={allowMoveResize}
-                  onToggle={() => setAllowMoveResize(v => !v)}
-                />
-                {/* Divider */}
-                <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
-              </>
-            );
-          })()}
+              {/* Divider */}
+              <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
+            </>
+          )}
 
           {/* Edit Mode toggle — always shown for admin */}
           <EditModeButton editMode={editMode} onToggle={() => setEditMode((v) => !v)} />
+          {allowMoveResize && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, marginTop: 6,
+                    background: 'rgba(23, 24, 28, 0.70)', border: '1px solid rgba(255,255,255,0.10)',
+                    borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.20)', minWidth: 150, zIndex: 50, backdropFilter: 'blur(10px)'
+                  }}>
+                    <Switch checked={allowMoveNodes} onChange={setAllowMoveNodes} label="Move Nodes" />
+                    <Switch checked={allowResizeNodes} onChange={setAllowResizeNodes} label="Resize Nodes" />
+                    {showViewport && (
+                      <>
+                        <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+                        <Switch checked={allowMoveViewport} onChange={setAllowMoveViewport} label="Move Viewport" />
+                        <Switch checked={allowResizeViewport} onChange={setAllowResizeViewport} label="Resize Viewport" />
+                      </>
+                    )}
+                  </div>
+                )}
         </div>
       )}
 
       {/* Edit mode active banner */}
       {editMode && <EditModeBanner />}
 
-      {/* Viewport Guide box — screen-centred overlay showing dashboard canvas bounds */}
-      <DashboardViewportBox
-        show={editMode && showViewport}
-        size={dashboardViewSize}
-        font={FONT}
-      />
+      {/* Viewport Guide box moved inside ReactFlow */}
 
       {/* Canvas border highlight when edit mode is ON */}
       {editMode && (
@@ -829,22 +1095,26 @@ export default function StarTopology() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
-        onNodeResizeEnd={onNodeResizeEnd}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         nodesDraggable={editMode && allowMoveResize}
         nodesConnectable={false}
-        fitView
+        onInit={(instance) => {
+  setRfInstance(instance);
+}}
         className="bg-white"
         style={{ width: '100%', height: '100%', background: '#ffffff' }}
       >
         <Background gap={28} size={1.2} color="#e0e0e0" style={{ opacity: 0.8 }} />
-        <CustomControls containerRef={containerRef} />
+        <CustomControls containerRef={containerRef} onUndo={handleUndo} onRedo={handleRedo} canUndo={undoStack.length > 0} canRedo={redoStack.length > 0} />
 
         {/* Canvas crosshair — tracks real world (0,0), pans with canvas */}
         <CanvasCrosshair show={editMode && showCrosshair} />
+
+        
 
         {/* MiniMap — only in fullscreen, bottom-right, dark themed */}
         {isFullscreen && (
