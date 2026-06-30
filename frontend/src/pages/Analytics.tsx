@@ -1,4 +1,3 @@
-import React from 'react';
 import { BarChart2, Activity, Filter } from 'lucide-react';
 
 export default function Analytics() {
