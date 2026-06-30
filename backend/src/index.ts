@@ -203,6 +203,38 @@ app.get('/api/alerts', async (req, res) => {
   res.json(alerts);
 });
 
+// Endpoint to update topology viewport (saved as JSON in description)
+app.patch('/api/topologies/:name/viewport', async (req, res) => {
+  const { name } = req.params;
+  const topologyName = name === 'star' ? 'Star Topology' : name;
+  const { x, y, w, h } = req.body;
+  
+  try {
+    const topology = await prisma.topology.findFirst({ where: { name: topologyName } });
+    if (!topology) {
+      return res.status(404).json({ error: 'Topology not found' });
+    }
+    
+    // Parse existing description or start fresh
+    let config: any = {};
+    if (topology.description) {
+      try { config = JSON.parse(topology.description); } catch (e) {}
+    }
+    
+    config.viewport = { x, y, w, h };
+    
+    await prisma.topology.update({
+      where: { id: topology.id },
+      data: { description: JSON.stringify(config) }
+    });
+    
+    res.json({ success: true, viewport: config.viewport });
+  } catch (error) {
+    console.error('Failed to update topology viewport:', error);
+    res.status(500).json({ error: 'Failed to update viewport' });
+  }
+});
+
 // Endpoint for Python generator to push new readings
 app.post('/api/telemetry', async (req, res) => {
   res.status(400).json({ error: "REST telemetry ingestion is deprecated. Use MQTT." });
