@@ -38,6 +38,11 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
   return `#${rHex}${gHex}${bHex}`;
 };
 
+// Wave speed durations (seconds)
+const WAVE_SPEED_SLOW = { front: '13s', mid: '10s', back: '16s' };
+const WAVE_SPEED_MEDIUM = { front: '7.5s', mid: '5.5s', back: '9.5s' };
+const WAVE_SPEED_FAST = { front: '3.8s', mid: '2.8s', back: '5s' };
+
 export const WaterTank: React.FC<WaterTankProps> = ({
   fillPercentage,
   isFilling,
@@ -66,14 +71,6 @@ export const WaterTank: React.FC<WaterTankProps> = ({
     // Water Color & Thermal Temperature Thresholds
   const TEMP_THRESHOLD = 55.0;            // Temperature (°C) where water starts changing to warm color & boiling starts
   const TEMP_MAX_THRESHOLD = 75.0;        // Temperature (°C) where water is completely warm & boiling is at max
-
-  // Wave speed durations (seconds)
-  const WAVE_SPEED_SLOW = { front: '13s', mid: '10s', back: '16s' };
-  const WAVE_SPEED_MEDIUM = { front: '7.5s', mid: '5.5s', back: '9.5s' };
-  const WAVE_SPEED_FAST = { front: '3.8s', mid: '2.8s', back: '5s' };
-
-
-
   // Derived layout and positioning coordinates
   const TANK_CENTER_X = 200;       // Center of the tank in the SVG
   const TANK_CYLINDER_Y1 = 300 - TANK_HEIGHT / 2; // Top of cylindrical body
@@ -83,7 +80,6 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   const TANK_OUTER_RADIUS_Y = 0; // Square tank top/bottom are flat
 
   const TANK_INNER_RADIUS_X = TANK_OUTER_RADIUS_X - 4; // Accounting for 4px wall thickness
-  const TANK_INNER_RADIUS_Y = 0;
 
   const INLET_CENTER_X = TANK_CENTER_X - TANK_OUTER_RADIUS_X * (40 / 90); // X-coord of the inlet stream
 
@@ -129,16 +125,12 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   const ribY2 = TANK_CYLINDER_Y1 + TANK_HEIGHT * 0.46875;
   const ribY3 = TANK_CYLINDER_Y1 + TANK_HEIGHT * 0.75;
 
-  // Glossy reflection paths
-  const topReflectionD = `M ${TANK_CENTER_X - 75 * (TANK_OUTER_RADIUS_X / 90)},${TANK_CYLINDER_Y1 - 16 * (TANK_OUTER_RADIUS_Y / 40)} A ${80 * (TANK_OUTER_RADIUS_X / 90)},${30 * (TANK_OUTER_RADIUS_Y / 40)} 0 0,1 ${TANK_CENTER_X + 75 * (TANK_OUTER_RADIUS_X / 90)},${TANK_CYLINDER_Y1 - 16 * (TANK_OUTER_RADIUS_Y / 40)}`;
-  const bottomReflectionD = `M ${TANK_CENTER_X - 65 * (TANK_OUTER_RADIUS_X / 90)},${TANK_CYLINDER_Y2 + 16 * (TANK_OUTER_RADIUS_Y / 40)} A ${70 * (TANK_OUTER_RADIUS_X / 90)},${28 * (TANK_OUTER_RADIUS_Y / 40)} 0 0,0 ${TANK_CENTER_X + 65 * (TANK_OUTER_RADIUS_X / 90)},${TANK_CYLINDER_Y2 + 16 * (TANK_OUTER_RADIUS_Y / 40)}`;
-
+  // Glossy reflection paths (unused in this design)
   // Outlet pump pipe coordinates
   const PUMP_PIPE_X = outerRightX - 32;
   const pumpPipePathD = `M ${PUMP_PIPE_X},${TANK_CYLINDER_Y2 - 22} L ${PUMP_PIPE_X},104 A 14,14 0 0,1 ${PUMP_PIPE_X + 14},90 L ${viewBoxX + viewBoxWidth},90`;
 
   // Hatch and nozzle Y coordinates
-  const HATCH_BASE_Y = TANK_CYLINDER_Y1 - TANK_OUTER_RADIUS_Y;
   const INLET_NOZZLE_Y = TANK_CYLINDER_Y1 + 33;
 
   // Pressure gauge center Y-coordinate
@@ -234,7 +226,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   return (
     <div
       id="tank-container"
-      className="relative w-full max-w-[420px] mx-auto select-none filter drop-shadow-2xl"
+      className="relative w-full select-none filter drop-shadow-2xl"
       style={{ aspectRatio: `${viewBoxWidth} / 600` }}
     >
       <svg

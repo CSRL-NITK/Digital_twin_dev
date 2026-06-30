@@ -34,6 +34,11 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
   return `#${rHex}${gHex}${bHex}`;
 };
 
+// Wave speed durations (seconds)
+const WAVE_SPEED_SLOW = { front: '13s', mid: '10s', back: '16s' };
+const WAVE_SPEED_MEDIUM = { front: '7.5s', mid: '5.5s', back: '9.5s' };
+const WAVE_SPEED_FAST = { front: '3.8s', mid: '2.8s', back: '5s' };
+
 export const WaterTank: React.FC<WaterTankProps> = ({
   fillPercentage,
   isFilling,
@@ -58,12 +63,6 @@ export const WaterTank: React.FC<WaterTankProps> = ({
     // Water Color & Thermal Temperature Thresholds
   const TEMP_THRESHOLD = 55.0;            // Temperature (°C) where water starts changing to warm color & boiling starts
   const TEMP_MAX_THRESHOLD = 75.0;        // Temperature (°C) where water is completely warm & boiling is at max
-
-  // Wave speed durations (seconds)
-  const WAVE_SPEED_SLOW = { front: '13s', mid: '10s', back: '16s' };
-  const WAVE_SPEED_MEDIUM = { front: '7.5s', mid: '5.5s', back: '9.5s' };
-  const WAVE_SPEED_FAST = { front: '3.8s', mid: '2.8s', back: '5s' };
-
 
 
   // Derived layout and positioning coordinates
@@ -248,7 +247,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   return (
     <div
       id="tank-container"
-      className="relative w-full max-w-[420px] mx-auto select-none filter drop-shadow-2xl"
+      className="relative w-full select-none filter drop-shadow-2xl"
       style={{ aspectRatio: `${viewBoxWidth} / 600` }}
     >
       <svg

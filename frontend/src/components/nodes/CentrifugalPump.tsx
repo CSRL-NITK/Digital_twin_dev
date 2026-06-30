@@ -147,7 +147,7 @@ export const CentrifugalPumpSvg: React.FC<CentrifugalPumpSvgProps> = ({
     fanSpeedFactor: resolvedIsOn ? 1 : 0,
     shaftSpeedFactor: resolvedIsOn ? 1 : 0,
     flowSpeedFactor: resolvedIsOn ? 1 : 0,
-    lastTime: performance.now(),
+    lastTime: 0,
   });
 
   const propsRef = React.useRef({
