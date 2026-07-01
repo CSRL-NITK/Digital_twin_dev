@@ -290,11 +290,11 @@ app.get('/api/alerts', async (req, res) => {
   res.json(alerts);
 });
 
-// Endpoint to update topology viewport (saved as JSON in description)
+// Endpoint to update topology viewport / custom asset configs (saved as JSON in description)
 app.patch('/api/topologies/:name/viewport', async (req, res) => {
   const { name } = req.params;
   const topologyName = name === 'star' ? 'Star Topology' : name;
-  const { x, y, w, h } = req.body;
+  const { x, y, w, h, customConfigs } = req.body;
   
   try {
     const topology = await prisma.topology.findFirst({ where: { name: topologyName } });
@@ -308,14 +308,19 @@ app.patch('/api/topologies/:name/viewport', async (req, res) => {
       try { config = JSON.parse(topology.description); } catch (e) {}
     }
     
-    config.viewport = { x, y, w, h };
+    if (x !== undefined && y !== undefined && w !== undefined && h !== undefined) {
+      config.viewport = { x, y, w, h };
+    }
+    if (customConfigs !== undefined) {
+      config.customConfigs = { ...(config.customConfigs || {}), ...customConfigs };
+    }
     
     await prisma.topology.update({
       where: { id: topology.id },
       data: { description: JSON.stringify(config) }
     });
     
-    res.json({ success: true, viewport: config.viewport });
+    res.json({ success: true, config });
   } catch (error) {
     console.error('Failed to update topology viewport:', error);
     res.status(500).json({ error: 'Failed to update viewport' });
