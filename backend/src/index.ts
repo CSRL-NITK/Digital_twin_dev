@@ -195,6 +195,93 @@ app.patch('/api/nodes/:id/status', async (req, res) => {
   }
 });
 
+app.post('/api/nodes', async (req, res) => {
+  const { topologyName, nodeName, nodeType, positionX, positionY, status } = req.body;
+  try {
+    let topology = await prisma.topology.findFirst({
+      where: { name: topologyName || 'Star Topology' }
+    });
+    if (!topology) {
+      topology = await prisma.topology.findFirst();
+    }
+    if (!topology) {
+      return res.status(404).json({ error: 'No topology found' });
+    }
+
+    const newNode = await prisma.node.create({
+      data: {
+        topologyId: topology.id,
+        nodeName: nodeName || 'New Node',
+        nodeType: nodeType || 'tank',
+        positionX: Math.round(positionX || 0),
+        positionY: Math.round(positionY || 0),
+        status: status || 'healthy'
+      },
+      include: { sensors: true }
+    });
+
+    // Attach default sensors for realistic telemetry simulation
+    const sensorTypes = ['water_level', 'ph', 'tds', 'temperature'];
+    for (const sType of sensorTypes) {
+      await prisma.sensor.create({
+        data: {
+          nodeId: newNode.id,
+          sensorName: `${newNode.nodeName} ${sType.replace('_', ' ').toUpperCase()}`,
+          sensorType: sType,
+          status: 'online'
+        }
+      });
+    }
+
+    const createdWithSensors = await prisma.node.findUnique({
+      where: { id: newNode.id },
+      include: { sensors: true }
+    });
+
+    await twinEngine.reloadDbMapping();
+    io.emit('node:created', createdWithSensors);
+    res.status(201).json(createdWithSensors);
+  } catch (error) {
+    console.error('Failed to create node:', error);
+    res.status(500).json({ error: 'Failed to create node' });
+  }
+});
+
+app.patch('/api/nodes/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nodeName, status, nodeType } = req.body;
+  try {
+    const updated = await prisma.node.update({
+      where: { id },
+      data: {
+        ...(nodeName && { nodeName }),
+        ...(status && { status }),
+        ...(nodeType && { nodeType })
+      },
+      include: { sensors: true }
+    });
+    await twinEngine.reloadDbMapping();
+    io.emit('node:updated', updated);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update node' });
+  }
+});
+
+app.delete('/api/nodes/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.node.delete({
+      where: { id }
+    });
+    await twinEngine.reloadDbMapping();
+    io.emit('node:deleted', { id });
+    res.json({ success: true, id });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete node' });
+  }
+});
+
 app.get('/api/alerts', async (req, res) => {
   const alerts = await prisma.alert.findMany({
     orderBy: { createdAt: 'desc' },
