@@ -241,8 +241,9 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
     setTimeout(() => setResetFlash(false), 600);
   };
 
+  const btnSize = isFullscreen ? 36 : 28;
   const btn = (active?: boolean): React.CSSProperties => ({
-    width: 36, height: 36,
+    width: btnSize, height: btnSize,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: active ? '#f3f3f3' : '#ffffff',
     border: 'none',
@@ -274,7 +275,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
         onClick={handleReset}
       >
         <RotateCcw
-          size={15} strokeWidth={2.2}
+          size={isFullscreen ? 15 : 13} strokeWidth={2.2}
           style={{
             transform: resetFlash ? 'rotate(-360deg)' : 'rotate(0deg)',
             transition: resetFlash ? 'transform 0.5s ease' : 'none',
@@ -292,7 +293,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
             onClick={onUndo}
             disabled={!canUndo}
           >
-            <Undo size={15} strokeWidth={2.2} />
+            <Undo size={isFullscreen ? 15 : 13} strokeWidth={2.2} />
           </button>
         </>
       )}
@@ -307,7 +308,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
             onClick={onRedo}
             disabled={!canRedo}
           >
-            <Redo size={15} strokeWidth={2.2} />
+            <Redo size={isFullscreen ? 15 : 13} strokeWidth={2.2} />
           </button>
         </>
       )}
@@ -322,23 +323,24 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
         onClick={toggleFullscreen}
       >
         {isFullscreen
-          ? <Minimize2 size={15} strokeWidth={2.2} />
-          : <Maximize2 size={15} strokeWidth={2.2} />}
+          ? <Minimize2 size={isFullscreen ? 15 : 13} strokeWidth={2.2} />
+          : <Maximize2 size={isFullscreen ? 15 : 13} strokeWidth={2.2} />}
       </button>
     </div>
   );
 }
 
 /* ─── EDIT MODE BUTTON ───────────────────────────────────────────── */
-function EditModeButton({ editMode, onToggle }: { editMode: boolean; onToggle: () => void }) {
+function EditModeButton({ editMode, onToggle, isFullscreen = true }: { editMode: boolean; onToggle: () => void; isFullscreen?: boolean }) {
+  const isSmall = isFullscreen === false;
   return (
     <button
       id="edit-mode-btn"
       onClick={onToggle}
       title={editMode ? 'Exit Edit Mode' : 'Enter Edit Mode (Admin)'}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: isSmall ? 6 : 8,
+        padding: isSmall ? '6px 12px' : '9px 16px', borderRadius: isSmall ? 8 : 12, cursor: 'pointer',
         border: editMode
           ? '1.5px solid rgba(200,241,53,0.55)'
           : '1.5px solid rgba(0,0,0,0.10)',
@@ -352,7 +354,7 @@ function EditModeButton({ editMode, onToggle }: { editMode: boolean; onToggle: (
     >
       {/* status dot */}
       <span style={{
-        width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+        width: isSmall ? 5 : 7, height: isSmall ? 5 : 7, borderRadius: '50%', flexShrink: 0,
         background: editMode ? '#c8f135' : '#9ca3af',
         boxShadow: editMode ? '0 0 6px rgba(200,241,53,0.7)' : 'none',
         transition: 'all 0.18s ease',
@@ -364,7 +366,7 @@ function EditModeButton({ editMode, onToggle }: { editMode: boolean; onToggle: (
       }
 
       <span style={{
-        fontSize: 13, fontWeight: 700, letterSpacing: '-0.2px',
+        fontSize: isSmall ? 11 : 13, fontWeight: 700, letterSpacing: '-0.2px',
         color: editMode ? '#c8f135' : '#5a5f6b',
         transition: 'color 0.18s',
       }}>
@@ -524,6 +526,7 @@ export default function StarTopology() {
   const [allowMoveViewport, setAllowMoveViewport] = useState(false);
   const [allowResizeViewport, setAllowResizeViewport] = useState(false); // drag + resize nodes
   const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
+  const [isViewportReady, setIsViewportReady] = useState(false);
   
   const { isAdmin } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -638,6 +641,7 @@ export default function StarTopology() {
           width: initialViewportConfig.w, 
           height: initialViewportConfig.h 
         }, { duration: 0 });
+        requestAnimationFrame(() => setIsViewportReady(true));
       }, 50);
     }
   }, [rfInstance, initialViewportConfig]);
@@ -696,9 +700,10 @@ export default function StarTopology() {
               resizeStartDim.current = { x: Math.round(params.x), y: Math.round(params.y), w: Math.round(params.width), h: Math.round(params.height) };
             },
             onResizeEnd: (params: any) => {
+              const newX = Math.round(params.x); const newY = Math.round(params.y);
+              const newW = Math.round(params.width); const newH = Math.round(params.height);
+
               if (resizeStartDim.current) {
-                const newX = Math.round(params.x); const newY = Math.round(params.y);
-                const newW = Math.round(params.width); const newH = Math.round(params.height);
                 if (Math.abs(newW - resizeStartDim.current.w) > 1 || Math.abs(newH - resizeStartDim.current.h) > 1) {
                   setUndoStack(prev => [...prev, {
                     type: 'resize',
@@ -709,9 +714,24 @@ export default function StarTopology() {
                   setRedoStack([]);
                 }
               }
+
+              // Update React state so future drags don't overwrite DB with old sizes
+              setNodes((nds) =>
+                nds.map((n) => {
+                  if (n.id === 'viewport-box') {
+                    return {
+                      ...n,
+                      position: { x: newX, y: newY },
+                      style: { ...n.style, width: newW, height: newH },
+                    };
+                  }
+                  return n;
+                })
+              );
+
               axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
-                x: Math.round(params.x), y: Math.round(params.y),
-                w: Math.round(params.width), h: Math.round(params.height)
+                x: newX, y: newY,
+                w: newW, h: newH
               }).catch(console.error);
             }
           }
@@ -1051,7 +1071,7 @@ export default function StarTopology() {
           )}
 
           {/* Edit Mode toggle — always shown for admin */}
-          <EditModeButton editMode={editMode} onToggle={() => setEditMode((v) => !v)} />
+          <EditModeButton editMode={editMode} onToggle={() => setEditMode((v) => !v)} isFullscreen={isFullscreen} />
           {allowMoveResize && (
                   <div style={{
                     position: 'absolute', top: '100%', right: 0, marginTop: 6,
@@ -1106,7 +1126,7 @@ export default function StarTopology() {
   setRfInstance(instance);
 }}
         className="bg-white"
-        style={{ width: '100%', height: '100%', background: '#ffffff' }}
+        style={{ width: '100%', height: '100%', background: '#ffffff', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
       >
         <Background gap={28} size={1.2} color="#e0e0e0" style={{ opacity: 0.8 }} />
         <CustomControls containerRef={containerRef} onUndo={handleUndo} onRedo={handleRedo} canUndo={undoStack.length > 0} canRedo={redoStack.length > 0} />

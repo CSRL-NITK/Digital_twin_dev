@@ -4,6 +4,7 @@ import axios from 'axios';
 import MainLayout from './components/layout/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import SignUp from './pages/SignUp';
 import StarTopology from './pages/StarTopology';
 import Analytics from './pages/Analytics';
 import Alerts from './pages/Alerts';
@@ -56,12 +57,13 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/" element={
           <ProtectedRoute>
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<Navigate to="/star-topology" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="star-topology" element={<StarTopology />} />
           <Route path="analytics" element={<Analytics />} />
