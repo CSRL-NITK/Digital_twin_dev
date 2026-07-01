@@ -8,6 +8,7 @@ import SignUp from './pages/SignUp';
 import StarTopology from './pages/StarTopology';
 import Analytics from './pages/Analytics';
 import Alerts from './pages/Alerts';
+import UserManagement from './pages/UserManagement';
 import './index.css';
 
 // Global axios defaults
@@ -68,6 +69,7 @@ function App() {
           <Route path="star-topology" element={<StarTopology />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="alerts" element={<Alerts />} />
+          <Route path="user-management" element={<UserManagement />} />
         </Route>
       </Routes>
     </Router>
