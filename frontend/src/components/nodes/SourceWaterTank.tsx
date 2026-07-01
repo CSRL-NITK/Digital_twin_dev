@@ -82,12 +82,13 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   const viewBoxMargin = TANK_OUTER_RADIUS_X + 90;
   const viewBoxX = TANK_CENTER_X - viewBoxMargin;
   const viewBoxWidth = viewBoxMargin * 2;
-  const inletPipeStartX = viewBoxX;
 
   const outerLeftX = TANK_CENTER_X - TANK_OUTER_RADIUS_X;
   const outerRightX = TANK_CENTER_X + TANK_OUTER_RADIUS_X;
   const innerLeftX = TANK_CENTER_X - TANK_INNER_RADIUS_X;
   const innerRightX = TANK_CENTER_X + TANK_INNER_RADIUS_X;
+
+  const inletPipeStartX = outerLeftX - 10;
 
   // Water volume height limits:
   const Y_TOP = TANK_CYLINDER_Y1 - TANK_INNER_RADIUS_Y; // Full level
@@ -248,7 +249,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
     <div
       id="tank-container"
       className="relative w-full select-none filter drop-shadow-2xl"
-      style={{ aspectRatio: `${viewBoxWidth} / 600` }}
+      style={{ aspectRatio: `${viewBoxWidth} / 600`, willChange: 'transform', transform: 'translateZ(0)' }}
     >
       <svg
         id="water-tank-svg"
@@ -256,6 +257,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full"
+        style={{ willChange: 'transform' }}
       >
         <style>
           {`

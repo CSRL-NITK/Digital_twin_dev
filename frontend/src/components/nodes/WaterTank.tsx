@@ -83,16 +83,16 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
   const INLET_CENTER_X = TANK_CENTER_X - TANK_OUTER_RADIUS_X * (40 / 90); // X-coord of the inlet stream
 
-  // Dynamic viewBox margins to prevent any component clipping on the sides
   const viewBoxMargin = TANK_OUTER_RADIUS_X + 90;
   const viewBoxX = TANK_CENTER_X - viewBoxMargin;
   const viewBoxWidth = viewBoxMargin * 2;
-  const inletPipeStartX = viewBoxX;
-
   const outerLeftX = TANK_CENTER_X - TANK_OUTER_RADIUS_X;
   const outerRightX = TANK_CENTER_X + TANK_OUTER_RADIUS_X;
   const innerLeftX = TANK_CENTER_X - TANK_INNER_RADIUS_X;
   const innerRightX = TANK_CENTER_X + TANK_INNER_RADIUS_X;
+
+  const inletPipeStartX = outerLeftX - 10;
+  const outletPipeEndX = outerRightX + 10;
 
   // Water volume height limits:
   const Y_TOP = TANK_CYLINDER_Y1; // Full level
@@ -128,7 +128,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   // Glossy reflection paths (unused in this design)
   // Outlet pump pipe coordinates
   const PUMP_PIPE_X = outerRightX - 32;
-  const pumpPipePathD = `M ${PUMP_PIPE_X},${TANK_CYLINDER_Y2 - 22} L ${PUMP_PIPE_X},104 A 14,14 0 0,1 ${PUMP_PIPE_X + 14},90 L ${viewBoxX + viewBoxWidth},90`;
+  const pumpPipePathD = `M ${PUMP_PIPE_X},${TANK_CYLINDER_Y2 - 22} L ${PUMP_PIPE_X},104 A 14,14 0 0,1 ${PUMP_PIPE_X + 14},90 L ${outletPipeEndX},90`;
 
   // Hatch and nozzle Y coordinates
   const INLET_NOZZLE_Y = TANK_CYLINDER_Y1 + 33;
@@ -227,7 +227,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
     <div
       id="tank-container"
       className="relative w-full select-none filter drop-shadow-2xl"
-      style={{ aspectRatio: `${viewBoxWidth} / 600` }}
+      style={{ aspectRatio: `${viewBoxWidth} / 600`, willChange: 'transform', transform: 'translateZ(0)' }}
     >
       <svg
         id="water-tank-svg"
@@ -235,6 +235,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full"
+        style={{ willChange: 'transform' }}
       >
         <style>
           {`

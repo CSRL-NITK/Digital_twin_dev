@@ -438,7 +438,7 @@ export const CentrifugalPumpSvg: React.FC<CentrifugalPumpSvgProps> = ({
   const motorAuraBl = 40; // Bottom-Left corner radius
 
   return (
-    <div className={`relative w-full h-full flex items-center justify-center p-4 ${className}`}>
+    <div className={`relative w-full h-full flex items-center justify-center p-4 ${className}`} style={{ willChange: 'transform', transform: 'translateZ(0)' }}>
       <svg
         ref={svgRef}
         id="centrifugal-water-pump-svg"
@@ -446,6 +446,7 @@ export const CentrifugalPumpSvg: React.FC<CentrifugalPumpSvgProps> = ({
         className="w-full h-auto drop-shadow-md select-none transition-all duration-300"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
+        style={{ willChange: 'transform' }}
       >
         <style>
           {`
