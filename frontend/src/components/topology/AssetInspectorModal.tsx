@@ -95,7 +95,9 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
       `}</style>
 
       <div style={{
-        width: 400,
+        width: 420,
+        maxWidth: '90vw',
+        boxSizing: 'border-box',
         background: '#17181c',
         border: '1.5px solid rgba(200, 241, 53, 0.45)',
         borderRadius: 20,
@@ -156,6 +158,8 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
               placeholder="Enter custom name..."
               required
               style={{
+                width: '100%',
+                boxSizing: 'border-box',
                 background: '#0e0f12',
                 border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: 10,
@@ -227,6 +231,8 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                   value={maxCapacity}
                   onChange={(e) => setMaxCapacity(Number(e.target.value))}
                   style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
                     background: '#0e0f12',
                     border: '1px solid rgba(255,255,255,0.15)',
                     borderRadius: 10,
@@ -244,7 +250,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
 
               {/* Manual Asset Dimensions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em' }}>
                     MANUAL DIMENSIONS (PX)
                   </label>
@@ -267,14 +273,16 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                     Reset Default ({defaultDims.width}×{defaultDims.height})
                   </button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                     <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Width (px)</span>
                     <input
                       type="number"
                       value={customWidth}
                       onChange={(e) => setCustomWidth(Number(e.target.value))}
                       style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
                         background: '#0e0f12',
                         border: '1px solid rgba(255,255,255,0.15)',
                         borderRadius: 10,
@@ -288,13 +296,15 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                       onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                     />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                     <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Height (px)</span>
                     <input
                       type="number"
                       value={customHeight}
                       onChange={(e) => setCustomHeight(Number(e.target.value))}
                       style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
                         background: '#0e0f12',
                         border: '1px solid rgba(255,255,255,0.15)',
                         borderRadius: 10,
@@ -323,6 +333,8 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                 value={parentAssetId}
                 onChange={(e) => setParentAssetId(e.target.value)}
                 style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
                   background: '#0e0f12',
                   border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: 10,
