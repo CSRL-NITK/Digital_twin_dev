@@ -34,7 +34,7 @@ export default function Login() {
       const res = await axios.post('http://localhost:3001/api/auth/login', values);
       if (res.status === 200) {
         setSuccess(true);
-        setTimeout(() => { window.location.href = '/'; }, 1000);
+        setTimeout(() => { window.location.href = '/star-topology'; }, 1000);
       }
     } catch (err: any) {
       if (err.response?.status === 429) setError('Too many attempts. Try again later.');
@@ -212,6 +212,14 @@ export default function Login() {
                 : 'Sign In'
               }
             </button>
+
+            {/* Sign up link */}
+            <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
+              Don't have an account?{' '}
+              <a href="/signup" style={{ color: dark ? '#c8f135' : '#17181c', fontWeight: 700, textDecoration: 'none' }}>
+                Sign up
+              </a>
+            </p>
           </form>
         )}
       </div>
