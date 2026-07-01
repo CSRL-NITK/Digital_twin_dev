@@ -56,8 +56,33 @@ class DigitalTwinEngine {
       }
     }
     
+    // Also map any newly added dynamic nodes from DB
+    for (const dbNode of nodes) {
+      const slug = dbNode.id;
+      if (!this.state[slug]) {
+        this.state[slug] = {
+          dbNodeId: dbNode.id,
+          status: dbNode.status,
+          dbSensors: dbNode.sensors,
+          waterLevel: 65,
+          ph: 7.1,
+          tds: 210,
+          temperature: 24
+        };
+      } else {
+        this.state[slug].dbNodeId = dbNode.id;
+        this.state[slug].status = dbNode.status;
+        this.state[slug].dbSensors = dbNode.sensors;
+      }
+    }
+
     this.dbMappingInitialized = true;
     console.log('Digital Twin Engine: DB mapping initialized');
+  }
+
+  public async reloadDbMapping() {
+    this.dbMappingInitialized = false;
+    await this.initDbMapping();
   }
 
   public getTwinState() {
