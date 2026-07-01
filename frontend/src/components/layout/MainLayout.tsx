@@ -5,10 +5,11 @@ import {
   ChevronDown, Bell, LogOut,
   Activity, LayoutDashboard, BarChart2,
   Moon, Sun, Droplets,
-  Wifi, Server, AlertTriangle,
+  Wifi, Server, AlertTriangle, Users,
 } from 'lucide-react';
 import axios from 'axios';
 import { useTheme } from '../ThemeProvider';
+import { useAuth } from '../../hooks/useAuth';
 
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR
@@ -16,11 +17,16 @@ import { useTheme } from '../ThemeProvider';
 ════════════════════════════════════════════════════════════════ */
 function Sidebar() {
   const { pathname } = useLocation();
+  const { isAdmin } = useAuth();
 
   const nav = [
-    { label: 'Live',       to: '/star-topology', Icon: Activity      },
-    { label: 'Dashboard',  to: '/dashboard',     Icon: LayoutDashboard },
-    { label: 'Simulation', to: '/analytics',     Icon: BarChart2     },
+    { label: 'Live',       to: '/star-topology',    Icon: Activity       },
+    { label: 'Dashboard',  to: '/dashboard',         Icon: LayoutDashboard },
+    { label: 'Simulation', to: '/analytics',         Icon: BarChart2      },
+  ];
+
+  const adminNav = [
+    { label: 'Users', to: '/user-management', Icon: Users },
   ];
 
   const logout = async () => {
@@ -76,6 +82,41 @@ function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Admin-only divider + user management */}
+        {isAdmin && (
+          <>
+            <div style={{ width: '60%', height: 1, background: 'rgba(255,255,255,0.07)', margin: '6px 0' }} />
+            {adminNav.map(({ label, to, Icon }) => {
+              const active = pathname.startsWith(to);
+              return (
+                <Link
+                  key={label} to={to} title={label}
+                  style={{
+                    width: '100%', height: 42,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 12, textDecoration: 'none',
+                    position: 'relative',
+                    color:      active ? '#c8f135'                        : 'rgba(255,255,255,0.28)',
+                    background: active ? 'rgba(200,241,53,0.12)'          : 'transparent',
+                    border:     active ? '1px solid rgba(200,241,53,0.18)' : '1px solid transparent',
+                    transition: 'all 0.16s ease',
+                  }}
+                >
+                  <Icon size={19} strokeWidth={active ? 2.3 : 1.8} />
+                  {active && (
+                    <span style={{
+                      position: 'absolute', left: -11, top: '50%', transform: 'translateY(-50%)',
+                      width: 3, height: 20, borderRadius: 99,
+                      background: '#c8f135',
+                      boxShadow: '0 0 8px rgba(200,241,53,0.5)',
+                    }} />
+                  )}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* Logout */}
@@ -113,8 +154,10 @@ function Sidebar() {
    bg: #ffffff (card)  |  border-bottom: rgba(0,0,0,0.07)
 ════════════════════════════════════════════════════════════════ */
 function TopBar() {
+  const { pathname } = useLocation();
   const { theme, setTheme } = useTheme();
   const dark = theme === 'dark';
+  const isUserManagement = pathname.startsWith('/user-management');
 
   const iconBtn: React.CSSProperties = {
     width: 38, height: 38, borderRadius: 10,
@@ -189,7 +232,7 @@ function TopBar() {
           fontFamily: 'var(--font)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          Smart Water Distribution Testbed
+          {isUserManagement ? 'System Administration & User Access Control' : 'Smart Water Distribution Testbed'}
         </span>
 
       </div>
@@ -197,37 +240,41 @@ function TopBar() {
       {/* ══ RIGHT — Topology selector + actions ═══════════════════════ */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
 
-        {/* Topology pill */}
-        <div
-          id="topology-selector"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
-            border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
-            background: dark ? '#2a2b34' : '#e8e8e8',
-            transition: 'background 0.15s',
-          }}
-        >
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-            background: '#c8f135',
-            boxShadow: '0 0 7px rgba(200,241,53,0.6)',
-          }} />
-          <span style={{
-            fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
-            color: dark ? '#f0f0f2' : '#17181c',
-            fontFamily: 'var(--font)',
-          }}>
-            Star Topology
-          </span>
-          <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#6b7280'} />
-        </div>
+        {/* Topology pill — hide on user management */}
+        {!isUserManagement && (
+          <>
+            <div
+              id="topology-selector"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
+                border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
+                background: dark ? '#2a2b34' : '#e8e8e8',
+                transition: 'background 0.15s',
+              }}
+            >
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                background: '#c8f135',
+                boxShadow: '0 0 7px rgba(200,241,53,0.6)',
+              }} />
+              <span style={{
+                fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
+                color: dark ? '#f0f0f2' : '#17181c',
+                fontFamily: 'var(--font)',
+              }}>
+                Star Topology
+              </span>
+              <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#6b7280'} />
+            </div>
 
-        {/* Divider */}
-        <div style={{
-          width: 1, height: 28,
-          background: dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)',
-        }} />
+            {/* Divider */}
+            <div style={{
+              width: 1, height: 28,
+              background: dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)',
+            }} />
+          </>
+        )}
 
         {/* Theme toggle */}
         <button
@@ -428,7 +475,11 @@ function AnalyticsStrip() {
    ROOT LAYOUT
 ════════════════════════════════════════════════════════════════ */
 export default function MainLayout() {
+  const { pathname } = useLocation();
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const isUserManagement = pathname.startsWith('/user-management');
 
   return (
     <div
@@ -436,9 +487,9 @@ export default function MainLayout() {
       style={{
         display: 'flex', flexDirection: 'column',
         height: '100vh', width: '100vw', overflow: 'hidden',
-        background: '#f3f3f3',
+        background: dark ? '#111215' : '#f3f3f3',
         fontFamily: 'var(--font)',
-        color: '#17181c',
+        color: dark ? '#f0f0f2' : '#17181c',
       }}
     >
       <TopBar />
@@ -452,38 +503,42 @@ export default function MainLayout() {
       >
         <Sidebar />
 
-        {/* Left blank panel  — #e9eeea */}
-        <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
-          <BlankPanel id="left-panel" />
-        </div>
+        {/* Left blank panel — hide on user management */}
+        {!isUserManagement && (
+          <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
+            <BlankPanel id="left-panel" />
+          </div>
+        )}
 
         {/* Center column */}
         <div
           id="center-col"
           style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0, minHeight: 0 }}
         >
-          {/* Main visualization — #ffffff */}
+          {/* Main visualization / page content */}
           <div
             id="visualization-panel"
             style={{
               flex: 1, minHeight: 0,
-              background: '#ffffff',
-              border: '1px solid rgba(0,0,0,0.07)',
-              borderRadius: 18, overflow: 'hidden', position: 'relative',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              background: isUserManagement ? 'transparent' : '#ffffff',
+              border: isUserManagement ? 'none' : '1px solid rgba(0,0,0,0.07)',
+              borderRadius: isUserManagement ? 0 : 18, overflow: 'hidden', position: 'relative',
+              boxShadow: isUserManagement ? 'none' : '0 2px 8px rgba(0,0,0,0.05)',
             }}
           >
             <Outlet context={{ selectedNode, setSelectedNode }} />
           </div>
 
-          {/* Analytics strip — #ffffff */}
-          <AnalyticsStrip />
+          {/* Analytics strip — hide on user management */}
+          {!isUserManagement && <AnalyticsStrip />}
         </div>
 
-        {/* Right blank panel  — #e9eeea */}
-        <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
-          <BlankPanel id="right-panel" />
-        </div>
+        {/* Right blank panel — hide on user management */}
+        {!isUserManagement && (
+          <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
+            <BlankPanel id="right-panel" />
+          </div>
+        )}
       </div>
     </div>
   );
