@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, memo } from 'react';
 import ReactFlow, {
   Background,
   MiniMap,
@@ -15,13 +15,14 @@ import axios from 'axios';
 import Switch from '../components/ui/Switch';
 import { io } from 'socket.io-client';
 import { useOutletContext } from 'react-router-dom';
-import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair, Move, Undo, Redo } from 'lucide-react';
+import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair, Move, Undo, Redo, Trash2, Layers, Gauge, Activity, Zap, Thermometer } from 'lucide-react';
 
 import NodeDetailsPanel from '../components/NodeDetailsPanel';
 import { WaterTank as TankWaterTank } from '../components/nodes/WaterTank';
 import { CentralWaterTank } from '../components/nodes/CentralWaterTank';
 import { WaterTank as SourceWaterTank } from '../components/nodes/SourceWaterTank';
 import { CentrifugalPumpSvg } from '../components/nodes/CentrifugalPump';
+import { FloatingNodePalette } from '../components/topology/FloatingNodePalette';
 import { useAuth } from '../hooks/useAuth';
 
 /* ─── types ──────────────────────────────────────────────────────── */
@@ -37,6 +38,9 @@ type LiveNodeData = {
   /* edit-mode extras */
   editMode?: boolean;
   allowMoveResize?: boolean;
+  allowDeleteNodes?: boolean;
+  onDeleteNode?: (id: string) => void;
+  onResizeStart?: (params: any) => void;
   onResizeEnd?: (params: any) => void;
 };
 
@@ -57,11 +61,81 @@ const deriveTankState = (data: LiveNodeData) => {
   } as const;
 };
 
+function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: string; nodeName?: string; allowDelete?: boolean; onDelete?: (id: string) => void }) {
+  const [confirming, setConfirming] = useState(false);
+  if (!allowDelete || !onDelete) return null;
+
+  if (confirming) {
+    return (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute', top: -16, right: -10, zIndex: 50,
+          background: '#17181c', border: '1.5px solid #ef4444',
+          borderRadius: 8, padding: '4px 8px',
+          display: 'flex', alignItems: 'center', gap: 6,
+          boxShadow: '0 6px 16px rgba(0,0,0,0.4)',
+          animation: 'fadeIn 0.15s ease',
+          fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif"
+        }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#ffffff', whiteSpace: 'nowrap' }}>
+          Delete {nodeName || 'Asset'}?
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(id);
+          }}
+          style={{
+            background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4,
+            padding: '3px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s'
+          }}
+        >
+          Yes
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirming(false);
+          }}
+          style={{
+            background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 4,
+            padding: '3px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s'
+          }}
+        >
+          No
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setConfirming(true);
+      }}
+      title="Delete Asset"
+      style={{
+        position: 'absolute', top: -10, right: -10, zIndex: 30,
+        width: 26, height: 26, borderRadius: '50%',
+        background: '#ef4444', color: '#ffffff', border: '2px solid #ffffff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', boxShadow: '0 2px 8px rgba(239,68,68,0.4)',
+      }}
+    >
+      <Trash2 size={13} strokeWidth={2.5} />
+    </button>
+  );
+}
+
 /* ─── node views (with optional NodeResizer) ─────────────────────── */
-function TankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
+function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 200, minHeight: 160 }}>
+      <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -83,10 +157,11 @@ function TankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   );
 }
 
-function CentralTankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
+function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 220, minHeight: 160 }}>
+      <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -108,10 +183,11 @@ function CentralTankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   );
 }
 
-function SourceTankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
+function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 220, minHeight: 160 }}>
+      <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -133,12 +209,13 @@ function SourceTankNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   );
 }
 
-function PumpNodeView({ data, selected }: NodeProps<LiveNodeData>) {
+function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const status = data?.status ?? 'Healthy';
   const isOn = status !== 'Offline';
   const vibrationBoost = status === 'Critical' ? 1.5 : status === 'Warning' ? 1.15 : 1;
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 200, minHeight: 160 }}>
+      <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -161,6 +238,60 @@ function PumpNodeView({ data, selected }: NodeProps<LiveNodeData>) {
   );
 }
 
+
+function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
+  const type = data?.nodeType || 'water_level';
+  const name = data?.nodeName || 'Telemetry Sensor';
+
+  const configs: Record<string, { icon: any; color: string; val: string }> = {
+    water_level: { icon: <Gauge size={18} />, color: '#38bdf8', val: `${data?.waterLevel ?? 65}%` },
+    ph: { icon: <Activity size={18} />, color: '#10b981', val: `${data?.ph ?? 7.12} pH` },
+    tds: { icon: <Zap size={18} />, color: '#f59e0b', val: `${data?.tds ?? 210} ppm` },
+    temperature: { icon: <Thermometer size={18} />, color: '#ef4444', val: `${data?.temperature ?? 24.5}°C` },
+  };
+  const cfg = configs[type] || configs.water_level;
+
+  return (
+    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 85 }}>
+      <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
+      {data.allowMoveResize && (
+        <NodeResizer
+          keepAspectRatio={false}
+          minWidth={170} minHeight={85}
+          isVisible={selected}
+          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
+          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+        />
+      )}
+      <div style={{
+        width: '100%', height: '100%',
+        background: '#ffffff',
+        border: selected ? '2px solid #c8f135' : '1px solid rgba(0,0,0,0.08)',
+        borderRadius: 14,
+        padding: '12px 14px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+        display: 'flex', alignItems: 'center', gap: 12,
+        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif"
+      }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 10,
+          background: `${cfg.color}18`, border: `1px solid ${cfg.color}40`,
+          color: cfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }}>
+          {cfg.icon}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#5a5f6b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+            {name}
+          </span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: '#17181c', fontVariantNumeric: 'tabular-nums' }}>
+            {cfg.val}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ViewportGuideNode({ data, selected }: NodeProps<any>) {
   const { allowMoveResize } = data;
@@ -195,13 +326,25 @@ function ViewportGuideNode({ data, selected }: NodeProps<any>) {
   );
 }
 
+const ViewportGuideNodeMemo = memo(ViewportGuideNode);
+const TankNodeViewMemo = memo(TankNodeView);
+const CentralTankNodeViewMemo = memo(CentralTankNodeView);
+const SourceTankNodeViewMemo = memo(SourceTankNodeView);
+const PumpNodeViewMemo = memo(PumpNodeView);
+const SensorNodeViewMemo = memo(SensorNodeView);
+
 const nodeTypes = {
-  viewportGuide: ViewportGuideNode,
-  tank: TankNodeView,
-  central_tank: CentralTankNodeView,
-  source_tank: SourceTankNodeView,
-  source: SourceTankNodeView,
-  pump: PumpNodeView,
+  viewportGuide: ViewportGuideNodeMemo,
+  tank: TankNodeViewMemo,
+  central_tank: CentralTankNodeViewMemo,
+  source_tank: SourceTankNodeViewMemo,
+  source: SourceTankNodeViewMemo,
+  pump: PumpNodeViewMemo,
+  water_level: SensorNodeViewMemo,
+  ph: SensorNodeViewMemo,
+  tds: SensorNodeViewMemo,
+  temperature: SensorNodeViewMemo,
+  sensor: SensorNodeViewMemo,
 };
 
 const BACKEND_URL = 'http://localhost:3001';
@@ -233,7 +376,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
     const nodes = getNodes();
     const vpNode = nodes.find(n => n.id === 'viewport-box');
     if (vpNode) {
-      fitBounds({ x: vpNode.position.x, y: vpNode.position.y, width: parseFloat(vpNode.style?.width as string), height: parseFloat(vpNode.style?.height as string) }, { duration: 400 });
+      fitBounds({ x: vpNode.position.x, y: vpNode.position.y, width: parseFloat(vpNode.style?.width as string), height: parseFloat(vpNode.style?.height as string) }, { duration: 400, padding: 0 });
     } else {
       setCenter(0, 0, { zoom: 1, duration: 400 });
     }
@@ -515,6 +658,7 @@ export default function StarTopology() {
   const [undoStack, setUndoStack] = useState<HistoryAction[]>([]);
   const [redoStack, setRedoStack] = useState<HistoryAction[]>([]);
   const dragStartPos = useRef<any>(null);
+  const isInteractingRef = useRef(false);
   const resizeStartDim = useRef<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Three independent sub-toggles — only active while editMode is ON
@@ -525,11 +669,23 @@ export default function StarTopology() {
   const [allowResizeNodes, setAllowResizeNodes] = useState(false);
   const [allowMoveViewport, setAllowMoveViewport] = useState(false);
   const [allowResizeViewport, setAllowResizeViewport] = useState(false); // drag + resize nodes
+  const [showPaletteMenu, setShowPaletteMenu] = useState(false);
+  const [showNodePalette, setShowNodePalette] = useState(false);
+  const [showSensorPalette, setShowSensorPalette] = useState(false);
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const [allowDeleteNodes, setAllowDeleteNodes] = useState(false);
   const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
   const [isViewportReady, setIsViewportReady] = useState(false);
   
   const { isAdmin } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
+  const interactivityRef = useRef({
+    editMode: false,
+    allowMoveResize: false,
+    allowMoveNodes: false,
+    allowResizeNodes: false,
+    allowDeleteNodes: false,
+  });
 
   /* ── inject pulse keyframe once ─────────────────────────── */
   useEffect(() => {
@@ -542,8 +698,21 @@ export default function StarTopology() {
     }
   }, []);
 
+  /* ── Delete Node Helper ──────────────────────────────── */
+  const handleDeleteNode = useCallback(async (id: string) => {
+    try {
+      await axios.delete(`${BACKEND_URL}/api/nodes/${id}`);
+      setNodes((nds) => nds.filter((n) => n.id !== id));
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    } catch (e) {
+      console.error('Failed to delete node:', e);
+    }
+  }, [setNodes, setEdges]);
+
   /* ── Unified Effect: push editMode/allowMoveResize/showViewport into nodes ─ */
   useEffect(() => {
+    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes };
+
     if (editMode) {
       setSelectedNode(null);
     } else {
@@ -552,6 +721,11 @@ export default function StarTopology() {
       setShowViewport(false);
       setShowCrosshair(false);
       setAllowMoveResize(false);
+      setShowPaletteMenu(false);
+      setShowNodePalette(false);
+      setShowSensorPalette(false);
+      setShowDeleteMenu(false);
+      setAllowDeleteNodes(false);
       setUndoStack([]);
       setRedoStack([]);
     }
@@ -571,11 +745,11 @@ export default function StarTopology() {
         return {
           ...n,
           draggable: editMode && allowMoveResize && allowMoveNodes,
-          data: { ...n.data, editMode, allowMoveResize: allowMoveResize && allowResizeNodes },
+          data: { ...n.data, editMode, allowMoveResize: allowMoveResize && allowResizeNodes, allowDeleteNodes, onDeleteNode: handleDeleteNode },
         };
       })
     );
-  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveViewport, allowResizeViewport, showViewport, setNodes, setSelectedNode]);
+  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, setNodes, setSelectedNode, handleDeleteNode]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -640,7 +814,7 @@ export default function StarTopology() {
           y: initialViewportConfig.y, 
           width: initialViewportConfig.w, 
           height: initialViewportConfig.h 
-        }, { duration: 0 });
+        }, { duration: 0, padding: 0 });
         requestAnimationFrame(() => setIsViewportReady(true));
       }, 50);
     }
@@ -752,6 +926,7 @@ export default function StarTopology() {
     fetchTopology();
 
     socket.on('sensor_update', (data) => {
+      if (isInteractingRef.current) return;
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id !== data.nodeId) return node;
@@ -773,6 +948,7 @@ export default function StarTopology() {
     });
 
     socket.on('node:status_update', (data) => {
+      if (isInteractingRef.current) return;
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id !== data.id) return node;
@@ -785,8 +961,45 @@ export default function StarTopology() {
       );
     });
 
+    socket.on('node:created', (newNode) => {
+      setNodes((nds) => {
+        if (nds.some((n) => n.id === newNode.id)) return nds;
+        const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(newNode.nodeType);
+        const wl   = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
+        const ph   = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
+        const tds  = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
+        const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 24;
+
+        const cleanNds = nds.filter((n) => !(n.id.startsWith('temp-') && n.data?.nodeName === newNode.nodeName));
+        const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn } = interactivityRef.current;
+
+        return [
+          ...cleanNds,
+          {
+            id: newNode.id,
+            type: newNode.nodeType,
+            position: { x: newNode.positionX, y: newNode.positionY },
+            draggable: em && amr && amn,
+            style: isSensor
+              ? { width: 170, height: 85 }
+              : { width: newNode.nodeType.includes('central') || newNode.nodeType.includes('source') ? 220 : 200, height: 160 },
+            data: {
+              nodeName: newNode.nodeName,
+              status: newNode.status,
+              nodeType: newNode.nodeType,
+              waterLevel: wl, ph, tds, temperature: temp,
+              editMode: em,
+              allowMoveResize: amr && arn,
+              allowDeleteNodes: adn,
+              onDeleteNode: handleDeleteNode
+            }
+          }
+        ];
+      });
+    });
+
     return () => { socket.disconnect(); };
-  }, [setNodes, setEdges, setSelectedNode]);
+  }, [setNodes, setEdges, setSelectedNode, handleDeleteNode]);
 
   
   const handleUndo = async () => {
@@ -861,6 +1074,7 @@ export default function StarTopology() {
 
   /* ── save position on drag stop ── */
   const onNodeDragStart = (_: React.MouseEvent, node: any) => {
+    isInteractingRef.current = true;
     dragStartPos.current = { x: Math.round(node.position.x), y: Math.round(node.position.y) };
     if (node.id === 'viewport-box') {
       dragStartPos.current.w = parseFloat(node.style?.width as string) || 1000;
@@ -869,6 +1083,7 @@ export default function StarTopology() {
   };
 
   const onNodeDragStop = async (_: React.MouseEvent, node: any) => {
+    isInteractingRef.current = false;
     if (!dragStartPos.current) return;
     
     const newX = Math.round(node.position.x);
@@ -926,7 +1141,99 @@ export default function StarTopology() {
     (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
-  const onPaneClick = () => setSelectedNode(null);
+  const onPaneClick = () => {
+    setSelectedNode(null);
+    setShowPaletteMenu(false);
+    setShowDeleteMenu(false);
+  };
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(async (event: React.DragEvent) => {
+    event.preventDefault();
+    let type = event.dataTransfer.getData('application/reactflow/nodeType');
+    let label = event.dataTransfer.getData('application/reactflow/nodeName');
+    if (!type) {
+      try {
+        const parsed = JSON.parse(event.dataTransfer.getData('text/plain'));
+        type = parsed.nodeType;
+        label = parsed.nodeName;
+      } catch (e) {}
+    }
+    if (!type || !rfInstance) return;
+
+    const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(type);
+    const nodeW = isSensor ? 170 : type.includes('central') || type.includes('source') ? 220 : 200;
+    const nodeH = isSensor ? 85 : 160;
+
+    const rawPos = rfInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+    const posX = Math.round(rawPos.x - nodeW / 2);
+    const posY = Math.round(rawPos.y - nodeH / 2);
+
+    const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const targetName = `${label || type}-${Math.floor(Math.random() * 900 + 100)}`;
+    const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn } = interactivityRef.current;
+
+    const optimisticNode = {
+      id: tempId,
+      type,
+      position: { x: posX, y: posY },
+      draggable: em && amr && amn,
+      style: { width: nodeW, height: nodeH },
+      data: {
+        nodeName: targetName,
+        status: 'healthy',
+        nodeType: type,
+        waterLevel: 65, ph: 7.1, tds: 210, temperature: 24,
+        editMode: em,
+        allowMoveResize: amr && arn,
+        allowDeleteNodes: adn,
+        onDeleteNode: handleDeleteNode
+      }
+    };
+
+    setNodes((nds) => [...nds, optimisticNode]);
+
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/nodes`, {
+        topologyName: 'Star Topology',
+        nodeName: targetName,
+        nodeType: type,
+        positionX: posX,
+        positionY: posY,
+        status: 'healthy'
+      });
+
+      const newNode = res.data;
+      const wl   = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
+      const ph   = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
+      const tds  = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
+      const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 24;
+
+      setNodes((nds) => {
+        // If socket already added real ID, remove temp node
+        if (nds.some((n) => n.id === newNode.id)) {
+          return nds.filter((n) => n.id !== tempId);
+        }
+        return nds.map((n) => n.id === tempId ? {
+          ...n,
+          id: newNode.id,
+          position: { x: newNode.positionX, y: newNode.positionY },
+          data: { ...n.data, waterLevel: wl, ph, tds, temperature: temp }
+        } : n);
+      });
+    } catch (err) {
+      console.error('Failed to spawn new node:', err);
+      // Revert optimistic spawn if API fails
+      setNodes((nds) => nds.filter((n) => n.id !== tempId));
+    }
+  }, [rfInstance, setNodes, handleDeleteNode]);
 
   /* ── loading ────────────────────────────────────────────── */
   if (loading) {
@@ -1010,6 +1317,62 @@ export default function StarTopology() {
               transition: 'all 0.15s ease',
             }} />
           </button>
+
+          {/* ── Asset Palette toggle button moved to left row ─── */}
+          <div style={{ position: 'relative', display: 'flex' }}>
+            <button
+              id="btn-palette"
+              onClick={() => {
+                if (showPaletteMenu) {
+                  setShowNodePalette(false);
+                  setShowSensorPalette(false);
+                } else {
+                  setAllowMoveResize(false);
+                  setShowDeleteMenu(false);
+                }
+                setShowPaletteMenu(v => !v);
+              }}
+              title="Asset Palette"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                border: showPaletteMenu
+                  ? '1.5px solid rgba(200,241,53,0.50)'
+                  : '1.5px solid rgba(0,0,0,0.09)',
+                background: showPaletteMenu ? '#17181c' : '#ffffff',
+                boxShadow: showPaletteMenu
+                  ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                  : '0 2px 6px rgba(0,0,0,0.07)',
+                fontFamily: FONT, transition: 'all 0.15s ease',
+              }}
+            >
+              <Layers size={13} strokeWidth={2.2} color={showPaletteMenu ? '#c8f135' : '#9ca3af'} />
+              <span style={{
+                fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
+                color: showPaletteMenu ? '#c8f135' : '#5a5f6b',
+              }}>
+                Asset Palette
+              </span>
+              <span style={{
+                width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+                background: showPaletteMenu ? '#c8f135' : 'transparent',
+                boxShadow: showPaletteMenu ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+                transition: 'all 0.15s ease',
+              }} />
+            </button>
+            {showPaletteMenu && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, marginTop: 6,
+                background: 'rgba(23, 24, 28, 0.70)', border: '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.20)', minWidth: 170, zIndex: 50, backdropFilter: 'blur(10px)'
+              }}>
+                <Switch checked={showNodePalette} onChange={setShowNodePalette} label="Node Palette" />
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+                <Switch checked={showSensorPalette} onChange={setShowSensorPalette} label="Sensor Palette" />
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1020,59 +1383,111 @@ export default function StarTopology() {
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
 
-          {/* ── Move & Resize toggle button, only when edit mode is ON ─── */}
+          {/* ── Move & Resize / Asset Palette / Delete Assets toggle buttons, only when edit mode is ON ─── */}
           {editMode && (
             <>
               {/* Divider */}
               <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
-              <button
-                id="btn-move"
-                onClick={() => {
-                  if (allowMoveResize) {
-                    setAllowMoveNodes(false);
-                    setAllowResizeNodes(false);
-                    setAllowMoveViewport(false);
-                    setAllowResizeViewport(false);
-                  }
-                  setAllowMoveResize(v => !v);
-                }}
-                title="Move & Resize"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-                  border: allowMoveResize
-                    ? '1.5px solid rgba(200,241,53,0.50)'
-                    : '1.5px solid rgba(0,0,0,0.09)',
-                  background: allowMoveResize ? '#17181c' : '#ffffff',
-                  boxShadow: allowMoveResize
-                    ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
-                    : '0 2px 6px rgba(0,0,0,0.07)',
-                  fontFamily: FONT, transition: 'all 0.15s ease',
-                }}
-              >
-                <Move size={13} strokeWidth={2.2} color={allowMoveResize ? '#c8f135' : '#9ca3af'} />
-                <span style={{
-                  fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                  color: allowMoveResize ? '#c8f135' : '#5a5f6b',
-                }}>
-                  Move & Resize
-                </span>
-                {/* ON indicator dot */}
-                <span style={{
-                  width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                  background: allowMoveResize ? '#c8f135' : 'transparent',
-                  boxShadow: allowMoveResize ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
-                  transition: 'all 0.15s ease',
-                }} />
-              </button>
-              {/* Divider */}
-              <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
-            </>
-          )}
 
-          {/* Edit Mode toggle — always shown for admin */}
-          <EditModeButton editMode={editMode} onToggle={() => setEditMode((v) => !v)} isFullscreen={isFullscreen} />
-          {allowMoveResize && (
+              {/* ── Delete Assets toggle button ─── */}
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <button
+                  id="btn-delete-assets"
+                  onClick={() => {
+                    if (showDeleteMenu) {
+                      setAllowDeleteNodes(false);
+                    } else {
+                      setAllowMoveResize(false);
+                      setShowPaletteMenu(false);
+                    }
+                    setShowDeleteMenu(v => !v);
+                  }}
+                  title="Delete Assets"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                    border: showDeleteMenu
+                      ? '1.5px solid rgba(200,241,53,0.50)'
+                      : '1.5px solid rgba(0,0,0,0.09)',
+                    background: showDeleteMenu ? '#17181c' : '#ffffff',
+                    boxShadow: showDeleteMenu
+                      ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                      : '0 2px 6px rgba(0,0,0,0.07)',
+                    fontFamily: FONT, transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Trash2 size={13} strokeWidth={2.2} color={showDeleteMenu ? '#c8f135' : '#9ca3af'} />
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
+                    color: showDeleteMenu ? '#c8f135' : '#5a5f6b',
+                  }}>
+                    Delete Assets
+                  </span>
+                  <span style={{
+                    width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+                    background: showDeleteMenu ? '#c8f135' : 'transparent',
+                    boxShadow: showDeleteMenu ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }} />
+                </button>
+                {showDeleteMenu && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, marginTop: 6,
+                    background: 'rgba(23, 24, 28, 0.70)', border: '1px solid rgba(255,255,255,0.10)',
+                    borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.20)', minWidth: 160, zIndex: 50, backdropFilter: 'blur(10px)'
+                  }}>
+                    <Switch checked={allowDeleteNodes} onChange={setAllowDeleteNodes} label="Enable Deletion Icon" />
+                  </div>
+                )}
+              </div>
+
+              {/* ── Move & Resize toggle button ─── */}
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <button
+                  id="btn-move"
+                  onClick={() => {
+                    if (allowMoveResize) {
+                      setAllowMoveNodes(false);
+                      setAllowResizeNodes(false);
+                      setAllowMoveViewport(false);
+                      setAllowResizeViewport(false);
+                    } else {
+                      setShowPaletteMenu(false);
+                      setShowDeleteMenu(false);
+                    }
+                    setAllowMoveResize(v => !v);
+                  }}
+                  title="Move & Resize"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                    border: allowMoveResize
+                      ? '1.5px solid rgba(200,241,53,0.50)'
+                      : '1.5px solid rgba(0,0,0,0.09)',
+                    background: allowMoveResize ? '#17181c' : '#ffffff',
+                    boxShadow: allowMoveResize
+                      ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                      : '0 2px 6px rgba(0,0,0,0.07)',
+                    fontFamily: FONT, transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Move size={13} strokeWidth={2.2} color={allowMoveResize ? '#c8f135' : '#9ca3af'} />
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
+                    color: allowMoveResize ? '#c8f135' : '#5a5f6b',
+                  }}>
+                    Move & Resize
+                  </span>
+                  {/* ON indicator dot */}
+                  <span style={{
+                    width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+                    background: allowMoveResize ? '#c8f135' : 'transparent',
+                    boxShadow: allowMoveResize ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }} />
+                </button>
+                {allowMoveResize && (
                   <div style={{
                     position: 'absolute', top: '100%', right: 0, marginTop: 6,
                     background: 'rgba(23, 24, 28, 0.70)', border: '1px solid rgba(255,255,255,0.10)',
@@ -1090,11 +1505,22 @@ export default function StarTopology() {
                     )}
                   </div>
                 )}
+              </div>
+              {/* Divider */}
+              <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
+            </>
+          )}
+
+          {/* Edit Mode toggle — always shown for admin */}
+          <EditModeButton editMode={editMode} onToggle={() => setEditMode((v) => !v)} isFullscreen={isFullscreen} />
         </div>
       )}
 
       {/* Edit mode active banner */}
       {editMode && <EditModeBanner />}
+      {editMode && (showNodePalette || showSensorPalette) && (
+        <FloatingNodePalette showNodePalette={showNodePalette} showSensorPalette={showSensorPalette} isMenuOpen={showPaletteMenu} />
+      )}
 
       {/* Viewport Guide box moved inside ReactFlow */}
 
@@ -1119,16 +1545,21 @@ export default function StarTopology() {
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
         nodeTypes={nodeTypes}
         nodesDraggable={editMode && allowMoveResize}
         nodesConnectable={false}
+        onlyRenderVisibleElements={true}
+        minZoom={0.15}
+        maxZoom={3.5}
         onInit={(instance) => {
   setRfInstance(instance);
 }}
         className="bg-white"
         style={{ width: '100%', height: '100%', background: '#ffffff', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
       >
-        <Background gap={28} size={1.2} color="#e0e0e0" style={{ opacity: 0.8 }} />
+        <Background gap={isFullscreen ? 36 : 28} size={1.2} color="#e0e0e0" style={{ opacity: 0.8 }} />
         <CustomControls containerRef={containerRef} onUndo={handleUndo} onRedo={handleRedo} canUndo={undoStack.length > 0} canRedo={redoStack.length > 0} />
 
         {/* Canvas crosshair — tracks real world (0,0), pans with canvas */}
