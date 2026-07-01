@@ -47,6 +47,7 @@ export const login = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         username: user.username,
+        email: user.email || `${user.username}@digitaltwin.io`,
         role: user.role
       }
     });
@@ -69,12 +70,17 @@ export const me = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, username: true, role: true }
+      select: { id: true, name: true, username: true, email: true, role: true }
     });
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    res.status(200).json({ user });
+    res.status(200).json({
+      user: {
+        ...user,
+        email: user.email || `${user.username}@digitaltwin.io`
+      }
+    });
   } catch (error) {
     console.error('Me error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -115,6 +121,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const normalizedUsername = username.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
     // Check username uniqueness
     const existingUsername = await prisma.user.findUnique({ where: { username: normalizedUsername } });
@@ -122,13 +129,11 @@ export const register = async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Username is already taken' });
     }
 
-    // Check email uniqueness (search across all users)
-    const allUsers = await prisma.user.findMany({ select: { name: true, username: true } });
-    // We store email in name field concatenated - instead let's use a workaround:
-    // Since schema has no email field, we store email in a way we can check it.
-    // We'll embed email check by searching username for email match — actually
-    // we'll just store and skip email unique check at DB level for now since schema has no email column.
-    // We'll store email as part of the name field as: "FirstName LastName <email>" format.
+    // Check email uniqueness
+    const existingEmail = await prisma.user.findFirst({ where: { email: normalizedEmail } });
+    if (existingEmail) {
+      return res.status(409).json({ error: 'Email is already registered' });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
@@ -137,6 +142,7 @@ export const register = async (req: Request, res: Response) => {
       data: {
         name: fullName,
         username: normalizedUsername,
+        email: normalizedEmail,
         passwordHash,
         role: 'viewer',  // default role
       }
@@ -162,11 +168,66 @@ export const register = async (req: Request, res: Response) => {
         id: newUser.id,
         name: newUser.name,
         username: newUser.username,
+        email: newUser.email,
         role: newUser.role
       }
     });
   } catch (error) {
     console.error('Register error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const listUsers = async (req: Request, res: Response) => {
+  try {
+    const rawUsers = await prisma.user.findMany({
+      select: { id: true, name: true, username: true, email: true, role: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const users = rawUsers.map(u => ({
+      ...u,
+      email: u.email || `${u.username}@digitaltwin.io`
+    }));
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error('List users error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const deleteUser = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const requesterId = (req as any).user?.userId;
+    if (id === requesterId) return res.status(400).json({ error: "You cannot delete your own account" });
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    await prisma.user.delete({ where: { id } });
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateUserRole = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const role = req.body.role as string;
+    const requesterId = (req as any).user?.userId;
+    const allowedRoles = ['admin', 'operator', 'viewer'];
+    if (!allowedRoles.includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    if (id === requesterId && role !== 'admin') return res.status(400).json({ error: "You cannot demote your own admin account" });
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role },
+      select: { id: true, name: true, username: true, role: true },
+    });
+    res.status(200).json({ user: updated });
+  } catch (error) {
+    console.error('Update role error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
