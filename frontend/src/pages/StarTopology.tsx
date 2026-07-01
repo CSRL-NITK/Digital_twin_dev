@@ -15,7 +15,7 @@ import axios from 'axios';
 import Switch from '../components/ui/Switch';
 import { io } from 'socket.io-client';
 import { useOutletContext } from 'react-router-dom';
-import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair, Move, Undo, Redo, Trash2, Layers, Gauge, Activity, Zap, Thermometer } from 'lucide-react';
+import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair, Move, Undo, Redo, Trash2, Layers, Gauge, Activity, Zap, Thermometer, Sliders } from 'lucide-react';
 
 import NodeDetailsPanel from '../components/NodeDetailsPanel';
 import { WaterTank as TankWaterTank } from '../components/nodes/WaterTank';
@@ -23,6 +23,7 @@ import { CentralWaterTank } from '../components/nodes/CentralWaterTank';
 import { WaterTank as SourceWaterTank } from '../components/nodes/SourceWaterTank';
 import { CentrifugalPumpSvg } from '../components/nodes/CentrifugalPump';
 import { FloatingNodePalette } from '../components/topology/FloatingNodePalette';
+import { AssetInspectorModal } from '../components/topology/AssetInspectorModal';
 import { useAuth } from '../hooks/useAuth';
 
 /* ─── types ──────────────────────────────────────────────────────── */
@@ -39,9 +40,15 @@ type LiveNodeData = {
   editMode?: boolean;
   allowMoveResize?: boolean;
   allowDeleteNodes?: boolean;
+  flipHorizontal?: boolean;
+  maxCapacity?: number;
+  parentAssetId?: string;
+  parentAssetName?: string;
+  customWidth?: number;
+  customHeight?: number;
   onDeleteNode?: (id: string) => void;
-  onResizeStart?: (params: any) => void;
-  onResizeEnd?: (params: any) => void;
+  onResizeStart?: (params: any, nodeId?: string) => void;
+  onResizeEnd?: (params: any, nodeId?: string) => void;
 };
 
 /* ─── helpers ────────────────────────────────────────────────────── */
@@ -59,6 +66,19 @@ const deriveTankState = (data: LiveNodeData) => {
     waveSpeed: fillPercentage > 75 ? 'fast' : fillPercentage > 40 ? 'medium' : 'slow',
     waveHeight: temperature > 55 ? 'active' : temperature > 35 ? 'normal' : 'calm',
   } as const;
+};
+
+const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
+  if (isSensor || ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(type)) {
+    return { width: 170, height: 85 };
+  }
+  if (type === 'pump') {
+    return { width: 200, height: 125 };
+  }
+  if (type.includes('central') || type.includes('source') || type === 'source') {
+    return { width: 220, height: 259 };
+  }
+  return { width: 200, height: 255 };
 };
 
 function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: string; nodeName?: string; allowDelete?: boolean; onDelete?: (id: string) => void }) {
@@ -133,78 +153,93 @@ function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: strin
 /* ─── node views (with optional NodeResizer) ─────────────────────── */
 function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
+  const isFlipped = !!data?.flipHorizontal;
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 200, minHeight: 160 }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 204 }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
-          minWidth={200} minHeight={160}
+          minWidth={160} minHeight={204}
           isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
           handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
-      <TankWaterTank
-        fillPercentage={tankState.fillPercentage}
-        isFilling={tankState.isFilling}
-        isDraining={tankState.isDraining}
-        waveSpeed={tankState.waveSpeed}
-        waveHeight={tankState.waveHeight}
-        temperature={tankState.temperature}
-      />
+      <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
+        <TankWaterTank
+          fillPercentage={tankState.fillPercentage}
+          isFilling={tankState.isFilling}
+          isDraining={tankState.isDraining}
+          waveSpeed={tankState.waveSpeed}
+          waveHeight={tankState.waveHeight}
+          temperature={tankState.temperature}
+        />
+      </div>
     </div>
   );
 }
 
 function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
+  const isFlipped = !!data?.flipHorizontal;
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 220, minHeight: 160 }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200 }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
-          minWidth={220} minHeight={160}
+          minWidth={170} minHeight={200}
           isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
           handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
-      <CentralWaterTank
-        fillPercentage={tankState.fillPercentage}
-        isFilling={tankState.isFilling}
-        isDraining={tankState.isDraining}
-        waveSpeed={tankState.waveSpeed}
-        waveHeight={tankState.waveHeight}
-        temperature={tankState.temperature}
-      />
+      <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
+        <CentralWaterTank
+          fillPercentage={tankState.fillPercentage}
+          isFilling={tankState.isFilling}
+          isDraining={tankState.isDraining}
+          waveSpeed={tankState.waveSpeed}
+          waveHeight={tankState.waveHeight}
+          temperature={tankState.temperature}
+        />
+      </div>
     </div>
   );
 }
 
 function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
+  const isFlipped = !!data?.flipHorizontal;
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 220, minHeight: 160 }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200 }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
-          minWidth={220} minHeight={160}
+          minWidth={170} minHeight={200}
           isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
           handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
-      <SourceWaterTank
-        fillPercentage={tankState.fillPercentage}
-        isFilling={tankState.isFilling}
-        isDraining={tankState.isDraining}
-        waveSpeed={tankState.waveSpeed}
-        waveHeight={tankState.waveHeight}
-        temperature={tankState.temperature}
-      />
+      <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
+        <SourceWaterTank
+          fillPercentage={tankState.fillPercentage}
+          isFilling={tankState.isFilling}
+          isDraining={tankState.isDraining}
+          waveSpeed={tankState.waveSpeed}
+          waveHeight={tankState.waveHeight}
+          temperature={tankState.temperature}
+        />
+      </div>
     </div>
   );
 }
@@ -213,27 +248,32 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const status = data?.status ?? 'Healthy';
   const isOn = status !== 'Offline';
   const vibrationBoost = status === 'Critical' ? 1.5 : status === 'Warning' ? 1.15 : 1;
+  const isFlipped = !!data?.flipHorizontal;
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 200, minHeight: 160 }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 100 }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
-          minWidth={200} minHeight={160}
+          minWidth={160} minHeight={100}
           isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
           handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
-      <CentrifugalPumpSvg
-        isOn={isOn}
-        rpm={status === 'Critical' ? 2450 : 2900}
-        flowRate={45 + clampPercentage(data?.waterLevel) * 0.25}
-        pressure={status === 'Critical' ? 3.6 : 4.5}
-        temperature={data?.temperature ?? 42}
-        vibration={(status === 'Critical' ? 2.8 : status === 'Warning' ? 2.1 : 1.8) * vibrationBoost}
-        efficiency={status === 'Critical' ? 74 : status === 'Warning' ? 85 : 92}
-      />
+      <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
+        <CentrifugalPumpSvg
+          isOn={isOn}
+          rpm={status === 'Critical' ? 2450 : 2900}
+          flowRate={45 + clampPercentage(data?.waterLevel) * 0.25}
+          pressure={status === 'Critical' ? 3.6 : 4.5}
+          temperature={data?.temperature ?? 42}
+          vibration={(status === 'Critical' ? 2.8 : status === 'Warning' ? 2.1 : 1.8) * vibrationBoost}
+          efficiency={status === 'Critical' ? 74 : status === 'Warning' ? 85 : 92}
+        />
+      </div>
     </div>
   );
 }
@@ -259,6 +299,8 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           keepAspectRatio={false}
           minWidth={170} minHeight={85}
           isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
           handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
@@ -287,13 +329,18 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           <span style={{ fontSize: 16, fontWeight: 800, color: '#17181c', fontVariantNumeric: 'tabular-nums' }}>
             {cfg.val}
           </span>
+          {data?.parentAssetName && (
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#059669', background: '#d1fae5', padding: '1px 5px', borderRadius: 4, marginTop: 2, display: 'inline-block', width: 'fit-content' }}>
+              🔗 {data.parentAssetName}
+            </span>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function ViewportGuideNode({ data, selected }: NodeProps<any>) {
+function ViewportGuideNode({ id, data, selected }: NodeProps<any>) {
   const { allowMoveResize } = data;
   return (
     <div style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
@@ -302,8 +349,8 @@ function ViewportGuideNode({ data, selected }: NodeProps<any>) {
           minWidth={200}
           keepAspectRatio={true}
           isVisible={selected}
-          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params)}
-          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params)}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id || 'viewport-box')}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id || 'viewport-box')}
           lineStyle={{ borderColor: 'rgba(200,241,53,0.9)', borderWidth: 2, borderStyle: 'dashed', pointerEvents: 'auto' }}
           handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3, pointerEvents: 'auto' }}
         />
@@ -376,9 +423,9 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
     const nodes = getNodes();
     const vpNode = nodes.find(n => n.id === 'viewport-box');
     if (vpNode) {
-      fitBounds({ x: vpNode.position.x, y: vpNode.position.y, width: parseFloat(vpNode.style?.width as string), height: parseFloat(vpNode.style?.height as string) }, { duration: 400, padding: 0 });
+      fitBounds({ x: vpNode.position.x, y: vpNode.position.y, width: parseFloat(vpNode.style?.width as string), height: parseFloat(vpNode.style?.height as string) }, { duration: 400, padding: isFullscreen ? 0.20 : 0 });
     } else {
-      setCenter(0, 0, { zoom: 1, duration: 400 });
+      setCenter(0, 0, { zoom: isFullscreen ? 0.85 : 1, duration: 400 });
     }
     setResetFlash(true);
     setTimeout(() => setResetFlash(false), 600);
@@ -674,6 +721,8 @@ export default function StarTopology() {
   const [showSensorPalette, setShowSensorPalette] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [allowDeleteNodes, setAllowDeleteNodes] = useState(false);
+  const [allowCustomizeNodes, setAllowCustomizeNodes] = useState(false);
+  const [activeCustomizeNodeId, setActiveCustomizeNodeId] = useState<string | null>(null);
   const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
   const [isViewportReady, setIsViewportReady] = useState(false);
   
@@ -697,6 +746,102 @@ export default function StarTopology() {
       document.head.appendChild(s);
     }
   }, []);
+
+  /* ── Resize Handlers ───────────────────────────────────── */
+  const handleNodeResizeStart = useCallback((params: any, _nodeId?: string) => {
+    isInteractingRef.current = true;
+    resizeStartDim.current = {
+      x: Math.round(params.x),
+      y: Math.round(params.y),
+      w: Math.round(params.width),
+      h: Math.round(params.height),
+    };
+  }, []);
+
+  const handleNodeResizeEnd = useCallback(async (params: any, nodeId?: string) => {
+    isInteractingRef.current = false;
+    const targetId = nodeId || params?.id || 'viewport-box';
+    const newX = Math.round(params.x);
+    const newY = Math.round(params.y);
+    const newW = Math.round(params.width);
+    const newH = Math.round(params.height);
+
+    if (resizeStartDim.current) {
+      if (Math.abs(newW - resizeStartDim.current.w) > 1 || Math.abs(newH - resizeStartDim.current.h) > 1) {
+        setUndoStack((prev) => [
+          ...prev,
+          {
+            type: 'resize',
+            nodeId: targetId,
+            oldValue: resizeStartDim.current,
+            newValue: { x: newX, y: newY, w: newW, h: newH },
+          },
+        ]);
+        setRedoStack([]);
+      }
+    }
+
+    if (targetId === 'viewport-box') {
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.id === 'viewport-box') {
+            return {
+              ...n,
+              position: { x: newX, y: newY },
+              style: { ...n.style, width: newW, height: newH },
+            };
+          }
+          return n;
+        })
+      );
+      try {
+        await axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
+          x: newX, y: newY, w: newW, h: newH,
+        });
+      } catch (e) {}
+      return;
+    }
+
+    setNodes((nds) => {
+      const updatedNodes = nds.map((n) => {
+        if (n.id === targetId) {
+          return {
+            ...n,
+            position: { x: newX, y: newY },
+            style: { ...n.style, width: newW, height: newH },
+            data: {
+              ...n.data,
+              customWidth: newW,
+              customHeight: newH,
+            },
+          };
+        }
+        return n;
+      });
+
+      const customConfigs: Record<string, any> = {};
+      updatedNodes.forEach((n) => {
+        if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
+          customConfigs[n.id] = {
+            flipHorizontal: n.data?.flipHorizontal,
+            maxCapacity: n.data?.maxCapacity,
+            parentAssetId: n.data?.parentAssetId,
+            customWidth: n.data?.customWidth ?? (n.style as any)?.width,
+            customHeight: n.data?.customHeight ?? (n.style as any)?.height,
+          };
+        }
+      });
+
+      axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
+      return updatedNodes;
+    });
+
+    try {
+      await axios.patch(`${BACKEND_URL}/api/nodes/${targetId}/position`, {
+        positionX: newX, positionY: newY,
+      });
+    } catch (e) { console.error('Failed to save resize position', e); }
+  }, [setNodes]);
 
   /* ── Delete Node Helper ──────────────────────────────── */
   const handleDeleteNode = useCallback(async (id: string) => {
@@ -726,12 +871,33 @@ export default function StarTopology() {
       setShowSensorPalette(false);
       setShowDeleteMenu(false);
       setAllowDeleteNodes(false);
+      setAllowCustomizeNodes(false);
+      setActiveCustomizeNodeId(null);
       setUndoStack([]);
       setRedoStack([]);
     }
 
-    setNodes((nds) =>
-      nds.map((n) => {
+    setNodes((nds) => {
+      if (!editMode) {
+        const customConfigs: Record<string, any> = {};
+        nds.forEach((n) => {
+          if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
+            axios.patch(`${BACKEND_URL}/api/nodes/${n.id}/position`, {
+              positionX: Math.round(n.position?.x ?? 0),
+              positionY: Math.round(n.position?.y ?? 0),
+            }).catch(() => {});
+            customConfigs[n.id] = {
+              flipHorizontal: n.data?.flipHorizontal,
+              maxCapacity: n.data?.maxCapacity,
+              parentAssetId: n.data?.parentAssetId,
+              customWidth: n.data?.customWidth ?? (n.style as any)?.width,
+              customHeight: n.data?.customHeight ?? (n.style as any)?.height,
+            };
+          }
+        });
+        axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(() => {});
+      }
+      return nds.map((n) => {
         if (n.id === 'viewport-box') {
           const isViewportInteractive = allowMoveResize && (allowMoveViewport || allowResizeViewport);
           return {
@@ -739,17 +905,30 @@ export default function StarTopology() {
             hidden: !(editMode && showViewport),
             draggable: editMode && allowMoveResize && allowMoveViewport,
             style: { ...n.style, pointerEvents: isViewportInteractive ? 'auto' : 'none' },
-            data: { ...n.data, allowMoveResize: allowMoveResize && allowResizeViewport }
+            data: {
+              ...n.data,
+              allowMoveResize: allowMoveResize && allowResizeViewport,
+              onResizeStart: handleNodeResizeStart,
+              onResizeEnd: handleNodeResizeEnd,
+            }
           };
         }
         return {
           ...n,
           draggable: editMode && allowMoveResize && allowMoveNodes,
-          data: { ...n.data, editMode, allowMoveResize: allowMoveResize && allowResizeNodes, allowDeleteNodes, onDeleteNode: handleDeleteNode },
+          data: {
+            ...n.data,
+            editMode,
+            allowMoveResize: allowMoveResize && allowResizeNodes,
+            allowDeleteNodes,
+            onDeleteNode: handleDeleteNode,
+            onResizeStart: handleNodeResizeStart,
+            onResizeEnd: handleNodeResizeEnd,
+          },
         };
-      })
-    );
-  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, setNodes, setSelectedNode, handleDeleteNode]);
+      });
+    });
+  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -786,23 +965,68 @@ export default function StarTopology() {
     };
   }, [captureSize]);
 
-  /* ── Rule 1: Edit Mode ON → enter fullscreen automatically ── */
+  /* ── Rule 1: Edit Mode ON → enter fullscreen automatically & center viewport box ── */
   useEffect(() => {
-    if (editMode && !document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(console.error);
+    if (editMode) {
+      if (!document.fullscreenElement) {
+        containerRef.current?.requestFullscreen().catch(console.error);
+      }
+      if (rfInstance) {
+        setTimeout(() => {
+          const vpNode = rfInstance.getNodes().find((n: any) => n.id === 'viewport-box');
+          if (vpNode) {
+            rfInstance.fitBounds({
+              x: vpNode.position.x,
+              y: vpNode.position.y,
+              width: parseFloat(vpNode.style?.width as string) || 1000,
+              height: parseFloat(vpNode.style?.height as string) || 500,
+            }, { duration: 400, padding: 0.20 });
+          } else {
+            rfInstance.setCenter(0, 0, { zoom: 0.85, duration: 400 });
+          }
+        }, 150);
+      }
+    } else if (rfInstance && !document.fullscreenElement) {
+      setTimeout(() => {
+        const vpNode = rfInstance.getNodes().find((n: any) => n.id === 'viewport-box');
+        if (vpNode) {
+          rfInstance.fitBounds({
+            x: vpNode.position.x,
+            y: vpNode.position.y,
+            width: parseFloat(vpNode.style?.width as string) || 1000,
+            height: parseFloat(vpNode.style?.height as string) || 500,
+          }, { duration: 400, padding: 0 });
+        }
+      }, 150);
     }
-  }, [editMode]);
+  }, [editMode, rfInstance]);
 
   /* ── Rule 2: Fullscreen exited (ESC / button) → turn off Edit Mode ── */
   useEffect(() => {
     const onFsChange = () => {
       const inFs = !!document.fullscreenElement;
       setIsFullscreen(inFs);
-      if (!inFs) setEditMode(false);
+      if (!inFs) {
+        setEditMode(false);
+      } else if (rfInstance) {
+        setTimeout(() => {
+          const vpNode = rfInstance.getNodes().find((n: any) => n.id === 'viewport-box');
+          if (vpNode) {
+            rfInstance.fitBounds({
+              x: vpNode.position.x,
+              y: vpNode.position.y,
+              width: parseFloat(vpNode.style?.width as string) || 1000,
+              height: parseFloat(vpNode.style?.height as string) || 500,
+            }, { duration: 400, padding: 0.20 });
+          } else {
+            rfInstance.setCenter(0, 0, { zoom: 0.85, duration: 400 });
+          }
+        }, 150);
+      }
     };
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
+  }, [rfInstance]);
 
   /* ── Sync Viewport when both ReactFlow and Topology data are ready ── */
   useEffect(() => {
@@ -828,23 +1052,43 @@ export default function StarTopology() {
       try {
         const { data } = await axios.get(`${BACKEND_URL}/api/topologies/star`);
 
-        const formattedNodes = data.nodes.map((node: any) => ({
-          id: node.id,
-          type: node.nodeType,
-          position: { x: node.positionX, y: node.positionY },
-          draggable: false, // locked by default; edit mode enables
-          style: node.width && node.height
-            ? { width: node.width, height: node.height }
-            : undefined,
-          data: {
-            nodeName: node.nodeName,
-            status: node.status,
-            nodeType: node.nodeType,
-            waterLevel: 0, ph: 0, tds: 0, temperature: 0,
-            editMode: false,
-          },
-        }));
+        let vpConfig = { x: -500, y: -250, w: 1000, h: 500 };
+        let customConfigs: Record<string, any> = {};
+        if (data.description) {
+          try {
+            const parsed = JSON.parse(data.description);
+            if (parsed.viewport && parsed.viewport.w) vpConfig = parsed.viewport;
+            if (parsed.customConfigs) customConfigs = parsed.customConfigs;
+          } catch (e) {}
+        }
 
+        const formattedNodes = data.nodes.map((node: any) => {
+          const cfg = customConfigs[node.id] || {};
+          const parentNode = cfg.parentAssetId ? data.nodes.find((n: any) => n.id === cfg.parentAssetId) : null;
+          const defDims = getDefaultNodeDimensions(node.nodeType);
+          const w = cfg.customWidth || (node.width && node.height ? node.width : defDims.width);
+          const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
+          return {
+            id: node.id,
+            type: node.nodeType,
+            position: { x: node.positionX, y: node.positionY },
+            draggable: false, // locked by default; edit mode enables
+            style: { width: w, height: h },
+            data: {
+              nodeName: node.nodeName,
+              status: node.status,
+              nodeType: node.nodeType,
+              waterLevel: 0, ph: 0, tds: 0, temperature: 0,
+              editMode: false,
+              flipHorizontal: cfg.flipHorizontal,
+              maxCapacity: cfg.maxCapacity,
+              parentAssetId: cfg.parentAssetId,
+              parentAssetName: parentNode ? parentNode.nodeName : undefined,
+              customWidth: w,
+              customHeight: h,
+            },
+          };
+        });
         const formattedEdges = data.edges.map((edge: any) => ({
           id: edge.id,
           source: edge.sourceNodeId,
@@ -852,14 +1096,6 @@ export default function StarTopology() {
           animated: true,
           style: { stroke: 'var(--dt-accent)', strokeWidth: 1.5, opacity: 0.7 },
         }));
-
-        let vpConfig = { x: -500, y: -250, w: 1000, h: 500 };
-        if (data.description) {
-          try {
-            const parsed = JSON.parse(data.description);
-            if (parsed.viewport && parsed.viewport.w) vpConfig = parsed.viewport;
-          } catch (e) {}
-        }
         
         const viewportNode = {
           id: 'viewport-box',
@@ -980,9 +1216,7 @@ export default function StarTopology() {
             type: newNode.nodeType,
             position: { x: newNode.positionX, y: newNode.positionY },
             draggable: em && amr && amn,
-            style: isSensor
-              ? { width: 170, height: 85 }
-              : { width: newNode.nodeType.includes('central') || newNode.nodeType.includes('source') ? 220 : 200, height: 160 },
+            style: getDefaultNodeDimensions(newNode.nodeType, isSensor),
             data: {
               nodeName: newNode.nodeName,
               status: newNode.status,
@@ -1084,26 +1318,25 @@ export default function StarTopology() {
 
   const onNodeDragStop = async (_: React.MouseEvent, node: any) => {
     isInteractingRef.current = false;
-    if (!dragStartPos.current) return;
-    
-    const newX = Math.round(node.position.x);
-    const newY = Math.round(node.position.y);
+    const newX = Math.round(node.position?.x ?? 0);
+    const newY = Math.round(node.position?.y ?? 0);
     const newW = node.id === 'viewport-box' ? (parseFloat(node.style?.width as string) || 1000) : undefined;
     const newH = node.id === 'viewport-box' ? (parseFloat(node.style?.height as string) || 500) : undefined;
 
-    const dx = Math.abs(newX - dragStartPos.current.x);
-    const dy = Math.abs(newY - dragStartPos.current.y);
-    if (dx < 1 && dy < 1) return; // ignore accidental clicks
-
-    const action: HistoryAction = {
-      type: 'move',
-      nodeId: node.id,
-      oldValue: { ...dragStartPos.current },
-      newValue: { x: newX, y: newY, w: newW, h: newH }
-    };
-
-    setUndoStack(prev => [...prev, action]);
-    setRedoStack([]);
+    if (dragStartPos.current) {
+      const dx = Math.abs(newX - dragStartPos.current.x);
+      const dy = Math.abs(newY - dragStartPos.current.y);
+      if (dx >= 1 || dy >= 1) {
+        const action: HistoryAction = {
+          type: 'move',
+          nodeId: node.id,
+          oldValue: { ...dragStartPos.current },
+          newValue: { x: newX, y: newY, w: newW, h: newH }
+        };
+        setUndoStack(prev => [...prev, action]);
+        setRedoStack([]);
+      }
+    }
 
     if (node.id === 'viewport-box') {
       try {
@@ -1122,10 +1355,73 @@ export default function StarTopology() {
   };
 
 
+  const handleSaveCustomNode = async (nodeId: string, updatedProps: any) => {
+    try {
+      if (updatedProps.nodeName) {
+        await axios.patch(`${BACKEND_URL}/api/nodes/${nodeId}`, {
+          nodeName: updatedProps.nodeName,
+        });
+      }
+
+      setNodes((nds) => {
+        const updatedNodes = nds.map(n => {
+          if (n.id === nodeId) {
+            const parentName = updatedProps.parentAssetId
+              ? nds.find(p => p.id === updatedProps.parentAssetId)?.data?.nodeName
+              : undefined;
+            const newStyle = (updatedProps.customWidth && updatedProps.customHeight)
+              ? { ...n.style, width: updatedProps.customWidth, height: updatedProps.customHeight }
+              : n.style;
+            return {
+              ...n,
+              style: newStyle,
+              data: {
+                ...n.data,
+                nodeName: updatedProps.nodeName,
+                flipHorizontal: updatedProps.flipHorizontal,
+                maxCapacity: updatedProps.maxCapacity,
+                parentAssetId: updatedProps.parentAssetId,
+                parentAssetName: parentName,
+                customWidth: updatedProps.customWidth,
+                customHeight: updatedProps.customHeight,
+              }
+            };
+          }
+          return n;
+        });
+
+        const customConfigs: Record<string, any> = {};
+        updatedNodes.forEach(n => {
+          if (n.id !== 'viewport-box') {
+            customConfigs[n.id] = {
+              flipHorizontal: n.data.flipHorizontal,
+              maxCapacity: n.data.maxCapacity,
+              parentAssetId: n.data.parentAssetId,
+              customWidth: n.data.customWidth ?? (n.style as any)?.width,
+              customHeight: n.data.customHeight ?? (n.style as any)?.height,
+            };
+          }
+        });
+
+        axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
+          customConfigs,
+        }).catch(console.error);
+
+        return updatedNodes;
+      });
+    } catch (err) {
+      console.error('Failed to save node customizations:', err);
+    }
+  };
+
   /* ── node click ─────────────────────────────────────────── */
   const onNodeClick = async (_: React.MouseEvent, node: any) => {
-    // In edit mode, clicks are for drag/resize only — suppress details panel
-    if (editMode) return;
+    if (editMode) {
+      if (allowCustomizeNodes && node.id !== 'viewport-box') {
+        setActiveCustomizeNodeId(node.id);
+      }
+      return;
+    }
     try {
       const nodeRes = await axios.get(`${BACKEND_URL}/api/nodes`);
       const target  = nodeRes.data.find((n: any) => n.id === node.id);
@@ -1166,8 +1462,7 @@ export default function StarTopology() {
     if (!type || !rfInstance) return;
 
     const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(type);
-    const nodeW = isSensor ? 170 : type.includes('central') || type.includes('source') ? 220 : 200;
-    const nodeH = isSensor ? 85 : 160;
+    const { width: nodeW, height: nodeH } = getDefaultNodeDimensions(type, isSensor);
 
     const rawPos = rfInstance.screenToFlowPosition({
       x: event.clientX,
@@ -1514,6 +1809,68 @@ export default function StarTopology() {
           {/* Edit Mode toggle — always shown for admin */}
           <EditModeButton editMode={editMode} onToggle={() => setEditMode((v) => !v)} isFullscreen={isFullscreen} />
         </div>
+      )}
+
+      {/* ── Customize Assets button placed directly below Edit Mode ON when edit mode is active ── */}
+      {isAdmin && editMode && (
+        <div style={{ position: 'absolute', top: 76, right: 16, zIndex: 30 }}>
+          <button
+            onClick={() => {
+              const nextVal = !allowCustomizeNodes;
+              setAllowCustomizeNodes(nextVal);
+              if (nextVal) {
+                setAllowMoveResize(false);
+                setShowPaletteMenu(false);
+                setShowDeleteMenu(false);
+              } else {
+                setActiveCustomizeNodeId(null);
+              }
+            }}
+            title="Customize Assets"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
+              border: allowCustomizeNodes
+                ? '1.5px solid rgba(200,241,53,0.55)'
+                : '1.5px solid rgba(0,0,0,0.09)',
+              background: allowCustomizeNodes ? '#17181c' : '#ffffff',
+              boxShadow: allowCustomizeNodes
+                ? '0 0 16px rgba(200,241,53,0.2), 0 4px 12px rgba(0,0,0,0.15)'
+                : '0 2px 8px rgba(0,0,0,0.08)',
+              fontFamily: FONT, transition: 'all 0.15s ease',
+            }}
+          >
+            <Sliders size={14} strokeWidth={2.2} color={allowCustomizeNodes ? '#c8f135' : '#9ca3af'} />
+            <span style={{
+              fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
+              color: allowCustomizeNodes ? '#c8f135' : '#5a5f6b',
+            }}>
+              Customize Assets
+            </span>
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+              background: allowCustomizeNodes ? '#c8f135' : 'transparent',
+              boxShadow: allowCustomizeNodes ? '0 0 6px rgba(200,241,53,0.9)' : 'none',
+              transition: 'all 0.15s ease',
+            }} />
+          </button>
+        </div>
+      )}
+
+      {/* Asset Inspector Modal */}
+      {editMode && activeCustomizeNodeId && (
+        (() => {
+          const activeNode = nodes.find(n => n.id === activeCustomizeNodeId);
+          if (!activeNode) return null;
+          return (
+            <AssetInspectorModal
+              node={activeNode}
+              allNodes={nodes}
+              onClose={() => setActiveCustomizeNodeId(null)}
+              onSave={handleSaveCustomNode}
+            />
+          );
+        })()
       )}
 
       {/* Edit mode active banner */}
