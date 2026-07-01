@@ -50,7 +50,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   waveSpeed,
   waveHeight,
   temperature,
-  showInletPipe = false,
+  showInletPipe = true,
   showOutletPipe = true,
   showGauge = true,
   showOverflowPipe = true,
