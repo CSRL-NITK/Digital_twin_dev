@@ -878,6 +878,19 @@ export const CentrifugalPumpSvg: React.FC<CentrifugalPumpSvgProps> = ({
             opacity="0.3"
           />
 
+          {/* ── Langflow Edge Connector Port on Bottom of Pump Base Plate ── */}
+          <g id="langflow-edge-connector" transform="translate(380, 394)">
+            {/* Outer metallic socket arch */}
+            <rect x="0" y="0" width="40" height="18" rx="5" fill="url(#darkGrad)" stroke="#6B7280" strokeWidth="2" />
+            {/* Inner socket cavity */}
+            <rect x="6" y="4" width="28" height="10" rx="3" fill="#0f172a" />
+            {/* Glowing LED terminal indicator */}
+            <circle cx="20" cy="9" r="4.5" fill={resolvedIsOn ? "#1cff42" : "#4b5563"} stroke="#1f2937" strokeWidth="1.5" />
+            {resolvedIsOn && (
+              <circle cx="20" cy="9" r="7" fill="none" stroke="#1cff42" strokeWidth="1.5" opacity="0.8" filter="url(#glow)" />
+            )}
+          </g>
+
           {/* FOUR MOUNTING BOLTS (Orthographic Side view spaced out) */}
           {[150, 280, 520, 650].map((boltX, idx) => (
             <g id={`bolt-${idx + 1}`} key={boltX}>
