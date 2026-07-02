@@ -38,6 +38,13 @@ const NODE_PALETTE_ITEMS: PaletteItem[] = [
     icon: <Activity size={18} />,
     color: '#f59e0b',
   },
+  {
+    nodeType: 'switch',
+    label: 'Rocker Switch Control',
+    description: 'Industrial 3D power rocker switch',
+    icon: <Radio size={18} />,
+    color: '#c8f135',
+  },
 ];
 
 const SENSOR_PALETTE_ITEMS: PaletteItem[] = [
