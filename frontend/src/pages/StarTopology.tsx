@@ -7,6 +7,7 @@ import ReactFlow, {
   useEdgesState,
   useReactFlow,
   useViewport,
+  useNodes,
   addEdge,
 } from 'reactflow';
 import type { Connection, Edge, NodeProps } from 'reactflow';
@@ -51,11 +52,15 @@ type LiveNodeData = {
   switchOffsetX?: number;
   switchOffsetY?: number;
   switchScale?: number;
+  targetPumpId?: string;
+  hideSwitch?: boolean;
   onTogglePump?: (id: string, currentIsOn: boolean) => void;
   onSwitchTransformEnd?: (id: string, x: number, y: number, scale: number) => void;
   onDeleteNode?: (id: string) => void;
   onResizeStart?: (params: any, nodeId?: string) => void;
   onResizeEnd?: (params: any, nodeId?: string) => void;
+  onConnectSwitchToPump?: (switchId: string, targetPumpId: string) => void;
+  onHidePumpSwitch?: (id: string) => void;
 };
 
 /* ─── helpers ────────────────────────────────────────────────────── */
@@ -63,8 +68,8 @@ const clampPercentage = (value: number | undefined) =>
   Math.max(0, Math.min(100, value ?? 0));
 
 const deriveTankState = (data: LiveNodeData) => {
-  const fillPercentage = clampPercentage(data.waterLevel);
-  const temperature = data.temperature ?? 22;
+  const fillPercentage = clampPercentage(data?.waterLevel ?? 65);
+  const temperature = data?.temperature ?? 24;
   return {
     fillPercentage,
     temperature,
@@ -79,6 +84,9 @@ const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
   if (isSensor || ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(type)) {
     return { width: 170, height: 85 };
   }
+  if (type === 'switch') {
+    return { width: 140, height: 180 };
+  }
   if (type === 'pump') {
     return { width: 200, height: 125 };
   }
@@ -86,6 +94,27 @@ const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
     return { width: 220, height: 259 };
   }
   return { width: 200, height: 255 };
+};
+
+const buildCustomConfigs = (nodes: any[]) => {
+  const customConfigs: Record<string, any> = {};
+  nodes.forEach((n) => {
+    if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
+      customConfigs[n.id] = {
+        flipHorizontal: n.data?.flipHorizontal,
+        maxCapacity: n.data?.maxCapacity,
+        parentAssetId: n.data?.parentAssetId,
+        customWidth: n.data?.customWidth ?? (n.style as any)?.width,
+        customHeight: n.data?.customHeight ?? (n.style as any)?.height,
+        switchOffsetX: n.data?.switchOffsetX,
+        switchOffsetY: n.data?.switchOffsetY,
+        switchScale: n.data?.switchScale,
+        targetPumpId: n.data?.targetPumpId,
+        hideSwitch: n.data?.hideSwitch,
+      };
+    }
+  });
+  return customConfigs;
 };
 
 function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: string; nodeName?: string; allowDelete?: boolean; onDelete?: (id: string) => void }) {
@@ -251,13 +280,274 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   );
 }
 
+function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
+  const allNodes = useNodes();
+  const ownNode = allNodes.find(n => n.id === id);
+  const targetPumpId = data?.targetPumpId;
+  const targetPump = targetPumpId ? allNodes.find(n => n.id === targetPumpId) : null;
+
+  const status = (targetPump?.data as LiveNodeData | undefined)?.status ?? data?.status ?? 'Healthy';
+  const isOn = status !== 'Offline';
+  const canControl = true;
+  const isEditSwitches = !!data?.allowMoveSwitches;
+  const { zoom } = useViewport();
+
+  const [switchScale, setSwitchScale] = React.useState(data?.switchScale ?? 0.6);
+  const [wireDrag, setWireDrag] = React.useState<{ currentX: number; currentY: number; snappedPumpId?: string } | null>(null);
+
+  React.useEffect(() => {
+    setSwitchScale(data?.switchScale ?? 0.6);
+  }, [data?.switchScale]);
+
+  const handleSwitchResizeMouseDown = (e: React.MouseEvent) => {
+    if (!isEditSwitches) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const origScale = switchScale;
+    const currentZoom = zoom || 1;
+
+    const onMove = (moveEvt: MouseEvent) => {
+      const dx = (moveEvt.clientX - startX) / currentZoom;
+      const nextScale = Math.max(0.25, Math.min(1.8, origScale + dx * 0.005));
+      setSwitchScale(nextScale);
+    };
+
+    const onUp = (upEvt: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const dx = (upEvt.clientX - startX) / currentZoom;
+      const finalScale = Math.max(0.25, Math.min(1.8, origScale + dx * 0.005));
+      data?.onSwitchTransformEnd?.(id, 0, 0, finalScale);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const boxWidth = 150 * switchScale;
+  const boxHeight = 195 * switchScale;
+  const wireStartX = boxWidth * 0.5;
+  const wireStartY = 0;
+
+  const handleConnectMouseDown = (e: React.MouseEvent) => {
+    if (!isEditSwitches || !ownNode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const currentZoom = zoom || 1;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const pumps = allNodes.filter(n => n.type === 'pump');
+
+    const onMove = (moveEvt: MouseEvent) => {
+      const dx = (moveEvt.clientX - startX) / currentZoom;
+      const dy = (moveEvt.clientY - startY) / currentZoom;
+      const mouseRelX = wireStartX + dx;
+      const mouseRelY = wireStartY + dy;
+      const mouseCanvasX = ownNode.position.x + mouseRelX;
+      const mouseCanvasY = ownNode.position.y + mouseRelY;
+
+      let snappedId: string | undefined;
+      let snapRelX = mouseRelX;
+      let snapRelY = mouseRelY;
+
+      for (const p of pumps) {
+        const tW = Number(p.style?.width || p.width || 240);
+        const tH = Number(p.style?.height || p.height || 150);
+        const aW = Math.max(10, tW);
+        const aH = Math.max(10, tH);
+        const sScale = Math.min(aW / 800, aH / 500);
+        const oX = (aW - 800 * sScale) / 2;
+        const oY = (aH - 500 * sScale) / 2;
+        const portCanvasX = p.position.x + oX + 400 * sScale;
+        const portCanvasY = p.position.y + oY + 403 * sScale;
+
+        if (Math.hypot(mouseCanvasX - portCanvasX, mouseCanvasY - portCanvasY) < 140) {
+          snappedId = p.id;
+          snapRelX = portCanvasX - ownNode.position.x;
+          snapRelY = portCanvasY - ownNode.position.y;
+          break;
+        }
+      }
+
+      setWireDrag({ currentX: snapRelX, currentY: snapRelY, snappedPumpId: snappedId });
+    };
+
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setWireDrag(prev => {
+        if (prev?.snappedPumpId && data?.onConnectSwitchToPump) {
+          data.onConnectSwitchToPump(id, prev.snappedPumpId);
+        }
+        return null;
+      });
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  let wireEndX = wireStartX;
+  let wireEndY = wireStartY + 70;
+  let isSnapped = false;
+
+  if (wireDrag) {
+    wireEndX = wireDrag.currentX;
+    wireEndY = wireDrag.currentY;
+    isSnapped = !!wireDrag.snappedPumpId;
+  } else if (targetPump && ownNode) {
+    const tW = Number(targetPump.style?.width || targetPump.width || 240);
+    const tH = Number(targetPump.style?.height || targetPump.height || 150);
+    const aW = Math.max(10, tW);
+    const aH = Math.max(10, tH);
+    const sScale = Math.min(aW / 800, aH / 500);
+    const oX = (aW - 800 * sScale) / 2;
+    const oY = (aH - 500 * sScale) / 2;
+    const targetCanvasX = targetPump.position.x + oX + 400 * sScale;
+    const targetCanvasY = targetPump.position.y + oY + 403 * sScale;
+    wireEndX = targetCanvasX - ownNode.position.x;
+    wireEndY = targetCanvasY - ownNode.position.y;
+    isSnapped = true;
+  }
+
+  const distY = Math.abs(wireStartY - wireEndY);
+  const distX = Math.abs(wireStartX - wireEndX);
+  const sag = Math.max(35, (distY + distX) * 0.35);
+  const wirePath = `M ${wireStartX},${wireStartY} C ${wireStartX},${wireStartY - sag} ${wireEndX},${wireEndY + sag} ${wireEndX},${wireEndY}`;
+
+  return (
+    <div style={{ width: '100%', height: '100%', minWidth: 140, minHeight: 180, position: 'relative' }}>
+      {data.allowMoveResize && (
+        <NodeResizer
+          keepAspectRatio={true}
+          minWidth={140} minHeight={180}
+          isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
+          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
+          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+        />
+      )}
+
+      {/* Plug Boot */}
+      <div
+        style={{
+          position: 'absolute',
+          left: wireStartX - 10,
+          top: -7,
+          width: 20,
+          height: 10,
+          background: 'linear-gradient(180deg, #4b5563 0%, #1f2937 100%)',
+          border: '1px solid #9ca3af',
+          borderRadius: '4px 4px 0 0',
+          boxShadow: '0 -2px 6px rgba(0,0,0,0.4)',
+          zIndex: 34,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Wire */}
+      {(targetPump || wireDrag) && (
+        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 25, overflow: 'visible' }}>
+          <defs>
+            <filter id={`wireShadow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="#000000" floodOpacity="0.65" />
+            </filter>
+            <filter id={`neonGlow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <style>{`@keyframes rfEdgeFlow-${id} { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }`}</style>
+          </defs>
+          <path d={wirePath} fill="none" stroke="#0f172a" strokeWidth="7" strokeLinecap="round" filter={`url(#wireShadow-${id})`} />
+          <path d={wirePath} fill="none" stroke={isOn ? '#1e293b' : '#334155'} strokeWidth="5" strokeLinecap="round" />
+          <path d={wirePath} fill="none" stroke="#475569" strokeWidth="4.5" strokeDasharray="2 4" strokeLinecap="round" />
+          {(isOn || isSnapped) && (
+            <path d={wirePath} fill="none" stroke={isSnapped && wireDrag ? "#38bdf8" : "#1cff42"} strokeWidth="2.5" strokeDasharray="8 4" strokeLinecap="round" filter={`url(#neonGlow-${id})`} style={{ animation: `rfEdgeFlow-${id} 0.6s linear infinite` }} />
+          )}
+          <circle cx={wireStartX} cy={wireStartY} r="3.5" fill={isOn ? '#ffffff' : '#9ca3af'} />
+          <circle cx={wireEndX} cy={wireEndY} r={isSnapped && wireDrag ? 6 : 3.5} fill={isSnapped && wireDrag ? "#38bdf8" : isOn ? '#ffffff' : '#9ca3af'} />
+        </svg>
+      )}
+
+      {/* 3D Switch Box */}
+      <div
+        className="nodrag nopan"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: boxWidth,
+          height: boxHeight,
+          zIndex: 35,
+          border: isEditSwitches ? '2px solid #c8f135' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          borderRadius: 6,
+        }}
+      >
+        <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
+        {isEditSwitches && (
+          <div
+            className="nodrag nopan"
+            onMouseDown={handleConnectMouseDown}
+            style={{
+              position: 'absolute',
+              top: -24,
+              left: 0,
+              right: 0,
+              height: 20,
+              background: wireDrag ? (wireDrag.snappedPumpId ? '#1cff42' : '#38bdf8') : '#c8f135',
+              color: '#17181c',
+              fontSize: 9,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px 4px 0 0',
+              cursor: 'crosshair',
+              userSelect: 'none',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}
+          >
+            {wireDrag ? (wireDrag.snappedPumpId ? '⚡ RELEASE TO CONNECT PUMP' : '🔗 DRAG NEAR PUMP PORT...') : '⚡ CONNECT TO PUMP'}
+          </div>
+        )}
+        <div style={{ width: '100%', height: '100%' }}>
+          <Pump3DSwitch
+            isOn={isOn}
+            canControl={canControl && !isEditSwitches}
+            onToggle={() => {
+              if (!isEditSwitches) data?.onTogglePump?.(targetPumpId || id, isOn);
+            }}
+            scale={switchScale}
+          />
+        </div>
+        {isEditSwitches && (
+          <>
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
-  const status = data?.status ?? 'Healthy';
+  const allNodes = useNodes();
+  const ownNode = allNodes.find(n => n.id === id);
+  const targetPumpId = data?.targetPumpId;
+  const targetPump = targetPumpId && targetPumpId !== id ? allNodes.find(n => n.id === targetPumpId) : null;
+
+  const status = (targetPump?.data as LiveNodeData | undefined)?.status ?? data?.status ?? 'Healthy';
   const isOn = status !== 'Offline';
   const vibrationBoost = status === 'Critical' ? 1.5 : status === 'Warning' ? 1.15 : 1;
   const isFlipped = !!data?.flipHorizontal;
   const canControl = true;
   const isEditSwitches = !!data?.allowMoveSwitches;
+  const isSwitchHidden = !!data?.hideSwitch;
   const { zoom } = useViewport();
 
   const [switchPos, setSwitchPos] = React.useState({
@@ -265,6 +555,7 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
     y: data?.switchOffsetY ?? -75,
   });
   const [switchScale, setSwitchScale] = React.useState(data?.switchScale ?? 0.38);
+  const [wireDrag, setWireDrag] = React.useState<{ currentX: number; currentY: number; snappedPumpId?: string } | null>(null);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [nodeDims, setNodeDims] = React.useState({ w: 240, h: 150 });
@@ -286,11 +577,9 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   }, []);
 
   React.useEffect(() => {
-    setSwitchPos({
-      x: data?.switchOffsetX ?? 10,
-      y: data?.switchOffsetY ?? -75,
-    });
-    setSwitchScale(data?.switchScale ?? 0.38);
+    if (data?.switchOffsetX !== undefined) setSwitchPos(prev => ({ ...prev, x: data.switchOffsetX! }));
+    if (data?.switchOffsetY !== undefined) setSwitchPos(prev => ({ ...prev, y: data.switchOffsetY! }));
+    if (data?.switchScale !== undefined) setSwitchScale(data.switchScale);
   }, [data?.switchOffsetX, data?.switchOffsetY, data?.switchScale]);
 
   const handleSwitchMouseDown = (e: React.MouseEvent) => {
@@ -314,9 +603,7 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
       window.removeEventListener('mouseup', onUp);
       const dx = (upEvt.clientX - startX) / currentZoom;
       const dy = (upEvt.clientY - startY) / currentZoom;
-      const finalX = origX + dx;
-      const finalY = origY + dy;
-      data?.onSwitchTransformEnd?.(id, finalX, finalY, switchScale);
+      data?.onSwitchTransformEnd?.(id, origX + dx, origY + dy, switchScale);
     };
 
     window.addEventListener('mousemove', onMove);
@@ -353,6 +640,64 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const wireStartX = switchPos.x + (150 * switchScale) * 0.5;
   const wireStartY = switchPos.y;
 
+  const handleConnectMouseDown = (e: React.MouseEvent) => {
+    if (!isEditSwitches || !ownNode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const currentZoom = zoom || 1;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const pumps = allNodes.filter(n => n.type === 'pump');
+
+    const onMove = (moveEvt: MouseEvent) => {
+      const dx = (moveEvt.clientX - startX) / currentZoom;
+      const dy = (moveEvt.clientY - startY) / currentZoom;
+      const mouseRelX = wireStartX + dx;
+      const mouseRelY = wireStartY + dy;
+      const mouseCanvasX = ownNode.position.x + mouseRelX;
+      const mouseCanvasY = ownNode.position.y + mouseRelY;
+
+      let snappedId: string | undefined;
+      let snapRelX = mouseRelX;
+      let snapRelY = mouseRelY;
+
+      for (const p of pumps) {
+        const tW = Number(p.style?.width || p.width || 240);
+        const tH = Number(p.style?.height || p.height || 150);
+        const aW = Math.max(10, tW);
+        const aH = Math.max(10, tH);
+        const sScale = Math.min(aW / 800, aH / 500);
+        const oX = (aW - 800 * sScale) / 2;
+        const oY = (aH - 500 * sScale) / 2;
+        const portCanvasX = p.position.x + oX + 400 * sScale;
+        const portCanvasY = p.position.y + oY + 403 * sScale;
+
+        if (Math.hypot(mouseCanvasX - portCanvasX, mouseCanvasY - portCanvasY) < 140) {
+          snappedId = p.id;
+          snapRelX = portCanvasX - ownNode.position.x;
+          snapRelY = portCanvasY - ownNode.position.y;
+          break;
+        }
+      }
+
+      setWireDrag({ currentX: snapRelX, currentY: snapRelY, snappedPumpId: snappedId });
+    };
+
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setWireDrag(prev => {
+        if (prev?.snappedPumpId && data?.onConnectSwitchToPump) {
+          data.onConnectSwitchToPump(id, prev.snappedPumpId);
+        }
+        return null;
+      });
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
   // Calculate exact rendered scale and offsets of the 800x500 Pump SVG inside the container
   const availW = Math.max(10, nodeDims.w);
   const availH = Math.max(10, nodeDims.h);
@@ -362,11 +707,29 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const offsetX = (availW - renderedW) / 2;
   const offsetY = (availH - renderedH) / 2;
 
-  // The exact center terminal pin of the Langflow socket on the pump base plate (X=400, Y=403 in 800x500 SVG space)
-  const wireEndX = offsetX + 400 * svgScale;
-  const wireEndY = offsetY + 403 * svgScale;
+  let wireEndX = offsetX + 400 * svgScale;
+  let wireEndY = offsetY + 403 * svgScale;
+  let isSnapped = true;
 
-  // Hyper-realistic Langflow hanging cable catenary curve
+  if (wireDrag) {
+    wireEndX = wireDrag.currentX;
+    wireEndY = wireDrag.currentY;
+    isSnapped = !!wireDrag.snappedPumpId;
+  } else if (targetPump && ownNode) {
+    const tW = Number(targetPump.style?.width || targetPump.width || 240);
+    const tH = Number(targetPump.style?.height || targetPump.height || 150);
+    const aW = Math.max(10, tW);
+    const aH = Math.max(10, tH);
+    const sScale = Math.min(aW / 800, aH / 500);
+    const oX = (aW - 800 * sScale) / 2;
+    const oY = (aH - 500 * sScale) / 2;
+    const targetCanvasX = targetPump.position.x + oX + 400 * sScale;
+    const targetCanvasY = targetPump.position.y + oY + 403 * sScale;
+    wireEndX = targetCanvasX - ownNode.position.x;
+    wireEndY = targetCanvasY - ownNode.position.y;
+    isSnapped = true;
+  }
+
   const distY = Math.abs(wireStartY - wireEndY);
   const distX = Math.abs(wireStartX - wireEndX);
   const sag = Math.max(35, (distY + distX) * 0.35);
@@ -376,218 +739,165 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
     <div ref={containerRef} style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 100, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
 
-      {/* ── Langflow Socket Plug Boot on Top of Switch Box ── */}
-      <div
-        style={{
-          position: 'absolute',
-          left: wireStartX - 10,
-          top: wireStartY - 7,
-          width: 20,
-          height: 10,
-          background: 'linear-gradient(180deg, #4b5563 0%, #1f2937 100%)',
-          border: '1px solid #9ca3af',
-          borderRadius: '4px 4px 0 0',
-          boxShadow: '0 -2px 6px rgba(0,0,0,0.4)',
-          zIndex: 34,
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* ── Hyper-Realistic Industrial Braided Cable & Glowing Laser Signal ── */}
-      <svg
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-          zIndex: 25,
-          overflow: 'visible',
-        }}
-      >
-        <defs>
-          <filter id={`wireShadow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="#000000" floodOpacity="0.65" />
-          </filter>
-          <filter id={`neonGlow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3.5" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-          <style>{`
-            @keyframes rfEdgeFlow-${id} {
-              from { stroke-dashoffset: 24; }
-              to { stroke-dashoffset: 0; }
-            }
-          `}</style>
-        </defs>
-
-        {/* Layer 1: Realistic Outer Heavy Black/Charcoal Cable Jacket with Drop Shadow */}
-        <path
-          d={wirePath}
-          fill="none"
-          stroke="#0f172a"
-          strokeWidth="7"
-          strokeLinecap="round"
-          filter={`url(#wireShadow-${id})`}
-        />
-
-        {/* Layer 2: Inner Rubberized Insulation Sheath */}
-        <path
-          d={wirePath}
-          fill="none"
-          stroke={isOn ? '#1e293b' : '#334155'}
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-
-        {/* Layer 3: Metallic Spiral Braiding Texture */}
-        <path
-          d={wirePath}
-          fill="none"
-          stroke="#475569"
-          strokeWidth="4.5"
-          strokeDasharray="2 4"
-          strokeLinecap="round"
-        />
-
-        {/* Layer 4: Glowing High-Voltage Energy Core Pulse when ON */}
-        {isOn && (
-          <path
-            d={wirePath}
-            fill="none"
-            stroke="#1cff42"
-            strokeWidth="2.5"
-            strokeDasharray="8 4"
-            strokeLinecap="round"
-            filter={`url(#neonGlow-${id})`}
-            style={{ animation: `rfEdgeFlow-${id} 0.6s linear infinite` }}
-          />
-        )}
-
-        {/* Layer 5: Socket Terminal Pins inside Plugs */}
-        <circle
-          cx={wireStartX}
-          cy={wireStartY}
-          r="3.5"
-          fill={isOn ? '#ffffff' : '#9ca3af'}
-        />
-        <circle
-          cx={wireEndX}
-          cy={wireEndY}
-          r="3.5"
-          fill={isOn ? '#ffffff' : '#9ca3af'}
-        />
-      </svg>
-
-      {/* ── Realistic 3D Rocker Switch Control Box ── */}
-      <div
-        className="nodrag nopan"
-        style={{
-          position: 'absolute',
-          top: switchPos.y,
-          left: switchPos.x,
-          width: 150 * switchScale,
-          height: 195 * switchScale,
-          zIndex: 35,
-          border: isEditSwitches ? '2px solid #c8f135' : 'none',
-          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
-          borderRadius: 6,
-        }}
-      >
-        <div
-          className="nodrag nopan"
-          onMouseDown={isEditSwitches ? handleSwitchMouseDown : undefined}
-          style={{
-            width: '100%',
-            height: '100%',
-            cursor: isEditSwitches ? 'move' : 'default',
-          }}
-        >
-          <Pump3DSwitch
-            isOn={isOn}
-            canControl={canControl && !isEditSwitches}
-            onToggle={() => {
-              if (!isEditSwitches) data?.onTogglePump?.(id, isOn);
+      {!isSwitchHidden && (
+        <>
+          {/* ── Langflow Socket Plug Boot on Top of Switch Box ── */}
+          <div
+            style={{
+              position: 'absolute',
+              left: wireStartX - 10,
+              top: wireStartY - 7,
+              width: 20,
+              height: 10,
+              background: 'linear-gradient(180deg, #4b5563 0%, #1f2937 100%)',
+              border: '1px solid #9ca3af',
+              borderRadius: '4px 4px 0 0',
+              boxShadow: '0 -2px 6px rgba(0,0,0,0.4)',
+              zIndex: 34,
+              pointerEvents: 'none',
             }}
-            scale={switchScale}
           />
-        </div>
 
-        {/* ── Exact 4 Corner Square Resize Handles matching NodeResizer ── */}
-        {isEditSwitches && (
-          <>
-            {/* Top-Left */}
+          {/* ── Hyper-Realistic Industrial Braided Cable & Glowing Laser Signal ── */}
+          <svg
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 25,
+              overflow: 'visible',
+            }}
+          >
+            <defs>
+              <filter id={`wireShadow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="#000000" floodOpacity="0.65" />
+              </filter>
+              <filter id={`neonGlow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+              <style>{`
+                @keyframes rfEdgeFlow-${id} {
+                  from { stroke-dashoffset: 24; }
+                  to { stroke-dashoffset: 0; }
+                }
+              `}</style>
+            </defs>
+
+            <path d={wirePath} fill="none" stroke="#0f172a" strokeWidth="7" strokeLinecap="round" filter={`url(#wireShadow-${id})`} />
+            <path d={wirePath} fill="none" stroke={isOn ? '#1e293b' : '#334155'} strokeWidth="5" strokeLinecap="round" />
+            <path d={wirePath} fill="none" stroke="#475569" strokeWidth="4.5" strokeDasharray="2 4" strokeLinecap="round" />
+            {(isOn || isSnapped) && (
+              <path d={wirePath} fill="none" stroke={isSnapped && wireDrag ? "#38bdf8" : "#1cff42"} strokeWidth="2.5" strokeDasharray="8 4" strokeLinecap="round" filter={`url(#neonGlow-${id})`} style={{ animation: `rfEdgeFlow-${id} 0.6s linear infinite` }} />
+            )}
+            <circle cx={wireStartX} cy={wireStartY} r="3.5" fill={isOn ? '#ffffff' : '#9ca3af'} />
+            <circle cx={wireEndX} cy={wireEndY} r={isSnapped && wireDrag ? 6 : 3.5} fill={isSnapped && wireDrag ? "#38bdf8" : isOn ? '#ffffff' : '#9ca3af'} />
+          </svg>
+
+          {/* ── Realistic 3D Rocker Switch Control Box ── */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute',
+              top: switchPos.y,
+              left: switchPos.x,
+              width: 150 * switchScale,
+              height: 195 * switchScale,
+              zIndex: 35,
+              border: isEditSwitches ? '2px solid #c8f135' : 'none',
+              backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+              borderRadius: 6,
+            }}
+          >
+            {data?.allowDeleteNodes && (
+              <button
+                className="nodrag nopan"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  data?.onHidePumpSwitch?.(id);
+                }}
+                title="Delete embedded switch"
+                style={{
+                  position: 'absolute',
+                  top: -10,
+                  right: -10,
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  border: '2px solid #ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 60,
+                  boxShadow: '0 2px 8px rgba(239,68,68,0.4)',
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, lineHeight: 1 }}>×</span>
+              </button>
+            )}
+            {isEditSwitches && (
+              <div
+                className="nodrag nopan"
+                onMouseDown={handleConnectMouseDown}
+                style={{
+                  position: 'absolute',
+                  top: -24,
+                  left: 0,
+                  right: 0,
+                  height: 20,
+                  background: wireDrag ? (wireDrag.snappedPumpId ? '#1cff42' : '#38bdf8') : '#c8f135',
+                  color: '#17181c',
+                  fontSize: 9,
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '4px 4px 0 0',
+                  cursor: 'crosshair',
+                  userSelect: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                }}
+              >
+                {wireDrag ? (wireDrag.snappedPumpId ? '⚡ RELEASE TO CONNECT PUMP' : '🔗 DRAG NEAR PUMP PORT...') : '⚡ CONNECT TO PUMP'}
+              </div>
+            )}
             <div
               className="nodrag nopan"
-              onMouseDown={handleSwitchResizeMouseDown}
+              onMouseDown={isEditSwitches ? handleSwitchMouseDown : undefined}
               style={{
-                position: 'absolute',
-                top: -5,
-                left: -5,
-                width: 10,
-                height: 10,
-                background: '#c8f135',
-                border: '1.5px solid #17181c',
-                borderRadius: 3,
-                cursor: 'nwse-resize',
-                zIndex: 40,
+                width: '100%',
+                height: '100%',
+                cursor: isEditSwitches ? 'move' : 'default',
               }}
-            />
-            {/* Top-Right */}
-            <div
-              className="nodrag nopan"
-              onMouseDown={handleSwitchResizeMouseDown}
-              style={{
-                position: 'absolute',
-                top: -5,
-                right: -5,
-                width: 10,
-                height: 10,
-                background: '#c8f135',
-                border: '1.5px solid #17181c',
-                borderRadius: 3,
-                cursor: 'nesw-resize',
-                zIndex: 40,
-              }}
-            />
-            {/* Bottom-Left */}
-            <div
-              className="nodrag nopan"
-              onMouseDown={handleSwitchResizeMouseDown}
-              style={{
-                position: 'absolute',
-                bottom: -5,
-                left: -5,
-                width: 10,
-                height: 10,
-                background: '#c8f135',
-                border: '1.5px solid #17181c',
-                borderRadius: 3,
-                cursor: 'nesw-resize',
-                zIndex: 40,
-              }}
-            />
-            {/* Bottom-Right */}
-            <div
-              className="nodrag nopan"
-              onMouseDown={handleSwitchResizeMouseDown}
-              style={{
-                position: 'absolute',
-                bottom: -5,
-                right: -5,
-                width: 10,
-                height: 10,
-                background: '#c8f135',
-                border: '1.5px solid #17181c',
-                borderRadius: 3,
-                cursor: 'nwse-resize',
-                zIndex: 40,
-              }}
-            />
-          </>
-        )}
-      </div>
+            >
+              <Pump3DSwitch
+                isOn={isOn}
+                canControl={canControl && !isEditSwitches}
+                onToggle={() => {
+                  if (!isEditSwitches) data?.onTogglePump?.(targetPumpId || id, isOn);
+                }}
+                scale={switchScale}
+              />
+            </div>
+
+            {/* ── Exact 4 Corner Square Resize Handles matching NodeResizer ── */}
+            {isEditSwitches && (
+              <>
+                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+              </>
+            )}
+          </div>
+        </>
+      )}
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -713,6 +1023,7 @@ const ViewportGuideNodeMemo = memo(ViewportGuideNode);
 const TankNodeViewMemo = memo(TankNodeView);
 const CentralTankNodeViewMemo = memo(CentralTankNodeView);
 const SourceTankNodeViewMemo = memo(SourceTankNodeView);
+const SwitchNodeViewMemo = memo(SwitchNodeView);
 const PumpNodeViewMemo = memo(PumpNodeView);
 const SensorNodeViewMemo = memo(SensorNodeView);
 
@@ -722,6 +1033,7 @@ const nodeTypes = {
   central_tank: CentralTankNodeViewMemo,
   source_tank: SourceTankNodeViewMemo,
   source: SourceTankNodeViewMemo,
+  switch: SwitchNodeViewMemo,
   pump: PumpNodeViewMemo,
   water_level: SensorNodeViewMemo,
   ph: SensorNodeViewMemo,
@@ -1072,6 +1384,7 @@ export default function StarTopology() {
     allowMoveNodes: false,
     allowResizeNodes: false,
     allowDeleteNodes: false,
+    allowMoveSwitches: false,
   });
 
   /* ── inject pulse keyframe once ─────────────────────────── */
@@ -1157,18 +1470,7 @@ export default function StarTopology() {
         return n;
       });
 
-      const customConfigs: Record<string, any> = {};
-      updatedNodes.forEach((n) => {
-        if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
-          customConfigs[n.id] = {
-            flipHorizontal: n.data?.flipHorizontal,
-            maxCapacity: n.data?.maxCapacity,
-            parentAssetId: n.data?.parentAssetId,
-            customWidth: n.data?.customWidth ?? (n.style as any)?.width,
-            customHeight: n.data?.customHeight ?? (n.style as any)?.height,
-          };
-        }
-      });
+      const customConfigs = buildCustomConfigs(updatedNodes);
 
       axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
       return updatedNodes;
@@ -1226,26 +1528,55 @@ export default function StarTopology() {
         return n;
       });
 
-      const customConfigs: Record<string, any> = {};
-      updatedNodes.forEach((n) => {
-        if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
-          customConfigs[n.id] = {
-            flipHorizontal: n.data?.flipHorizontal,
-            maxCapacity: n.data?.maxCapacity,
-            parentAssetId: n.data?.parentAssetId,
-            customWidth: n.data?.customWidth ?? (n.style as any)?.width,
-            customHeight: n.data?.customHeight ?? (n.style as any)?.height,
-            switchOffsetX: n.data?.switchOffsetX,
-            switchOffsetY: n.data?.switchOffsetY,
-            switchScale: n.data?.switchScale,
-          };
-        }
-      });
+      const customConfigs = buildCustomConfigs(updatedNodes);
       axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
       return updatedNodes;
     });
   }, [setNodes]);
 
+  /* ── Switch Magnetic Wire Connection Helper ──────────────────── */
+  const handleConnectSwitchToPump = useCallback((switchId: string, targetPumpId: string) => {
+    setNodes((nds) => {
+      const updatedNodes = nds.map((n) => {
+        if (n.id === switchId) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              targetPumpId,
+            },
+          };
+        }
+        return n;
+      });
+
+      const customConfigs = buildCustomConfigs(updatedNodes);
+      axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
+      return updatedNodes;
+    });
+  }, [setNodes]);
+
+  /* ── Hide Embedded Pump Switch Helper ──────────────────────── */
+  const handleHidePumpSwitch = useCallback((id: string) => {
+    setNodes((nds) => {
+      const updatedNodes = nds.map((n) => {
+        if (n.id === id) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              hideSwitch: true,
+            },
+          };
+        }
+        return n;
+      });
+
+      const customConfigs = buildCustomConfigs(updatedNodes);
+      axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
+      return updatedNodes;
+    });
+  }, [setNodes]);
 
   /* ── Delete Node Helper ──────────────────────────────── */
   const handleDeleteNode = useCallback(async (id: string) => {
@@ -1260,7 +1591,7 @@ export default function StarTopology() {
 
   /* ── Unified Effect: push editMode/allowMoveResize/showViewport into nodes ─ */
   useEffect(() => {
-    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes };
+    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes, allowMoveSwitches };
 
     if (editMode) {
       setSelectedNode(null);
@@ -1283,22 +1614,15 @@ export default function StarTopology() {
 
     setNodes((nds) => {
       if (!editMode) {
-        const customConfigs: Record<string, any> = {};
         nds.forEach((n) => {
           if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
             axios.patch(`${BACKEND_URL}/api/nodes/${n.id}/position`, {
               positionX: Math.round(n.position?.x ?? 0),
               positionY: Math.round(n.position?.y ?? 0),
             }).catch(() => {});
-            customConfigs[n.id] = {
-              flipHorizontal: n.data?.flipHorizontal,
-              maxCapacity: n.data?.maxCapacity,
-              parentAssetId: n.data?.parentAssetId,
-              customWidth: n.data?.customWidth ?? (n.style as any)?.width,
-              customHeight: n.data?.customHeight ?? (n.style as any)?.height,
-            };
           }
         });
+        const customConfigs = buildCustomConfigs(nds);
         axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(() => {});
       }
       return nds.map((n) => {
@@ -1317,9 +1641,14 @@ export default function StarTopology() {
             }
           };
         }
+        const isSwitchNode = n.type === 'switch';
+        const canDrag = isSwitchNode
+          ? (editMode && allowMoveSwitches)
+          : (editMode && allowMoveResize && allowMoveNodes && !allowMoveSwitches);
+
         return {
           ...n,
-          draggable: editMode && allowMoveResize && allowMoveNodes && !allowMoveSwitches,
+          draggable: canDrag,
           data: {
             ...n.data,
             editMode,
@@ -1329,6 +1658,8 @@ export default function StarTopology() {
             canControlPump,
             onTogglePump: handleTogglePump,
             onSwitchTransformEnd: handleSwitchTransformEnd,
+            onConnectSwitchToPump: handleConnectSwitchToPump,
+            onHidePumpSwitch: handleHidePumpSwitch,
             onDeleteNode: handleDeleteNode,
             onResizeStart: handleNodeResizeStart,
             onResizeEnd: handleNodeResizeEnd,
@@ -1336,7 +1667,7 @@ export default function StarTopology() {
         };
       });
     });
-  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveSwitches, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, canControlPump, handleTogglePump, handleSwitchTransformEnd, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
+  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveSwitches, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, canControlPump, handleTogglePump, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -1898,13 +2229,15 @@ export default function StarTopology() {
 
     const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const targetName = `${label || type}-${Math.floor(Math.random() * 900 + 100)}`;
-    const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn } = interactivityRef.current;
+    const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn, allowMoveSwitches: ams } = interactivityRef.current;
+    const isSwitchDrop = type === 'switch';
+    const canDragDrop = isSwitchDrop ? (em && ams) : (em && amr && amn && !ams);
 
     const optimisticNode = {
       id: tempId,
       type,
       position: { x: posX, y: posY },
-      draggable: em && amr && amn,
+      draggable: canDragDrop,
       style: { width: nodeW, height: nodeH },
       data: {
         nodeName: targetName,
@@ -1912,9 +2245,14 @@ export default function StarTopology() {
         nodeType: type,
         waterLevel: 65, ph: 7.1, tds: 210, temperature: 24,
         editMode: em,
-        allowMoveResize: amr && arn,
+        allowMoveResize: amr && arn && !ams,
+        allowMoveSwitches: em && ams,
         allowDeleteNodes: adn,
-        onDeleteNode: handleDeleteNode
+        onDeleteNode: handleDeleteNode,
+        onTogglePump: handleTogglePump,
+        onSwitchTransformEnd: handleSwitchTransformEnd,
+        onConnectSwitchToPump: handleConnectSwitchToPump,
+        onHidePumpSwitch: handleHidePumpSwitch,
       }
     };
 
@@ -1953,7 +2291,7 @@ export default function StarTopology() {
       // Revert optimistic spawn if API fails
       setNodes((nds) => nds.filter((n) => n.id !== tempId));
     }
-  }, [rfInstance, setNodes, handleDeleteNode]);
+  }, [rfInstance, setNodes, handleDeleteNode, handleTogglePump, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch]);
 
   /* ── loading ────────────────────────────────────────────── */
   if (loading) {
