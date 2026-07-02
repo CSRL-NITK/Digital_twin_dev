@@ -60,7 +60,7 @@ const StyledWrapper = styled.div<{ $scale: number; $canControl: boolean }>`
     cursor: pointer;
   }
 
-  /* ── ON STATE (Checked) ── */
+  /* ── ON STATE (Checked - GREEN) ── */
   .switch.is-checked .button {
     transform: translateZ(20px) rotateX(25deg);
     box-shadow: 0 -10px 20px #1cff42;
@@ -87,7 +87,12 @@ const StyledWrapper = styled.div<{ $scale: number; $canControl: boolean }>`
     background-image: linear-gradient(#006600, #003008);
   }
 
+  .switch.is-checked .dots {
+    background-image: radial-gradient(transparent 30%, rgba(6, 97, 0, 0.7) 70%);
+  }
+
   .switch.is-checked .light {
+    background-image: radial-gradient(#7dff83, #1bff17 40%, transparent 70%);
     animation: flicker 0.2s infinite 0.3s;
     opacity: 1;
   }
@@ -100,43 +105,48 @@ const StyledWrapper = styled.div<{ $scale: number; $canControl: boolean }>`
     opacity: 0;
   }
 
-  /* ── OFF STATE (Unchecked) ── */
+  /* ── OFF STATE (Unchecked - DARK RED) ── */
   .switch:not(.is-checked) .button {
     transform: translateZ(20px) rotateX(-25deg);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 10px 20px rgba(180, 0, 0, 0.4);
     background: linear-gradient(
-      #282c34 0%,
-      #181a1f 30%,
-      #1e2127 70%,
-      #2d3139 100%
+      #780505 0%,
+      #420101 30%,
+      #520101 70%,
+      #6e0303 100%
     );
   }
 
   .switch:not(.is-checked) .button::before {
     background: linear-gradient(
-          rgba(255, 255, 255, 0.4) 10%,
-          rgba(255, 255, 255, 0.1) 30%,
-          #1e2127 75%,
-          #121418
+          rgba(255, 255, 255, 0.5) 10%,
+          rgba(255, 255, 255, 0.15) 30%,
+          #3d0000 75%,
+          #1f0000
         )
         50% 50%/97% 97%,
-      #282c34;
+      #820000;
   }
 
   .switch:not(.is-checked) .button::after {
-    background-image: linear-gradient(#1e2127, #0e1013);
+    background-image: linear-gradient(#470000, #210002);
+  }
+
+  .switch:not(.is-checked) .dots {
+    background-image: radial-gradient(transparent 30%, rgba(90, 0, 0, 0.85) 70%);
   }
 
   .switch:not(.is-checked) .light {
-    opacity: 0;
+    background-image: radial-gradient(#d63c3c, #b80d0d 45%, transparent 75%);
+    opacity: 0.18;
   }
 
   .switch:not(.is-checked) .shine {
-    opacity: 0.2;
+    opacity: 0.3;
   }
 
   .switch:not(.is-checked) .shadow {
-    opacity: 1;
+    opacity: 0.8;
   }
 
   /* ── Common Button Structure ── */
@@ -177,14 +187,12 @@ const StyledWrapper = styled.div<{ $scale: number; $canControl: boolean }>`
     position: absolute;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(#7dff83, #1bff17 40%, transparent 70%);
   }
 
   .switch .dots {
     position: absolute;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(transparent 30%, rgba(6, 97, 0, 0.7) 70%);
     background-size: 10px 10px;
   }
 

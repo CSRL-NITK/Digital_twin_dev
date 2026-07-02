@@ -16,6 +16,11 @@ interface WaterTankProps {
   showOutletPipe?: boolean;
   showGauge?: boolean;
   showOverflowPipe?: boolean;
+  waveHeightCalm?: number;
+  waveHeightNormal?: number;
+  waveHeightActive?: number;
+  tempThreshold?: number;
+  tempMaxThreshold?: number;
 }
 
 const interpolateColor = (color1: string, color2: string, factor: number): string => {
@@ -54,6 +59,11 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   showOutletPipe = true,
   showGauge = true,
   showOverflowPipe = true,
+  waveHeightCalm = 4.5,
+  waveHeightNormal = 11,
+  waveHeightActive = 17,
+  tempThreshold = 55.0,
+  tempMaxThreshold = 75.0,
 }) => {
   // Constrain fill percentage
   const clampedFill = Math.max(0, Math.min(100, fillPercentage));
@@ -64,13 +74,13 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
   // FLUID DYNAMICS & THERMAL SETTINGS
   // Wave amplitudes (px) for different waveHeight states
-  const WAVE_HEIGHT_CALM = 4.5;
-  const WAVE_HEIGHT_NORMAL = 11;
-  const WAVE_HEIGHT_ACTIVE = 17;
+  const WAVE_HEIGHT_CALM = waveHeightCalm;
+  const WAVE_HEIGHT_NORMAL = waveHeightNormal;
+  const WAVE_HEIGHT_ACTIVE = waveHeightActive;
 
     // Water Color & Thermal Temperature Thresholds
-  const TEMP_THRESHOLD = 55.0;            // Temperature (°C) where water starts changing to warm color & boiling starts
-  const TEMP_MAX_THRESHOLD = 75.0;        // Temperature (°C) where water is completely warm & boiling is at max
+  const TEMP_THRESHOLD = tempThreshold;            // Temperature (°C) where water starts changing to warm color & boiling starts
+  const TEMP_MAX_THRESHOLD = tempMaxThreshold;        // Temperature (°C) where water is completely warm & boiling is at max
   // Derived layout and positioning coordinates
   const TANK_CENTER_X = 200;       // Center of the tank in the SVG
   const TANK_CYLINDER_Y1 = 300 - TANK_HEIGHT / 2; // Top of cylindrical body
