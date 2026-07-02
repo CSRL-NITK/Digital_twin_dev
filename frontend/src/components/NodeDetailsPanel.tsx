@@ -38,6 +38,28 @@ export default function NodeDetailsPanel({ node, history, onClose }: any) {
       </div>
 
       <div className="space-y-6 flex-1 overflow-y-auto pr-2">
+        {node.nodeType === 'pump' && node.canControlPump && (
+          <div className="glass-card p-4 mb-6 flex items-center justify-between border border-primary/30 bg-primary/5">
+            <div>
+              <div className="text-[11px] font-bold text-primary tracking-wider uppercase mb-1">OPERATOR CONTROL</div>
+              <div className="text-[16px] font-bold text-text flex items-center gap-2">
+                Pump Signal: <span className={node.status !== 'Offline' ? 'text-success font-extrabold' : 'text-danger font-extrabold'}>{node.status !== 'Offline' ? '1 - ON' : '0 - OFF'}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => node.onTogglePump?.(node.id, node.status !== 'Offline')}
+              className={`px-4 py-2 rounded-xl font-bold text-[13px] transition-all shadow-md flex items-center gap-2 ${
+                node.status !== 'Offline'
+                  ? 'bg-danger hover:bg-danger/90 text-white shadow-danger/20'
+                  : 'bg-success hover:bg-success/90 text-black shadow-success/20'
+              }`}
+            >
+              <span className={`w-2.5 h-2.5 rounded-full ${node.status !== 'Offline' ? 'bg-white' : 'bg-black animate-pulse'}`} />
+              {node.status !== 'Offline' ? 'Send Signal: 0 (OFF)' : 'Send Signal: 1 (ON)'}
+            </button>
+          </div>
+        )}
+
         {/* Sensors List (First-class entities) */}
         <div className="glass-card p-0 overflow-hidden mb-6">
           <div className="flex justify-between items-center p-4 border-b border-border bg-surface-light">
