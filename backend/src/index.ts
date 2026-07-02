@@ -273,12 +273,52 @@ app.delete('/api/nodes/:id', async (req, res) => {
   try {
     await prisma.node.delete({
       where: { id }
+    }).catch((err) => {
+      console.warn(`Notice on deleting node ${id} (may not exist in DB):`, err.message || err);
     });
     await twinEngine.reloadDbMapping();
     io.emit('node:deleted', { id });
     res.json({ success: true, id });
   } catch (error) {
+    console.error('Error deleting node:', error);
     res.status(500).json({ error: 'Failed to delete node' });
+  }
+});
+
+app.post('/api/edges', async (req, res) => {
+  const { source, target, topologyName } = req.body;
+  try {
+    let topology = await prisma.topology.findFirst({
+      where: { name: topologyName || 'Star Topology' }
+    });
+    if (!topology) topology = await prisma.topology.findFirst();
+    if (!topology) return res.status(404).json({ error: 'No topology found' });
+
+    const newEdge = await prisma.edge.create({
+      data: {
+        topologyId: topology.id,
+        sourceNodeId: source,
+        targetNodeId: target,
+        edgeType: 'pipe',
+        status: 'normal'
+      }
+    });
+    io.emit('edge:created', newEdge);
+    res.status(201).json(newEdge);
+  } catch (error) {
+    console.error('Failed to create edge:', error);
+    res.status(500).json({ error: 'Failed to create edge' });
+  }
+});
+
+app.delete('/api/edges/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.edge.delete({ where: { id } }).catch(() => {});
+    io.emit('edge:deleted', { id });
+    res.json({ success: true, id });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete edge' });
   }
 });
 
