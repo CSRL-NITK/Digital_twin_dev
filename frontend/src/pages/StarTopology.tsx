@@ -52,15 +52,32 @@ type LiveNodeData = {
   switchOffsetX?: number;
   switchOffsetY?: number;
   switchScale?: number;
+  inletSwitchOffsetX?: number;
+  inletSwitchOffsetY?: number;
+  inletSwitchScale?: number;
+  outletSwitchOffsetX?: number;
+  outletSwitchOffsetY?: number;
+  outletSwitchScale?: number;
+  inletValveOn?: boolean;
+  outletValveOn?: boolean;
   targetPumpId?: string;
   hideSwitch?: boolean;
+  inletHideSwitch?: boolean;
+  outletHideSwitch?: boolean;
+  waveHeightCalm?: number;
+  waveHeightNormal?: number;
+  waveHeightActive?: number;
+  tempThreshold?: number;
+  tempMaxThreshold?: number;
   onTogglePump?: (id: string, currentIsOn: boolean) => void;
-  onSwitchTransformEnd?: (id: string, x: number, y: number, scale: number) => void;
+  onToggleTankValve?: (id: string, valveType: 'inlet' | 'outlet', newVal: boolean) => void;
+  onSwitchTransformEnd?: (id: string, x: number, y: number, scale: number, switchType?: 'inlet' | 'outlet') => void;
   onDeleteNode?: (id: string) => void;
   onResizeStart?: (params: any, nodeId?: string) => void;
   onResizeEnd?: (params: any, nodeId?: string) => void;
   onConnectSwitchToPump?: (switchId: string, targetPumpId: string) => void;
   onHidePumpSwitch?: (id: string) => void;
+  onHideTankSwitch?: (id: string, valveType: 'inlet' | 'outlet') => void;
 };
 
 /* ─── helpers ────────────────────────────────────────────────────── */
@@ -73,8 +90,8 @@ const deriveTankState = (data: LiveNodeData) => {
   return {
     fillPercentage,
     temperature,
-    isFilling: fillPercentage < 70,
-    isDraining: fillPercentage > 85,
+    isFilling: fillPercentage < 98,
+    isDraining: fillPercentage > 1,
     waveSpeed: fillPercentage > 75 ? 'fast' : fillPercentage > 40 ? 'medium' : 'slow',
     waveHeight: temperature > 55 ? 'active' : temperature > 35 ? 'normal' : 'calm',
   } as const;
@@ -88,12 +105,12 @@ const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
     return { width: 140, height: 180 };
   }
   if (type === 'pump') {
-    return { width: 200, height: 125 };
+    return { width: 387, height: 242 };
   }
-  if (type.includes('central') || type.includes('source') || type === 'source') {
-    return { width: 220, height: 259 };
+  if (type.includes('central') || type.includes('source') || type === 'source' || type.includes('tank')) {
+    return { width: 295, height: 376 };
   }
-  return { width: 200, height: 255 };
+  return { width: 295, height: 376 };
 };
 
 const buildCustomConfigs = (nodes: any[]) => {
@@ -109,8 +126,23 @@ const buildCustomConfigs = (nodes: any[]) => {
         switchOffsetX: n.data?.switchOffsetX,
         switchOffsetY: n.data?.switchOffsetY,
         switchScale: n.data?.switchScale,
+        inletSwitchOffsetX: n.data?.inletSwitchOffsetX,
+        inletSwitchOffsetY: n.data?.inletSwitchOffsetY,
+        inletSwitchScale: n.data?.inletSwitchScale,
+        outletSwitchOffsetX: n.data?.outletSwitchOffsetX,
+        outletSwitchOffsetY: n.data?.outletSwitchOffsetY,
+        outletSwitchScale: n.data?.outletSwitchScale,
+        inletValveOn: n.data?.inletValveOn,
+        outletValveOn: n.data?.outletValveOn,
         targetPumpId: n.data?.targetPumpId,
         hideSwitch: n.data?.hideSwitch,
+        inletHideSwitch: n.data?.inletHideSwitch,
+        outletHideSwitch: n.data?.outletHideSwitch,
+        waveHeightCalm: n.data?.waveHeightCalm,
+        waveHeightNormal: n.data?.waveHeightNormal,
+        waveHeightActive: n.data?.waveHeightActive,
+        tempThreshold: n.data?.tempThreshold,
+        tempMaxThreshold: n.data?.tempMaxThreshold,
       };
     }
   });
@@ -190,9 +222,253 @@ function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: strin
 function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   const isFlipped = !!data?.flipHorizontal;
+  const isEditSwitches = !!data?.allowMoveSwitches;
+  const { zoom } = useViewport();
+
+  const inletOn = data?.inletValveOn !== false;
+  const outletOn = data?.outletValveOn !== false;
+
+  const [inletPos, setInletPos] = React.useState({
+    x: data?.inletSwitchOffsetX ?? 68.6,
+    y: data?.inletSwitchOffsetY ?? 51.2,
+  });
+  const [inletScale, setInletScale] = React.useState(data?.inletSwitchScale ?? 0.18);
+
+  const [outletPos, setOutletPos] = React.useState({
+    x: data?.outletSwitchOffsetX ?? 240.8,
+    y: data?.outletSwitchOffsetY ?? 252.8,
+  });
+  const [outletScale, setOutletScale] = React.useState(data?.outletSwitchScale ?? 0.18);
+
+  React.useEffect(() => {
+    if (data?.inletSwitchOffsetX !== undefined) setInletPos(prev => ({ ...prev, x: data.inletSwitchOffsetX! }));
+    if (data?.inletSwitchOffsetY !== undefined) setInletPos(prev => ({ ...prev, y: data.inletSwitchOffsetY! }));
+    if (data?.inletSwitchScale !== undefined) setInletScale(data.inletSwitchScale);
+    if (data?.outletSwitchOffsetX !== undefined) setOutletPos(prev => ({ ...prev, x: data.outletSwitchOffsetX! }));
+    if (data?.outletSwitchOffsetY !== undefined) setOutletPos(prev => ({ ...prev, y: data.outletSwitchOffsetY! }));
+    if (data?.outletSwitchScale !== undefined) setOutletScale(data.outletSwitchScale);
+  }, [data?.inletSwitchOffsetX, data?.inletSwitchOffsetY, data?.inletSwitchScale, data?.outletSwitchOffsetX, data?.outletSwitchOffsetY, data?.outletSwitchScale]);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = React.useState<number>(data?.customWidth || 295);
+
+  React.useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    setContainerWidth(containerRef.current.clientWidth || data?.customWidth || 295);
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [data?.customWidth]);
+
+  const scaleRatio = containerWidth / 295;
+
+  const handleSwitchDrag = (e: React.MouseEvent, type: 'inlet' | 'outlet') => {
+    if (!isEditSwitches) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origPos = type === 'inlet' ? inletPos : outletPos;
+    const origScale = type === 'inlet' ? inletScale : outletScale;
+    const currentZoom = zoom || 1;
+
+    const onMove = (moveEvt: MouseEvent) => {
+      const dx = (moveEvt.clientX - startX) / (currentZoom * scaleRatio);
+      const dy = (moveEvt.clientY - startY) / (currentZoom * scaleRatio);
+      if (type === 'inlet') setInletPos({ x: origPos.x + dx, y: origPos.y + dy });
+      else setOutletPos({ x: origPos.x + dx, y: origPos.y + dy });
+    };
+
+    const onUp = (upEvt: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const dx = (upEvt.clientX - startX) / (currentZoom * scaleRatio);
+      const dy = (upEvt.clientY - startY) / (currentZoom * scaleRatio);
+      data?.onSwitchTransformEnd?.(id, origPos.x + dx, origPos.y + dy, origScale, type);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleSwitchResize = (e: React.MouseEvent, type: 'inlet' | 'outlet') => {
+    if (!isEditSwitches) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const origScale = type === 'inlet' ? inletScale : outletScale;
+    const origPos = type === 'inlet' ? inletPos : outletPos;
+    const currentZoom = zoom || 1;
+
+    const onMove = (moveEvt: MouseEvent) => {
+      const dx = (moveEvt.clientX - startX) / (currentZoom * scaleRatio);
+      const nextScale = Math.max(0.18, Math.min(1.5, origScale + dx * 0.004));
+      if (type === 'inlet') setInletScale(nextScale);
+      else setOutletScale(nextScale);
+    };
+
+    const onUp = (upEvt: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const dx = (upEvt.clientX - startX) / (currentZoom * scaleRatio);
+      const finalScale = Math.max(0.18, Math.min(1.5, origScale + dx * 0.004));
+      data?.onSwitchTransformEnd?.(id, origPos.x, origPos.y, finalScale, type);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const effInletX = inletPos.x * scaleRatio;
+  const effInletY = inletPos.y * scaleRatio;
+  const effInletScale = inletScale * scaleRatio;
+
+  const effOutletX = outletPos.x * scaleRatio;
+  const effOutletY = outletPos.y * scaleRatio;
+  const effOutletScale = outletScale * scaleRatio;
+
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 204 }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 204, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
+
+      {/* Inlet Valve Switch */}
+      <div
+        className="nodrag nopan"
+        style={{
+          position: 'absolute',
+          top: effInletY,
+          left: effInletX,
+          width: 150 * effInletScale,
+          height: 195 * effInletScale,
+          zIndex: 35,
+          border: isEditSwitches ? '2px solid #c8f135' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          borderRadius: 6,
+        }}
+      >
+        {isEditSwitches && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              marginBottom: 4,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 'max-content',
+              textAlign: 'center',
+              fontSize: 9.5,
+              fontWeight: 800,
+              letterSpacing: 0.5,
+              color: '#c8f135',
+              background: '#17181c',
+              border: '1.5px solid #c8f135',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+              borderRadius: 4,
+              padding: '2px 6px',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              zIndex: 100,
+            }}
+          >
+            {`INLET - ${data?.nodeName?.toUpperCase() || 'TANK'}`}
+          </div>
+        )}
+        <div
+          className="nodrag nopan"
+          onMouseDown={(e) => handleSwitchDrag(e, 'inlet')}
+          style={{ width: '100%', height: '100%', cursor: isEditSwitches ? 'move' : 'default' }}
+        >
+          <Pump3DSwitch
+            isOn={inletOn}
+            canControl={!isEditSwitches}
+            onToggle={() => {
+              if (!isEditSwitches) data?.onToggleTankValve?.(id, 'inlet', !inletOn);
+            }}
+            scale={effInletScale}
+          />
+        </div>
+        {isEditSwitches && (
+          <>
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', top: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', bottom: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', bottom: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+          </>
+        )}
+      </div>
+
+      {/* Outlet Valve Switch */}
+      <div
+        className="nodrag nopan"
+        style={{
+          position: 'absolute',
+          top: effOutletY,
+          left: effOutletX,
+          width: 150 * effOutletScale,
+          height: 195 * effOutletScale,
+          zIndex: 35,
+          border: isEditSwitches ? '2px solid #c8f135' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          borderRadius: 6,
+        }}
+      >
+        {isEditSwitches && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              marginBottom: 4,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 'max-content',
+              textAlign: 'center',
+              fontSize: 9.5,
+              fontWeight: 800,
+              letterSpacing: 0.5,
+              color: '#c8f135',
+              background: '#17181c',
+              border: '1.5px solid #c8f135',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+              borderRadius: 4,
+              padding: '2px 6px',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              zIndex: 100,
+            }}
+          >
+            {`OUTLET - ${data?.nodeName?.toUpperCase() || 'TANK'}`}
+          </div>
+        )}
+        <div
+          className="nodrag nopan"
+          onMouseDown={(e) => handleSwitchDrag(e, 'outlet')}
+          style={{ width: '100%', height: '100%', cursor: isEditSwitches ? 'move' : 'default' }}
+        >
+          <Pump3DSwitch
+            isOn={outletOn}
+            canControl={!isEditSwitches}
+            onToggle={() => {
+              if (!isEditSwitches) data?.onToggleTankValve?.(id, 'outlet', !outletOn);
+            }}
+            scale={effOutletScale}
+          />
+        </div>
+        {isEditSwitches && (
+          <>
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', top: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', bottom: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', bottom: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+          </>
+        )}
+      </div>
+
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -207,11 +483,18 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
       <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
         <TankWaterTank
           fillPercentage={tankState.fillPercentage}
-          isFilling={tankState.isFilling}
-          isDraining={tankState.isDraining}
-          waveSpeed={tankState.waveSpeed}
-          waveHeight={tankState.waveHeight}
+          isFilling={tankState.isFilling && inletOn}
+          isDraining={tankState.isDraining && outletOn}
+          showInletPipe={true}
+          showOutletPipe={true}
+          waveSpeed={(!inletOn && !outletOn) ? 'slow' : tankState.waveSpeed}
+          waveHeight={(!inletOn && !outletOn) ? 'calm' : tankState.waveHeight}
           temperature={tankState.temperature}
+          waveHeightCalm={data?.waveHeightCalm}
+          waveHeightNormal={data?.waveHeightNormal}
+          waveHeightActive={data?.waveHeightActive}
+          tempThreshold={data?.tempThreshold}
+          tempMaxThreshold={data?.tempMaxThreshold}
         />
       </div>
     </div>
@@ -243,6 +526,11 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           waveSpeed={tankState.waveSpeed}
           waveHeight={tankState.waveHeight}
           temperature={tankState.temperature}
+          waveHeightCalm={data?.waveHeightCalm}
+          waveHeightNormal={data?.waveHeightNormal}
+          waveHeightActive={data?.waveHeightActive}
+          tempThreshold={data?.tempThreshold}
+          tempMaxThreshold={data?.tempMaxThreshold}
         />
       </div>
     </div>
@@ -274,6 +562,11 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           waveSpeed={tankState.waveSpeed}
           waveHeight={tankState.waveHeight}
           temperature={tankState.temperature}
+          waveHeightCalm={data?.waveHeightCalm}
+          waveHeightNormal={data?.waveHeightNormal}
+          waveHeightActive={data?.waveHeightActive}
+          tempThreshold={data?.tempThreshold}
+          tempMaxThreshold={data?.tempMaxThreshold}
         />
       </div>
     </div>
@@ -282,7 +575,6 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
 
 function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const allNodes = useNodes();
-  const ownNode = allNodes.find(n => n.id === id);
   const targetPumpId = data?.targetPumpId;
   const targetPump = targetPumpId ? allNodes.find(n => n.id === targetPumpId) : null;
 
@@ -293,7 +585,6 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const { zoom } = useViewport();
 
   const [switchScale, setSwitchScale] = React.useState(data?.switchScale ?? 0.6);
-  const [wireDrag, setWireDrag] = React.useState<{ currentX: number; currentY: number; snappedPumpId?: string } | null>(null);
 
   React.useEffect(() => {
     setSwitchScale(data?.switchScale ?? 0.6);
@@ -327,94 +618,6 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
 
   const boxWidth = 150 * switchScale;
   const boxHeight = 195 * switchScale;
-  const wireStartX = boxWidth * 0.5;
-  const wireStartY = 0;
-
-  const handleConnectMouseDown = (e: React.MouseEvent) => {
-    if (!isEditSwitches || !ownNode) return;
-    e.stopPropagation();
-    e.preventDefault();
-    const currentZoom = zoom || 1;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const pumps = allNodes.filter(n => n.type === 'pump');
-
-    const onMove = (moveEvt: MouseEvent) => {
-      const dx = (moveEvt.clientX - startX) / currentZoom;
-      const dy = (moveEvt.clientY - startY) / currentZoom;
-      const mouseRelX = wireStartX + dx;
-      const mouseRelY = wireStartY + dy;
-      const mouseCanvasX = ownNode.position.x + mouseRelX;
-      const mouseCanvasY = ownNode.position.y + mouseRelY;
-
-      let snappedId: string | undefined;
-      let snapRelX = mouseRelX;
-      let snapRelY = mouseRelY;
-
-      for (const p of pumps) {
-        const tW = Number(p.style?.width || p.width || 240);
-        const tH = Number(p.style?.height || p.height || 150);
-        const aW = Math.max(10, tW);
-        const aH = Math.max(10, tH);
-        const sScale = Math.min(aW / 800, aH / 500);
-        const oX = (aW - 800 * sScale) / 2;
-        const oY = (aH - 500 * sScale) / 2;
-        const portCanvasX = p.position.x + oX + 400 * sScale;
-        const portCanvasY = p.position.y + oY + 403 * sScale;
-
-        if (Math.hypot(mouseCanvasX - portCanvasX, mouseCanvasY - portCanvasY) < 140) {
-          snappedId = p.id;
-          snapRelX = portCanvasX - ownNode.position.x;
-          snapRelY = portCanvasY - ownNode.position.y;
-          break;
-        }
-      }
-
-      setWireDrag({ currentX: snapRelX, currentY: snapRelY, snappedPumpId: snappedId });
-    };
-
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      setWireDrag(prev => {
-        if (prev?.snappedPumpId && data?.onConnectSwitchToPump) {
-          data.onConnectSwitchToPump(id, prev.snappedPumpId);
-        }
-        return null;
-      });
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-
-  let wireEndX = wireStartX;
-  let wireEndY = wireStartY + 70;
-  let isSnapped = false;
-
-  if (wireDrag) {
-    wireEndX = wireDrag.currentX;
-    wireEndY = wireDrag.currentY;
-    isSnapped = !!wireDrag.snappedPumpId;
-  } else if (targetPump && ownNode) {
-    const tW = Number(targetPump.style?.width || targetPump.width || 240);
-    const tH = Number(targetPump.style?.height || targetPump.height || 150);
-    const aW = Math.max(10, tW);
-    const aH = Math.max(10, tH);
-    const sScale = Math.min(aW / 800, aH / 500);
-    const oX = (aW - 800 * sScale) / 2;
-    const oY = (aH - 500 * sScale) / 2;
-    const targetCanvasX = targetPump.position.x + oX + 400 * sScale;
-    const targetCanvasY = targetPump.position.y + oY + 403 * sScale;
-    wireEndX = targetCanvasX - ownNode.position.x;
-    wireEndY = targetCanvasY - ownNode.position.y;
-    isSnapped = true;
-  }
-
-  const distY = Math.abs(wireStartY - wireEndY);
-  const distX = Math.abs(wireStartX - wireEndX);
-  const sag = Math.max(35, (distY + distX) * 0.35);
-  const wirePath = `M ${wireStartX},${wireStartY} C ${wireStartX},${wireStartY - sag} ${wireEndX},${wireEndY + sag} ${wireEndX},${wireEndY}`;
 
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 140, minHeight: 180, position: 'relative' }}>
@@ -428,47 +631,6 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
           handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
-      )}
-
-      {/* Plug Boot */}
-      <div
-        style={{
-          position: 'absolute',
-          left: wireStartX - 10,
-          top: -7,
-          width: 20,
-          height: 10,
-          background: 'linear-gradient(180deg, #4b5563 0%, #1f2937 100%)',
-          border: '1px solid #9ca3af',
-          borderRadius: '4px 4px 0 0',
-          boxShadow: '0 -2px 6px rgba(0,0,0,0.4)',
-          zIndex: 34,
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* Wire */}
-      {(targetPump || wireDrag) && (
-        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 25, overflow: 'visible' }}>
-          <defs>
-            <filter id={`wireShadow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="#000000" floodOpacity="0.65" />
-            </filter>
-            <filter id={`neonGlow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3.5" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            <style>{`@keyframes rfEdgeFlow-${id} { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }`}</style>
-          </defs>
-          <path d={wirePath} fill="none" stroke="#0f172a" strokeWidth="7" strokeLinecap="round" filter={`url(#wireShadow-${id})`} />
-          <path d={wirePath} fill="none" stroke={isOn ? '#1e293b' : '#334155'} strokeWidth="5" strokeLinecap="round" />
-          <path d={wirePath} fill="none" stroke="#475569" strokeWidth="4.5" strokeDasharray="2 4" strokeLinecap="round" />
-          {(isOn || isSnapped) && (
-            <path d={wirePath} fill="none" stroke={isSnapped && wireDrag ? "#38bdf8" : "#1cff42"} strokeWidth="2.5" strokeDasharray="8 4" strokeLinecap="round" filter={`url(#neonGlow-${id})`} style={{ animation: `rfEdgeFlow-${id} 0.6s linear infinite` }} />
-          )}
-          <circle cx={wireStartX} cy={wireStartY} r="3.5" fill={isOn ? '#ffffff' : '#9ca3af'} />
-          <circle cx={wireEndX} cy={wireEndY} r={isSnapped && wireDrag ? 6 : 3.5} fill={isSnapped && wireDrag ? "#38bdf8" : isOn ? '#ffffff' : '#9ca3af'} />
-        </svg>
       )}
 
       {/* 3D Switch Box */}
@@ -488,29 +650,8 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
       >
         <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
         {isEditSwitches && (
-          <div
-            className="nodrag nopan"
-            onMouseDown={handleConnectMouseDown}
-            style={{
-              position: 'absolute',
-              top: -24,
-              left: 0,
-              right: 0,
-              height: 20,
-              background: wireDrag ? (wireDrag.snappedPumpId ? '#1cff42' : '#38bdf8') : '#c8f135',
-              color: '#17181c',
-              fontSize: 9,
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '4px 4px 0 0',
-              cursor: 'crosshair',
-              userSelect: 'none',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            }}
-          >
-            {wireDrag ? (wireDrag.snappedPumpId ? '⚡ RELEASE TO CONNECT PUMP' : '🔗 DRAG NEAR PUMP PORT...') : '⚡ CONNECT TO PUMP'}
+          <div style={{ position: 'absolute', top: -18, left: 0, right: 0, textAlign: 'center', fontSize: 9, fontWeight: 800, color: '#c8f135', background: '#17181c', borderRadius: 3, padding: '2px 4px', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+            {`SWITCH - ${data?.nodeName?.toUpperCase() || 'CONTROL'}`}
           </div>
         )}
         <div style={{ width: '100%', height: '100%' }}>
@@ -537,7 +678,6 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
 }
 function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const allNodes = useNodes();
-  const ownNode = allNodes.find(n => n.id === id);
   const targetPumpId = data?.targetPumpId;
   const targetPump = targetPumpId && targetPumpId !== id ? allNodes.find(n => n.id === targetPumpId) : null;
 
@@ -547,40 +687,38 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const isFlipped = !!data?.flipHorizontal;
   const canControl = true;
   const isEditSwitches = !!data?.allowMoveSwitches;
-  const isSwitchHidden = !!data?.hideSwitch;
   const { zoom } = useViewport();
 
   const [switchPos, setSwitchPos] = React.useState({
-    x: data?.switchOffsetX ?? 10,
-    y: data?.switchOffsetY ?? -75,
+    x: data?.switchOffsetX ?? 186.5,
+    y: data?.switchOffsetY ?? 140.4,
   });
-  const [switchScale, setSwitchScale] = React.useState(data?.switchScale ?? 0.38);
-  const [wireDrag, setWireDrag] = React.useState<{ currentX: number; currentY: number; snappedPumpId?: string } | null>(null);
-
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [nodeDims, setNodeDims] = React.useState({ w: 240, h: 150 });
-
-  React.useLayoutEffect(() => {
-    if (!containerRef.current) return;
-    const updateDims = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        if (clientWidth > 0 && clientHeight > 0) {
-          setNodeDims({ w: clientWidth, h: clientHeight });
-        }
-      }
-    };
-    updateDims();
-    const obs = new ResizeObserver(updateDims);
-    obs.observe(containerRef.current);
-    return () => obs.disconnect();
-  }, []);
+  const [switchScale, setSwitchScale] = React.useState(data?.switchScale ?? 0.18);
 
   React.useEffect(() => {
     if (data?.switchOffsetX !== undefined) setSwitchPos(prev => ({ ...prev, x: data.switchOffsetX! }));
     if (data?.switchOffsetY !== undefined) setSwitchPos(prev => ({ ...prev, y: data.switchOffsetY! }));
     if (data?.switchScale !== undefined) setSwitchScale(data.switchScale);
   }, [data?.switchOffsetX, data?.switchOffsetY, data?.switchScale]);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = React.useState<number>(data?.customWidth || 387);
+
+  React.useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    setContainerWidth(containerRef.current.clientWidth || data?.customWidth || 387);
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [data?.customWidth]);
+
+  const scaleRatio = containerWidth / 387;
 
   const handleSwitchMouseDown = (e: React.MouseEvent) => {
     if (!isEditSwitches) return;
@@ -593,16 +731,16 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
     const currentZoom = zoom || 1;
 
     const onMove = (moveEvt: MouseEvent) => {
-      const dx = (moveEvt.clientX - startX) / currentZoom;
-      const dy = (moveEvt.clientY - startY) / currentZoom;
+      const dx = (moveEvt.clientX - startX) / (currentZoom * scaleRatio);
+      const dy = (moveEvt.clientY - startY) / (currentZoom * scaleRatio);
       setSwitchPos({ x: origX + dx, y: origY + dy });
     };
 
     const onUp = (upEvt: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
-      const dx = (upEvt.clientX - startX) / currentZoom;
-      const dy = (upEvt.clientY - startY) / currentZoom;
+      const dx = (upEvt.clientX - startX) / (currentZoom * scaleRatio);
+      const dy = (upEvt.clientY - startY) / (currentZoom * scaleRatio);
       data?.onSwitchTransformEnd?.(id, origX + dx, origY + dy, switchScale);
     };
 
@@ -619,7 +757,7 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
     const currentZoom = zoom || 1;
 
     const onMove = (moveEvt: MouseEvent) => {
-      const dx = (moveEvt.clientX - startX) / currentZoom;
+      const dx = (moveEvt.clientX - startX) / (currentZoom * scaleRatio);
       const nextScale = Math.max(0.18, Math.min(1.5, origScale + dx * 0.004));
       setSwitchScale(nextScale);
     };
@@ -627,7 +765,7 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
     const onUp = (upEvt: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
-      const dx = (upEvt.clientX - startX) / currentZoom;
+      const dx = (upEvt.clientX - startX) / (currentZoom * scaleRatio);
       const finalScale = Math.max(0.18, Math.min(1.5, origScale + dx * 0.004));
       data?.onSwitchTransformEnd?.(id, switchPos.x, switchPos.y, finalScale);
     };
@@ -636,268 +774,84 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
     window.addEventListener('mouseup', onUp);
   };
 
-  // Wire start point: Top Langflow plug socket on switch box
-  const wireStartX = switchPos.x + (150 * switchScale) * 0.5;
-  const wireStartY = switchPos.y;
-
-  const handleConnectMouseDown = (e: React.MouseEvent) => {
-    if (!isEditSwitches || !ownNode) return;
-    e.stopPropagation();
-    e.preventDefault();
-    const currentZoom = zoom || 1;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const pumps = allNodes.filter(n => n.type === 'pump');
-
-    const onMove = (moveEvt: MouseEvent) => {
-      const dx = (moveEvt.clientX - startX) / currentZoom;
-      const dy = (moveEvt.clientY - startY) / currentZoom;
-      const mouseRelX = wireStartX + dx;
-      const mouseRelY = wireStartY + dy;
-      const mouseCanvasX = ownNode.position.x + mouseRelX;
-      const mouseCanvasY = ownNode.position.y + mouseRelY;
-
-      let snappedId: string | undefined;
-      let snapRelX = mouseRelX;
-      let snapRelY = mouseRelY;
-
-      for (const p of pumps) {
-        const tW = Number(p.style?.width || p.width || 240);
-        const tH = Number(p.style?.height || p.height || 150);
-        const aW = Math.max(10, tW);
-        const aH = Math.max(10, tH);
-        const sScale = Math.min(aW / 800, aH / 500);
-        const oX = (aW - 800 * sScale) / 2;
-        const oY = (aH - 500 * sScale) / 2;
-        const portCanvasX = p.position.x + oX + 400 * sScale;
-        const portCanvasY = p.position.y + oY + 403 * sScale;
-
-        if (Math.hypot(mouseCanvasX - portCanvasX, mouseCanvasY - portCanvasY) < 140) {
-          snappedId = p.id;
-          snapRelX = portCanvasX - ownNode.position.x;
-          snapRelY = portCanvasY - ownNode.position.y;
-          break;
-        }
-      }
-
-      setWireDrag({ currentX: snapRelX, currentY: snapRelY, snappedPumpId: snappedId });
-    };
-
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      setWireDrag(prev => {
-        if (prev?.snappedPumpId && data?.onConnectSwitchToPump) {
-          data.onConnectSwitchToPump(id, prev.snappedPumpId);
-        }
-        return null;
-      });
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-
-  // Calculate exact rendered scale and offsets of the 800x500 Pump SVG inside the container
-  const availW = Math.max(10, nodeDims.w);
-  const availH = Math.max(10, nodeDims.h);
-  const svgScale = Math.min(availW / 800, availH / 500);
-  const renderedW = 800 * svgScale;
-  const renderedH = 500 * svgScale;
-  const offsetX = (availW - renderedW) / 2;
-  const offsetY = (availH - renderedH) / 2;
-
-  let wireEndX = offsetX + 400 * svgScale;
-  let wireEndY = offsetY + 403 * svgScale;
-  let isSnapped = true;
-
-  if (wireDrag) {
-    wireEndX = wireDrag.currentX;
-    wireEndY = wireDrag.currentY;
-    isSnapped = !!wireDrag.snappedPumpId;
-  } else if (targetPump && ownNode) {
-    const tW = Number(targetPump.style?.width || targetPump.width || 240);
-    const tH = Number(targetPump.style?.height || targetPump.height || 150);
-    const aW = Math.max(10, tW);
-    const aH = Math.max(10, tH);
-    const sScale = Math.min(aW / 800, aH / 500);
-    const oX = (aW - 800 * sScale) / 2;
-    const oY = (aH - 500 * sScale) / 2;
-    const targetCanvasX = targetPump.position.x + oX + 400 * sScale;
-    const targetCanvasY = targetPump.position.y + oY + 403 * sScale;
-    wireEndX = targetCanvasX - ownNode.position.x;
-    wireEndY = targetCanvasY - ownNode.position.y;
-    isSnapped = true;
-  }
-
-  const distY = Math.abs(wireStartY - wireEndY);
-  const distX = Math.abs(wireStartX - wireEndX);
-  const sag = Math.max(35, (distY + distX) * 0.35);
-  const wirePath = `M ${wireStartX},${wireStartY} C ${wireStartX},${wireStartY - sag} ${wireEndX},${wireEndY + sag} ${wireEndX},${wireEndY}`;
+  const effX = switchPos.x * scaleRatio;
+  const effY = switchPos.y * scaleRatio;
+  const effScale = switchScale * scaleRatio;
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 100, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
 
-      {!isSwitchHidden && (
-        <>
-          {/* ── Langflow Socket Plug Boot on Top of Switch Box ── */}
+      <div
+        className="nodrag nopan"
+        style={{
+          position: 'absolute',
+          top: effY,
+          left: effX,
+          width: 150 * effScale,
+          height: 195 * effScale,
+          zIndex: 35,
+          border: isEditSwitches ? '2px solid #c8f135' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          borderRadius: 6,
+        }}
+      >
+        {isEditSwitches && (
           <div
             style={{
               position: 'absolute',
-              left: wireStartX - 10,
-              top: wireStartY - 7,
-              width: 20,
-              height: 10,
-              background: 'linear-gradient(180deg, #4b5563 0%, #1f2937 100%)',
-              border: '1px solid #9ca3af',
-              borderRadius: '4px 4px 0 0',
-              boxShadow: '0 -2px 6px rgba(0,0,0,0.4)',
-              zIndex: 34,
+              bottom: '100%',
+              marginBottom: 4,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 'max-content',
+              textAlign: 'center',
+              fontSize: 9.5,
+              fontWeight: 800,
+              letterSpacing: 0.5,
+              color: '#c8f135',
+              background: '#17181c',
+              border: '1.5px solid #c8f135',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+              borderRadius: 4,
+              padding: '2px 6px',
+              whiteSpace: 'nowrap',
               pointerEvents: 'none',
-            }}
-          />
-
-          {/* ── Hyper-Realistic Industrial Braided Cable & Glowing Laser Signal ── */}
-          <svg
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 25,
-              overflow: 'visible',
+              zIndex: 100,
             }}
           >
-            <defs>
-              <filter id={`wireShadow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
-                <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="#000000" floodOpacity="0.65" />
-              </filter>
-              <filter id={`neonGlow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3.5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-              <style>{`
-                @keyframes rfEdgeFlow-${id} {
-                  from { stroke-dashoffset: 24; }
-                  to { stroke-dashoffset: 0; }
-                }
-              `}</style>
-            </defs>
-
-            <path d={wirePath} fill="none" stroke="#0f172a" strokeWidth="7" strokeLinecap="round" filter={`url(#wireShadow-${id})`} />
-            <path d={wirePath} fill="none" stroke={isOn ? '#1e293b' : '#334155'} strokeWidth="5" strokeLinecap="round" />
-            <path d={wirePath} fill="none" stroke="#475569" strokeWidth="4.5" strokeDasharray="2 4" strokeLinecap="round" />
-            {(isOn || isSnapped) && (
-              <path d={wirePath} fill="none" stroke={isSnapped && wireDrag ? "#38bdf8" : "#1cff42"} strokeWidth="2.5" strokeDasharray="8 4" strokeLinecap="round" filter={`url(#neonGlow-${id})`} style={{ animation: `rfEdgeFlow-${id} 0.6s linear infinite` }} />
-            )}
-            <circle cx={wireStartX} cy={wireStartY} r="3.5" fill={isOn ? '#ffffff' : '#9ca3af'} />
-            <circle cx={wireEndX} cy={wireEndY} r={isSnapped && wireDrag ? 6 : 3.5} fill={isSnapped && wireDrag ? "#38bdf8" : isOn ? '#ffffff' : '#9ca3af'} />
-          </svg>
-
-          {/* ── Realistic 3D Rocker Switch Control Box ── */}
-          <div
-            className="nodrag nopan"
-            style={{
-              position: 'absolute',
-              top: switchPos.y,
-              left: switchPos.x,
-              width: 150 * switchScale,
-              height: 195 * switchScale,
-              zIndex: 35,
-              border: isEditSwitches ? '2px solid #c8f135' : 'none',
-              backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
-              borderRadius: 6,
-            }}
-          >
-            {data?.allowDeleteNodes && (
-              <button
-                className="nodrag nopan"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  data?.onHidePumpSwitch?.(id);
-                }}
-                title="Delete embedded switch"
-                style={{
-                  position: 'absolute',
-                  top: -10,
-                  right: -10,
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  border: '2px solid #ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 60,
-                  boxShadow: '0 2px 8px rgba(239,68,68,0.4)',
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 900, lineHeight: 1 }}>×</span>
-              </button>
-            )}
-            {isEditSwitches && (
-              <div
-                className="nodrag nopan"
-                onMouseDown={handleConnectMouseDown}
-                style={{
-                  position: 'absolute',
-                  top: -24,
-                  left: 0,
-                  right: 0,
-                  height: 20,
-                  background: wireDrag ? (wireDrag.snappedPumpId ? '#1cff42' : '#38bdf8') : '#c8f135',
-                  color: '#17181c',
-                  fontSize: 9,
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '4px 4px 0 0',
-                  cursor: 'crosshair',
-                  userSelect: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                }}
-              >
-                {wireDrag ? (wireDrag.snappedPumpId ? '⚡ RELEASE TO CONNECT PUMP' : '🔗 DRAG NEAR PUMP PORT...') : '⚡ CONNECT TO PUMP'}
-              </div>
-            )}
-            <div
-              className="nodrag nopan"
-              onMouseDown={isEditSwitches ? handleSwitchMouseDown : undefined}
-              style={{
-                width: '100%',
-                height: '100%',
-                cursor: isEditSwitches ? 'move' : 'default',
-              }}
-            >
-              <Pump3DSwitch
-                isOn={isOn}
-                canControl={canControl && !isEditSwitches}
-                onToggle={() => {
-                  if (!isEditSwitches) data?.onTogglePump?.(targetPumpId || id, isOn);
-                }}
-                scale={switchScale}
-              />
-            </div>
-
-            {/* ── Exact 4 Corner Square Resize Handles matching NodeResizer ── */}
-            {isEditSwitches && (
-              <>
-                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
-                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
-                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
-                <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
-              </>
-            )}
+            {`POWER - ${data?.nodeName?.toUpperCase() || 'PUMP'}`}
           </div>
-        </>
-      )}
+        )}
+        <div
+          className="nodrag nopan"
+          onMouseDown={isEditSwitches ? handleSwitchMouseDown : undefined}
+          style={{
+            width: '100%',
+            height: '100%',
+            cursor: isEditSwitches ? 'move' : 'default',
+          }}
+        >
+          <Pump3DSwitch
+            isOn={isOn}
+            canControl={canControl && !isEditSwitches}
+            onToggle={() => {
+              if (!isEditSwitches) data?.onTogglePump?.(targetPumpId || id, isOn);
+            }}
+            scale={effScale}
+          />
+        </div>
+
+        {/* ── Exact 4 Corner Square Resize Handles matching NodeResizer ── */}
+        {isEditSwitches && (
+          <>
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+          </>
+        )}
+      </div>
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -1510,8 +1464,54 @@ export default function StarTopology() {
     }
   }, [setNodes]);
 
-  /* ── Pump Switch Move/Resize Helper ──────────────────── */
-  const handleSwitchTransformEnd = useCallback((id: string, x: number, y: number, scale: number) => {
+  /* ── Pump/Tank Switch Move/Resize Helper ──────────────────── */
+  const handleSwitchTransformEnd = useCallback((id: string, x: number, y: number, scale: number, switchType?: 'inlet' | 'outlet') => {
+    setNodes((nds) => {
+      const updatedNodes = nds.map((n) => {
+        if (n.id === id) {
+          if (switchType === 'inlet') {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                inletSwitchOffsetX: x,
+                inletSwitchOffsetY: y,
+                inletSwitchScale: scale,
+              },
+            };
+          } else if (switchType === 'outlet') {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                outletSwitchOffsetX: x,
+                outletSwitchOffsetY: y,
+                outletSwitchScale: scale,
+              },
+            };
+          } else {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                switchOffsetX: x,
+                switchOffsetY: y,
+                switchScale: scale,
+              },
+            };
+          }
+        }
+        return n;
+      });
+
+      const customConfigs = buildCustomConfigs(updatedNodes);
+      axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
+      return updatedNodes;
+    });
+  }, [setNodes]);
+
+  /* ── Tank Valve ON/OFF Helper ──────────────────────── */
+  const handleToggleTankValve = useCallback((id: string, valveType: 'inlet' | 'outlet', newVal: boolean) => {
     setNodes((nds) => {
       const updatedNodes = nds.map((n) => {
         if (n.id === id) {
@@ -1519,15 +1519,12 @@ export default function StarTopology() {
             ...n,
             data: {
               ...n.data,
-              switchOffsetX: x,
-              switchOffsetY: y,
-              switchScale: scale,
+              [valveType === 'inlet' ? 'inletValveOn' : 'outletValveOn']: newVal,
             },
           };
         }
         return n;
       });
-
       const customConfigs = buildCustomConfigs(updatedNodes);
       axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
       return updatedNodes;
@@ -1578,14 +1575,42 @@ export default function StarTopology() {
     });
   }, [setNodes]);
 
+  /* ── Hide Embedded Tank Switch Helper ──────────────────────── */
+  const handleHideTankSwitch = useCallback((id: string, valveType: 'inlet' | 'outlet') => {
+    setNodes((nds) => {
+      const updatedNodes = nds.map((n) => {
+        if (n.id === id) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              [valveType === 'inlet' ? 'inletHideSwitch' : 'outletHideSwitch']: true,
+            },
+          };
+        }
+        return n;
+      });
+
+      const customConfigs = buildCustomConfigs(updatedNodes);
+      axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
+      return updatedNodes;
+    });
+  }, [setNodes]);
+
   /* ── Delete Node Helper ──────────────────────────────── */
   const handleDeleteNode = useCallback(async (id: string) => {
     try {
       await axios.delete(`${BACKEND_URL}/api/nodes/${id}`);
-      setNodes((nds) => nds.filter((n) => n.id !== id));
-      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
     } catch (e) {
-      console.error('Failed to delete node:', e);
+      console.warn('Backend delete node notice:', e);
+    } finally {
+      setNodes((nds) => {
+        const remaining = nds.filter((n) => n.id !== id);
+        const customConfigs = buildCustomConfigs(remaining);
+        axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
+        return remaining;
+      });
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
     }
   }, [setNodes, setEdges]);
 
@@ -1657,9 +1682,11 @@ export default function StarTopology() {
             allowDeleteNodes,
             canControlPump,
             onTogglePump: handleTogglePump,
+            onToggleTankValve: handleToggleTankValve,
             onSwitchTransformEnd: handleSwitchTransformEnd,
             onConnectSwitchToPump: handleConnectSwitchToPump,
             onHidePumpSwitch: handleHidePumpSwitch,
+            onHideTankSwitch: handleHideTankSwitch,
             onDeleteNode: handleDeleteNode,
             onResizeStart: handleNodeResizeStart,
             onResizeEnd: handleNodeResizeEnd,
@@ -1667,7 +1694,7 @@ export default function StarTopology() {
         };
       });
     });
-  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveSwitches, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, canControlPump, handleTogglePump, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
+  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveSwitches, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, canControlPump, handleTogglePump, handleToggleTankValve, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, handleHideTankSwitch, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -1801,7 +1828,9 @@ export default function StarTopology() {
           } catch (e) {}
         }
 
-        const formattedNodes = data.nodes.map((node: any) => {
+        const formattedNodes = data.nodes
+          .filter((node: any) => node.nodeType !== 'switch')
+          .map((node: any) => {
           const cfg = customConfigs[node.id] || {};
           const parentNode = cfg.parentAssetId ? data.nodes.find((n: any) => n.id === cfg.parentAssetId) : null;
           const defDims = getDefaultNodeDimensions(node.nodeType);
@@ -1828,16 +1857,62 @@ export default function StarTopology() {
               switchOffsetX: cfg.switchOffsetX,
               switchOffsetY: cfg.switchOffsetY,
               switchScale: cfg.switchScale,
+              inletSwitchOffsetX: cfg.inletSwitchOffsetX,
+              inletSwitchOffsetY: cfg.inletSwitchOffsetY,
+              inletSwitchScale: cfg.inletSwitchScale,
+              outletSwitchOffsetX: cfg.outletSwitchOffsetX,
+              outletSwitchOffsetY: cfg.outletSwitchOffsetY,
+              outletSwitchScale: cfg.outletSwitchScale,
+              inletValveOn: cfg.inletValveOn ?? true,
+              outletValveOn: cfg.outletValveOn ?? true,
+              hideSwitch: cfg.hideSwitch,
+              inletHideSwitch: cfg.inletHideSwitch,
+              outletHideSwitch: cfg.outletHideSwitch,
+              waveHeightCalm: cfg.waveHeightCalm,
+              waveHeightNormal: cfg.waveHeightNormal,
+              waveHeightActive: cfg.waveHeightActive,
+              tempThreshold: cfg.tempThreshold,
+              tempMaxThreshold: cfg.tempMaxThreshold,
+              onTogglePump: handleTogglePump,
+              onToggleTankValve: handleToggleTankValve,
+              onConnectSwitchToPump: handleConnectSwitchToPump,
+              onHidePumpSwitch: handleHidePumpSwitch,
+              onHideTankSwitch: handleHideTankSwitch,
+              onDeleteNode: handleDeleteNode,
             },
           };
         });
-        const formattedEdges = data.edges.map((edge: any) => ({
-          id: edge.id,
-          source: edge.sourceNodeId,
-          target: edge.targetNodeId,
-          animated: true,
-          style: { stroke: 'var(--dt-accent)', strokeWidth: 1.5, opacity: 0.7 },
-        }));
+        const formattedEdges = data.edges.map((edge: any) => {
+          const srcNode = formattedNodes.find((n: any) => n.id === edge.sourceNodeId);
+          const tgtNode = formattedNodes.find((n: any) => n.id === edge.targetNodeId);
+
+          let isFlowing = true;
+          if (srcNode) {
+            if (srcNode.type === 'pump' && srcNode.data?.status === 'Offline') isFlowing = false;
+            if ((srcNode.type === 'tank' || srcNode.type === 'central_tank') && srcNode.data?.outletValveOn === false) isFlowing = false;
+          }
+          if (tgtNode) {
+            if (tgtNode.type === 'pump' && tgtNode.data?.status === 'Offline') isFlowing = false;
+            if (tgtNode.type === 'tank' || tgtNode.type === 'central_tank') {
+              if (tgtNode.data?.inletValveOn === false) isFlowing = false;
+              const hasOutgoingEdges = data.edges.some((e: any) => e.sourceNodeId === tgtNode.id);
+              if (!hasOutgoingEdges && tgtNode.data?.outletValveOn === false) isFlowing = false;
+            }
+          }
+
+          return {
+            id: edge.id,
+            source: edge.sourceNodeId,
+            target: edge.targetNodeId,
+            animated: isFlowing,
+            style: {
+              stroke: isFlowing ? 'var(--dt-accent)' : '#475569',
+              strokeWidth: isFlowing ? 2 : 1.5,
+              opacity: isFlowing ? 0.85 : 0.35,
+              strokeDasharray: isFlowing ? undefined : '5 5',
+            },
+          };
+        });
         
         const viewportNode = {
           id: 'viewport-box',
@@ -1954,6 +2029,7 @@ export default function StarTopology() {
     });
 
     socket.on('node:created', (newNode) => {
+      if (newNode.nodeType === 'switch') return;
       setNodes((nds) => {
         if (nds.some((n) => n.id === newNode.id)) return nds;
         const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(newNode.nodeType);
@@ -1988,8 +2064,91 @@ export default function StarTopology() {
       });
     });
 
-    return () => { socket.disconnect(); };
+    // Auto-resync on socket reconnection after sleep/idle
+    socket.on('connect', () => {
+      fetchTopology();
+    });
+
+    // Auto-resync immediately when browser tab regains visibility
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (socket.disconnected) {
+          socket.connect();
+        } else {
+          fetchTopology();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      socket.disconnect();
+    };
   }, [setNodes, setEdges, setSelectedNode, handleDeleteNode]);
+
+  /* ── Sync Edge Animations & Styles with Node Switch/Valve Statuses ── */
+  useEffect(() => {
+    setEdges((eds) => {
+      let changed = false;
+      const nextEds = eds.map((e) => {
+        const srcNode = nodes.find((n) => n.id === e.source);
+        const tgtNode = nodes.find((n) => n.id === e.target);
+
+        let isFlowing = true;
+
+        // Check source node status/switches
+        if (srcNode) {
+          if (srcNode.type === 'pump' && srcNode.data?.status === 'Offline') {
+            isFlowing = false;
+          }
+          if ((srcNode.type === 'tank' || srcNode.type === 'central_tank') && srcNode.data?.outletValveOn === false) {
+            isFlowing = false;
+          }
+        }
+
+        // Check target node status/switches
+        if (tgtNode) {
+          if (tgtNode.type === 'pump' && tgtNode.data?.status === 'Offline') {
+            isFlowing = false;
+          }
+          if (tgtNode.type === 'tank' || tgtNode.type === 'central_tank') {
+            if (tgtNode.data?.inletValveOn === false) isFlowing = false;
+            const hasOutgoingEdges = eds.some((edge) => edge.source === tgtNode.id);
+            if (!hasOutgoingEdges && tgtNode.data?.outletValveOn === false) isFlowing = false;
+          }
+        }
+
+        const nextAnimated = isFlowing;
+        const nextStroke = isFlowing ? 'var(--dt-accent)' : '#475569';
+        const nextOpacity = isFlowing ? 0.85 : 0.35;
+        const nextDash = isFlowing ? undefined : '5 5';
+
+        if (
+          e.animated !== nextAnimated ||
+          e.style?.stroke !== nextStroke ||
+          e.style?.opacity !== nextOpacity ||
+          e.style?.strokeDasharray !== nextDash
+        ) {
+          changed = true;
+          return {
+            ...e,
+            animated: nextAnimated,
+            style: {
+              ...e.style,
+              stroke: nextStroke,
+              strokeWidth: isFlowing ? 2 : 1.5,
+              opacity: nextOpacity,
+              strokeDasharray: nextDash,
+            },
+          };
+        }
+        return e;
+      });
+
+      return changed ? nextEds : eds;
+    });
+  }, [nodes, setEdges]);
 
   
   const handleUndo = async () => {
@@ -2140,24 +2299,18 @@ export default function StarTopology() {
                 parentAssetName: parentName,
                 customWidth: updatedProps.customWidth,
                 customHeight: updatedProps.customHeight,
+                waveHeightCalm: updatedProps.waveHeightCalm,
+                waveHeightNormal: updatedProps.waveHeightNormal,
+                waveHeightActive: updatedProps.waveHeightActive,
+                tempThreshold: updatedProps.tempThreshold,
+                tempMaxThreshold: updatedProps.tempMaxThreshold,
               }
             };
           }
           return n;
         });
 
-        const customConfigs: Record<string, any> = {};
-        updatedNodes.forEach(n => {
-          if (n.id !== 'viewport-box') {
-            customConfigs[n.id] = {
-              flipHorizontal: n.data.flipHorizontal,
-              maxCapacity: n.data.maxCapacity,
-              parentAssetId: n.data.parentAssetId,
-              customWidth: n.data.customWidth ?? (n.style as any)?.width,
-              customHeight: n.data.customHeight ?? (n.style as any)?.height,
-            };
-          }
-        });
+        const customConfigs = buildCustomConfigs(updatedNodes);
 
         axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, {
           customConfigs,
@@ -2190,8 +2343,31 @@ export default function StarTopology() {
   };
 
   const onConnect = useCallback(
-    (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
+    async (params: Connection | Edge) => {
+      setEdges((eds) => addEdge({
+        ...params,
+        animated: true,
+        style: { stroke: 'var(--dt-accent)', strokeWidth: 2, opacity: 0.85 },
+      }, eds));
+      if (params.source && params.target) {
+        try {
+          await axios.post(`${BACKEND_URL}/api/edges`, {
+            source: params.source,
+            target: params.target,
+          });
+        } catch (e) { console.error('Failed to save edge', e); }
+      }
+    },
     [setEdges]
+  );
+
+  const onEdgesDelete = useCallback(
+    (deletedEdges: Edge[]) => {
+      deletedEdges.forEach((edge) => {
+        axios.delete(`${BACKEND_URL}/api/edges/${edge.id}`).catch(() => {});
+      });
+    },
+    []
   );
   const onPaneClick = () => {
     setSelectedNode(null);
@@ -2244,6 +2420,15 @@ export default function StarTopology() {
         status: 'healthy',
         nodeType: type,
         waterLevel: 65, ph: 7.1, tds: 210, temperature: 24,
+        inletSwitchOffsetX: type !== 'pump' ? 68.6 : undefined,
+        inletSwitchOffsetY: type !== 'pump' ? 51.2 : undefined,
+        inletSwitchScale: type !== 'pump' ? 0.18 : undefined,
+        outletSwitchOffsetX: type !== 'pump' ? 240.8 : undefined,
+        outletSwitchOffsetY: type !== 'pump' ? 252.8 : undefined,
+        outletSwitchScale: type !== 'pump' ? 0.18 : undefined,
+        switchOffsetX: type === 'pump' ? 186.5 : undefined,
+        switchOffsetY: type === 'pump' ? 140.4 : undefined,
+        switchScale: type === 'pump' ? 0.18 : undefined,
         editMode: em,
         allowMoveResize: amr && arn && !ams,
         allowMoveSwitches: em && ams,
@@ -2253,6 +2438,7 @@ export default function StarTopology() {
         onSwitchTransformEnd: handleSwitchTransformEnd,
         onConnectSwitchToPump: handleConnectSwitchToPump,
         onHidePumpSwitch: handleHidePumpSwitch,
+        onHideTankSwitch: handleHideTankSwitch,
       }
     };
 
@@ -2291,7 +2477,7 @@ export default function StarTopology() {
       // Revert optimistic spawn if API fails
       setNodes((nds) => nds.filter((n) => n.id !== tempId));
     }
-  }, [rfInstance, setNodes, handleDeleteNode, handleTogglePump, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch]);
+  }, [rfInstance, setNodes, handleDeleteNode, handleTogglePump, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, handleHideTankSwitch]);
 
   /* ── loading ────────────────────────────────────────────── */
   if (loading) {
@@ -2681,6 +2867,7 @@ export default function StarTopology() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onEdgesDelete={onEdgesDelete}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
@@ -2689,7 +2876,7 @@ export default function StarTopology() {
         onDrop={onDrop}
         nodeTypes={nodeTypes}
         nodesDraggable={editMode && allowMoveResize}
-        nodesConnectable={false}
+        nodesConnectable={editMode}
         onlyRenderVisibleElements={true}
         minZoom={0.15}
         maxZoom={3.5}
