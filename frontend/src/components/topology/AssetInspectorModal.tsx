@@ -12,6 +12,11 @@ export interface AssetInspectorModalProps {
     parentAssetId?: string;
     customWidth?: number;
     customHeight?: number;
+    waveHeightCalm?: number;
+    waveHeightNormal?: number;
+    waveHeightActive?: number;
+    tempThreshold?: number;
+    tempMaxThreshold?: number;
   }) => Promise<void>;
 }
 
@@ -35,18 +40,18 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
   const [flipHorizontal, setFlipHorizontal] = useState<boolean>(!!node.data?.flipHorizontal);
   const [maxCapacity, setMaxCapacity] = useState<number>(node.data?.maxCapacity || defaultCapacity);
   const [parentAssetId, setParentAssetId] = useState<string>(node.data?.parentAssetId || '');
-  const [customWidth, setCustomWidth] = useState<number>(
+  const [customWidth] = useState<number>(
     node.data?.customWidth || Number(node.style?.width) || defaultDims.width
   );
-  const [customHeight, setCustomHeight] = useState<number>(
+  const [customHeight] = useState<number>(
     node.data?.customHeight || Number(node.style?.height) || defaultDims.height
   );
+  const [waveHeightCalm, setWaveHeightCalm] = useState<number>(node.data?.waveHeightCalm ?? 4.5);
+  const [waveHeightNormal, setWaveHeightNormal] = useState<number>(node.data?.waveHeightNormal ?? 11);
+  const [waveHeightActive, setWaveHeightActive] = useState<number>(node.data?.waveHeightActive ?? 17);
+  const [tempThreshold, setTempThreshold] = useState<number>(node.data?.tempThreshold ?? 55.0);
+  const [tempMaxThreshold, setTempMaxThreshold] = useState<number>(node.data?.tempMaxThreshold ?? 75.0);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-
-  const handleResetDimensions = () => {
-    setCustomWidth(defaultDims.width);
-    setCustomHeight(defaultDims.height);
-  };
 
   const currentLiveSpeed = node.data?.status === 'Critical' ? 2450 : 2900;
   const currentFillPct = node.data?.waterLevel ?? 65;
@@ -65,6 +70,11 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
         parentAssetId: parentAssetId || undefined,
         customWidth: Number(customWidth) || defaultDims.width,
         customHeight: Number(customHeight) || defaultDims.height,
+        waveHeightCalm: Number(waveHeightCalm) || 4.5,
+        waveHeightNormal: Number(waveHeightNormal) || 11,
+        waveHeightActive: Number(waveHeightActive) || 17,
+        tempThreshold: Number(tempThreshold) || 55.0,
+        tempMaxThreshold: Number(tempMaxThreshold) || 75.0,
       });
       onClose();
     } catch (err) {
@@ -240,86 +250,75 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                     color: '#ffffff',
                     fontSize: 13,
                     fontWeight: 600,
-                    outline: 'none',
-                    marginTop: 2
+                    marginTop: 2,
                   }}
                   onFocus={(e) => e.target.style.borderColor = '#c8f135'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                 />
               </div>
 
-              {/* Manual Asset Dimensions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em' }}>
-                    MANUAL DIMENSIONS (PX)
+              {/* Fluid Dynamics & Thermal Settings */}
+              {!isPump && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4, background: 'rgba(255,255,255,0.02)', padding: '14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#c8f135', letterSpacing: '0.04em' }}>
+                    FLUID DYNAMICS & THERMAL SETTINGS
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleResetDimensions}
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: '#17181c',
-                      background: '#c8f135',
-                      border: 'none',
-                      borderRadius: 6,
-                      padding: '4px 9px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      boxShadow: '0 2px 6px rgba(200,241,53,0.25)'
-                    }}
-                  >
-                    Reset Default ({defaultDims.width}×{defaultDims.height})
-                  </button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                    <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Width (px)</span>
-                    <input
-                      type="number"
-                      value={customWidth}
-                      onChange={(e) => setCustomWidth(Number(e.target.value))}
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        background: '#0e0f12',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 10,
-                        padding: '10px 14px',
-                        color: '#ffffff',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        outline: 'none',
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#c8f135'}
-                      onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Calm Wave (px)</span>
+                      <input
+                        type="number" step="0.5"
+                        value={waveHeightCalm} onChange={(e) => setWaveHeightCalm(Number(e.target.value))}
+                        style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
+                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Normal Wave (px)</span>
+                      <input
+                        type="number" step="0.5"
+                        value={waveHeightNormal} onChange={(e) => setWaveHeightNormal(Number(e.target.value))}
+                        style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
+                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Active Wave (px)</span>
+                      <input
+                        type="number" step="0.5"
+                        value={waveHeightActive} onChange={(e) => setWaveHeightActive(Number(e.target.value))}
+                        style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
+                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                      />
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                    <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Height (px)</span>
-                    <input
-                      type="number"
-                      value={customHeight}
-                      onChange={(e) => setCustomHeight(Number(e.target.value))}
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        background: '#0e0f12',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 10,
-                        padding: '10px 14px',
-                        color: '#ffffff',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        outline: 'none',
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#c8f135'}
-                      onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 2 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Warm Temp Threshold (°C)</span>
+                      <input
+                        type="number" step="0.5"
+                        value={tempThreshold} onChange={(e) => setTempThreshold(Number(e.target.value))}
+                        style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
+                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>Max Boiling Temp (°C)</span>
+                      <input
+                        type="number" step="0.5"
+                        value={tempMaxThreshold} onChange={(e) => setTempMaxThreshold(Number(e.target.value))}
+                        style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
+                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           )}
 
