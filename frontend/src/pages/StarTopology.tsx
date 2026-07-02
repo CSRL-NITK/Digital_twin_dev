@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, memo } from 'react';
 import ReactFlow, {
   Background,
   MiniMap,
@@ -22,6 +22,7 @@ import { WaterTank as TankWaterTank } from '../components/nodes/WaterTank';
 import { CentralWaterTank } from '../components/nodes/CentralWaterTank';
 import { WaterTank as SourceWaterTank } from '../components/nodes/SourceWaterTank';
 import { CentrifugalPumpSvg } from '../components/nodes/CentrifugalPump';
+import { Pump3DSwitch } from '../components/nodes/Pump3DSwitch';
 import { FloatingNodePalette } from '../components/topology/FloatingNodePalette';
 import { AssetInspectorModal } from '../components/topology/AssetInspectorModal';
 import { useAuth } from '../hooks/useAuth';
@@ -39,13 +40,19 @@ type LiveNodeData = {
   /* edit-mode extras */
   editMode?: boolean;
   allowMoveResize?: boolean;
+  allowMoveSwitches?: boolean;
   allowDeleteNodes?: boolean;
   flipHorizontal?: boolean;
   maxCapacity?: number;
   parentAssetId?: string;
   parentAssetName?: string;
   customWidth?: number;
-  customHeight?: number;
+  canControlPump?: boolean;
+  switchOffsetX?: number;
+  switchOffsetY?: number;
+  switchScale?: number;
+  onTogglePump?: (id: string, currentIsOn: boolean) => void;
+  onSwitchTransformEnd?: (id: string, x: number, y: number, scale: number) => void;
   onDeleteNode?: (id: string) => void;
   onResizeStart?: (params: any, nodeId?: string) => void;
   onResizeEnd?: (params: any, nodeId?: string) => void;
@@ -249,9 +256,338 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const isOn = status !== 'Offline';
   const vibrationBoost = status === 'Critical' ? 1.5 : status === 'Warning' ? 1.15 : 1;
   const isFlipped = !!data?.flipHorizontal;
+  const canControl = true;
+  const isEditSwitches = !!data?.allowMoveSwitches;
+  const { zoom } = useViewport();
+
+  const [switchPos, setSwitchPos] = React.useState({
+    x: data?.switchOffsetX ?? 10,
+    y: data?.switchOffsetY ?? -75,
+  });
+  const [switchScale, setSwitchScale] = React.useState(data?.switchScale ?? 0.38);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [nodeDims, setNodeDims] = React.useState({ w: 240, h: 150 });
+
+  React.useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const updateDims = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        if (clientWidth > 0 && clientHeight > 0) {
+          setNodeDims({ w: clientWidth, h: clientHeight });
+        }
+      }
+    };
+    updateDims();
+    const obs = new ResizeObserver(updateDims);
+    obs.observe(containerRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  React.useEffect(() => {
+    setSwitchPos({
+      x: data?.switchOffsetX ?? 10,
+      y: data?.switchOffsetY ?? -75,
+    });
+    setSwitchScale(data?.switchScale ?? 0.38);
+  }, [data?.switchOffsetX, data?.switchOffsetY, data?.switchScale]);
+
+  const handleSwitchMouseDown = (e: React.MouseEvent) => {
+    if (!isEditSwitches) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origX = switchPos.x;
+    const origY = switchPos.y;
+    const currentZoom = zoom || 1;
+
+    const onMove = (moveEvt: MouseEvent) => {
+      const dx = (moveEvt.clientX - startX) / currentZoom;
+      const dy = (moveEvt.clientY - startY) / currentZoom;
+      setSwitchPos({ x: origX + dx, y: origY + dy });
+    };
+
+    const onUp = (upEvt: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const dx = (upEvt.clientX - startX) / currentZoom;
+      const dy = (upEvt.clientY - startY) / currentZoom;
+      const finalX = origX + dx;
+      const finalY = origY + dy;
+      data?.onSwitchTransformEnd?.(id, finalX, finalY, switchScale);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleSwitchResizeMouseDown = (e: React.MouseEvent) => {
+    if (!isEditSwitches) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const origScale = switchScale;
+    const currentZoom = zoom || 1;
+
+    const onMove = (moveEvt: MouseEvent) => {
+      const dx = (moveEvt.clientX - startX) / currentZoom;
+      const nextScale = Math.max(0.18, Math.min(1.5, origScale + dx * 0.004));
+      setSwitchScale(nextScale);
+    };
+
+    const onUp = (upEvt: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const dx = (upEvt.clientX - startX) / currentZoom;
+      const finalScale = Math.max(0.18, Math.min(1.5, origScale + dx * 0.004));
+      data?.onSwitchTransformEnd?.(id, switchPos.x, switchPos.y, finalScale);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  // Wire start point: Top Langflow plug socket on switch box
+  const wireStartX = switchPos.x + (150 * switchScale) * 0.5;
+  const wireStartY = switchPos.y;
+
+  // Calculate exact rendered scale and offsets of the 800x500 Pump SVG inside the container
+  const availW = Math.max(10, nodeDims.w);
+  const availH = Math.max(10, nodeDims.h);
+  const svgScale = Math.min(availW / 800, availH / 500);
+  const renderedW = 800 * svgScale;
+  const renderedH = 500 * svgScale;
+  const offsetX = (availW - renderedW) / 2;
+  const offsetY = (availH - renderedH) / 2;
+
+  // The exact center terminal pin of the Langflow socket on the pump base plate (X=400, Y=403 in 800x500 SVG space)
+  const wireEndX = offsetX + 400 * svgScale;
+  const wireEndY = offsetY + 403 * svgScale;
+
+  // Hyper-realistic Langflow hanging cable catenary curve
+  const distY = Math.abs(wireStartY - wireEndY);
+  const distX = Math.abs(wireStartX - wireEndX);
+  const sag = Math.max(35, (distY + distX) * 0.35);
+  const wirePath = `M ${wireStartX},${wireStartY} C ${wireStartX},${wireStartY - sag} ${wireEndX},${wireEndY + sag} ${wireEndX},${wireEndY}`;
+
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 100 }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 100, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
+
+      {/* ── Langflow Socket Plug Boot on Top of Switch Box ── */}
+      <div
+        style={{
+          position: 'absolute',
+          left: wireStartX - 10,
+          top: wireStartY - 7,
+          width: 20,
+          height: 10,
+          background: 'linear-gradient(180deg, #4b5563 0%, #1f2937 100%)',
+          border: '1px solid #9ca3af',
+          borderRadius: '4px 4px 0 0',
+          boxShadow: '0 -2px 6px rgba(0,0,0,0.4)',
+          zIndex: 34,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* ── Hyper-Realistic Industrial Braided Cable & Glowing Laser Signal ── */}
+      <svg
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 25,
+          overflow: 'visible',
+        }}
+      >
+        <defs>
+          <filter id={`wireShadow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="#000000" floodOpacity="0.65" />
+          </filter>
+          <filter id={`neonGlow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+          <style>{`
+            @keyframes rfEdgeFlow-${id} {
+              from { stroke-dashoffset: 24; }
+              to { stroke-dashoffset: 0; }
+            }
+          `}</style>
+        </defs>
+
+        {/* Layer 1: Realistic Outer Heavy Black/Charcoal Cable Jacket with Drop Shadow */}
+        <path
+          d={wirePath}
+          fill="none"
+          stroke="#0f172a"
+          strokeWidth="7"
+          strokeLinecap="round"
+          filter={`url(#wireShadow-${id})`}
+        />
+
+        {/* Layer 2: Inner Rubberized Insulation Sheath */}
+        <path
+          d={wirePath}
+          fill="none"
+          stroke={isOn ? '#1e293b' : '#334155'}
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+
+        {/* Layer 3: Metallic Spiral Braiding Texture */}
+        <path
+          d={wirePath}
+          fill="none"
+          stroke="#475569"
+          strokeWidth="4.5"
+          strokeDasharray="2 4"
+          strokeLinecap="round"
+        />
+
+        {/* Layer 4: Glowing High-Voltage Energy Core Pulse when ON */}
+        {isOn && (
+          <path
+            d={wirePath}
+            fill="none"
+            stroke="#1cff42"
+            strokeWidth="2.5"
+            strokeDasharray="8 4"
+            strokeLinecap="round"
+            filter={`url(#neonGlow-${id})`}
+            style={{ animation: `rfEdgeFlow-${id} 0.6s linear infinite` }}
+          />
+        )}
+
+        {/* Layer 5: Socket Terminal Pins inside Plugs */}
+        <circle
+          cx={wireStartX}
+          cy={wireStartY}
+          r="3.5"
+          fill={isOn ? '#ffffff' : '#9ca3af'}
+        />
+        <circle
+          cx={wireEndX}
+          cy={wireEndY}
+          r="3.5"
+          fill={isOn ? '#ffffff' : '#9ca3af'}
+        />
+      </svg>
+
+      {/* ── Realistic 3D Rocker Switch Control Box ── */}
+      <div
+        className="nodrag nopan"
+        style={{
+          position: 'absolute',
+          top: switchPos.y,
+          left: switchPos.x,
+          width: 150 * switchScale,
+          height: 195 * switchScale,
+          zIndex: 35,
+          border: isEditSwitches ? '2px solid #c8f135' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          borderRadius: 6,
+        }}
+      >
+        <div
+          className="nodrag nopan"
+          onMouseDown={isEditSwitches ? handleSwitchMouseDown : undefined}
+          style={{
+            width: '100%',
+            height: '100%',
+            cursor: isEditSwitches ? 'move' : 'default',
+          }}
+        >
+          <Pump3DSwitch
+            isOn={isOn}
+            canControl={canControl && !isEditSwitches}
+            onToggle={() => {
+              if (!isEditSwitches) data?.onTogglePump?.(id, isOn);
+            }}
+            scale={switchScale}
+          />
+        </div>
+
+        {/* ── Exact 4 Corner Square Resize Handles matching NodeResizer ── */}
+        {isEditSwitches && (
+          <>
+            {/* Top-Left */}
+            <div
+              className="nodrag nopan"
+              onMouseDown={handleSwitchResizeMouseDown}
+              style={{
+                position: 'absolute',
+                top: -5,
+                left: -5,
+                width: 10,
+                height: 10,
+                background: '#c8f135',
+                border: '1.5px solid #17181c',
+                borderRadius: 3,
+                cursor: 'nwse-resize',
+                zIndex: 40,
+              }}
+            />
+            {/* Top-Right */}
+            <div
+              className="nodrag nopan"
+              onMouseDown={handleSwitchResizeMouseDown}
+              style={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                width: 10,
+                height: 10,
+                background: '#c8f135',
+                border: '1.5px solid #17181c',
+                borderRadius: 3,
+                cursor: 'nesw-resize',
+                zIndex: 40,
+              }}
+            />
+            {/* Bottom-Left */}
+            <div
+              className="nodrag nopan"
+              onMouseDown={handleSwitchResizeMouseDown}
+              style={{
+                position: 'absolute',
+                bottom: -5,
+                left: -5,
+                width: 10,
+                height: 10,
+                background: '#c8f135',
+                border: '1.5px solid #17181c',
+                borderRadius: 3,
+                cursor: 'nesw-resize',
+                zIndex: 40,
+              }}
+            />
+            {/* Bottom-Right */}
+            <div
+              className="nodrag nopan"
+              onMouseDown={handleSwitchResizeMouseDown}
+              style={{
+                position: 'absolute',
+                bottom: -5,
+                right: -5,
+                width: 10,
+                height: 10,
+                background: '#c8f135',
+                border: '1.5px solid #17181c',
+                borderRadius: 3,
+                cursor: 'nwse-resize',
+                zIndex: 40,
+              }}
+            />
+          </>
+        )}
+      </div>
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -716,6 +1052,7 @@ export default function StarTopology() {
   const [allowResizeNodes, setAllowResizeNodes] = useState(false);
   const [allowMoveViewport, setAllowMoveViewport] = useState(false);
   const [allowResizeViewport, setAllowResizeViewport] = useState(false); // drag + resize nodes
+  const [allowMoveSwitches, setAllowMoveSwitches] = useState(false); // move & resize switches
   const [showPaletteMenu, setShowPaletteMenu] = useState(false);
   const [showNodePalette, setShowNodePalette] = useState(false);
   const [showSensorPalette, setShowSensorPalette] = useState(false);
@@ -726,7 +1063,8 @@ export default function StarTopology() {
   const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
   const [isViewportReady, setIsViewportReady] = useState(false);
   
-  const { isAdmin } = useAuth();
+  const { isAdmin, role } = useAuth();
+  const canControlPump = isAdmin || role === 'operator';
   const containerRef = useRef<HTMLDivElement>(null);
   const interactivityRef = useRef({
     editMode: false,
@@ -843,6 +1181,72 @@ export default function StarTopology() {
     } catch (e) { console.error('Failed to save resize position', e); }
   }, [setNodes]);
 
+  /* ── Pump ON/OFF Switch Helper ──────────────────────── */
+  const handleTogglePump = useCallback(async (id: string, currentIsOn: boolean) => {
+    const nextStatus = currentIsOn ? 'Offline' : 'Healthy';
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === id) {
+          return {
+            ...n,
+            data: { ...n.data, status: nextStatus },
+          };
+        }
+        return n;
+      })
+    );
+    setSelectedNode((prev: any) => {
+      if (prev && prev.id === id) {
+        return { ...prev, status: nextStatus };
+      }
+      return prev;
+    });
+    try {
+      await axios.patch(`${BACKEND_URL}/api/nodes/${id}`, { status: nextStatus });
+    } catch (e) {
+      console.error('Failed to toggle pump status:', e);
+    }
+  }, [setNodes]);
+
+  /* ── Pump Switch Move/Resize Helper ──────────────────── */
+  const handleSwitchTransformEnd = useCallback((id: string, x: number, y: number, scale: number) => {
+    setNodes((nds) => {
+      const updatedNodes = nds.map((n) => {
+        if (n.id === id) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              switchOffsetX: x,
+              switchOffsetY: y,
+              switchScale: scale,
+            },
+          };
+        }
+        return n;
+      });
+
+      const customConfigs: Record<string, any> = {};
+      updatedNodes.forEach((n) => {
+        if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
+          customConfigs[n.id] = {
+            flipHorizontal: n.data?.flipHorizontal,
+            maxCapacity: n.data?.maxCapacity,
+            parentAssetId: n.data?.parentAssetId,
+            customWidth: n.data?.customWidth ?? (n.style as any)?.width,
+            customHeight: n.data?.customHeight ?? (n.style as any)?.height,
+            switchOffsetX: n.data?.switchOffsetX,
+            switchOffsetY: n.data?.switchOffsetY,
+            switchScale: n.data?.switchScale,
+          };
+        }
+      });
+      axios.patch(`${BACKEND_URL}/api/topologies/star/viewport`, { customConfigs }).catch(console.error);
+      return updatedNodes;
+    });
+  }, [setNodes]);
+
+
   /* ── Delete Node Helper ──────────────────────────────── */
   const handleDeleteNode = useCallback(async (id: string) => {
     try {
@@ -915,12 +1319,16 @@ export default function StarTopology() {
         }
         return {
           ...n,
-          draggable: editMode && allowMoveResize && allowMoveNodes,
+          draggable: editMode && allowMoveResize && allowMoveNodes && !allowMoveSwitches,
           data: {
             ...n.data,
             editMode,
-            allowMoveResize: allowMoveResize && allowResizeNodes,
+            allowMoveResize: allowMoveResize && allowResizeNodes && !allowMoveSwitches,
+            allowMoveSwitches: editMode && allowMoveSwitches,
             allowDeleteNodes,
+            canControlPump,
+            onTogglePump: handleTogglePump,
+            onSwitchTransformEnd: handleSwitchTransformEnd,
             onDeleteNode: handleDeleteNode,
             onResizeStart: handleNodeResizeStart,
             onResizeEnd: handleNodeResizeEnd,
@@ -928,7 +1336,7 @@ export default function StarTopology() {
         };
       });
     });
-  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
+  }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveSwitches, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, canControlPump, handleTogglePump, handleSwitchTransformEnd, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -1086,6 +1494,9 @@ export default function StarTopology() {
               parentAssetName: parentNode ? parentNode.nodeName : undefined,
               customWidth: w,
               customHeight: h,
+              switchOffsetX: cfg.switchOffsetX,
+              switchOffsetY: cfg.switchOffsetY,
+              switchScale: cfg.switchScale,
             },
           };
         });
@@ -1193,6 +1604,20 @@ export default function StarTopology() {
             return prev;
           });
           return { ...node, data: { ...node.data, status: data.status } };
+        })
+      );
+    });
+
+    socket.on('node:updated', (updatedNode) => {
+      if (isInteractingRef.current) return;
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id !== updatedNode.id) return node;
+          setSelectedNode((prev: any) => {
+            if (prev && prev.id === updatedNode.id) return { ...prev, status: updatedNode.status, nodeName: updatedNode.nodeName };
+            return prev;
+          });
+          return { ...node, data: { ...node.data, status: updatedNode.status, nodeName: updatedNode.nodeName } };
         })
       );
     });
@@ -1789,8 +2214,28 @@ export default function StarTopology() {
                     borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12,
                     boxShadow: '0 8px 24px rgba(0,0,0,0.20)', minWidth: 150, zIndex: 50, backdropFilter: 'blur(10px)'
                   }}>
-                    <Switch checked={allowMoveNodes} onChange={setAllowMoveNodes} label="Move Nodes" />
-                    <Switch checked={allowResizeNodes} onChange={setAllowResizeNodes} label="Resize Nodes" />
+                    <Switch
+                      checked={allowMoveNodes}
+                      onChange={(val) => { setAllowMoveNodes(val); if (val) setAllowMoveSwitches(false); }}
+                      label="Move Nodes"
+                    />
+                    <Switch
+                      checked={allowResizeNodes}
+                      onChange={(val) => { setAllowResizeNodes(val); if (val) setAllowMoveSwitches(false); }}
+                      label="Resize Nodes"
+                    />
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+                    <Switch
+                      checked={allowMoveSwitches}
+                      onChange={(val) => {
+                        setAllowMoveSwitches(val);
+                        if (val) {
+                          setAllowMoveNodes(false);
+                          setAllowResizeNodes(false);
+                        }
+                      }}
+                      label="Move & Resize Switches"
+                    />
                     {showViewport && (
                       <>
                         <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
