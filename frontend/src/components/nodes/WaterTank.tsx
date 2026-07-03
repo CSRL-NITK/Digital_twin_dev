@@ -65,6 +65,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   tempThreshold = 55.0,
   tempMaxThreshold = 75.0,
 }) => {
+  const idSuffix = React.useId();
   // Constrain fill percentage
   const clampedFill = Math.max(0, Math.min(100, fillPercentage));
 
@@ -101,8 +102,10 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   const innerLeftX = TANK_CENTER_X - TANK_INNER_RADIUS_X;
   const innerRightX = TANK_CENTER_X + TANK_INNER_RADIUS_X;
 
-  const inletPipeStartX = outerLeftX - 10;
-  const outletPipeEndX = outerRightX + 10;
+  const LEFT_PIPE_GAP_PX = 18;
+  const RIGHT_PIPE_GAP_PX = 18;
+  const inletPipeStartX = outerLeftX - LEFT_PIPE_GAP_PX;
+  const outletPipeEndX = outerRightX + RIGHT_PIPE_GAP_PX;
 
   // Water volume height limits:
   const Y_TOP = TANK_CYLINDER_Y1; // Full level
@@ -512,7 +515,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Metal Parts Gradient (Flanges, Legs, Hatch) */}
-          <linearGradient id="metalGradient" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id={`metalGradient-${idSuffix}`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#475569" />
             <stop offset="25%" stopColor="#CBD5E1" />
             <stop offset="50%" stopColor="#94A3B8" />
@@ -521,14 +524,14 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Metal Vertical Gradient (Pipes) */}
-          <linearGradient id="metalVerticalGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`metalVerticalGradient-${idSuffix}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#334155" />
             <stop offset="50%" stopColor="#CBD5E1" />
             <stop offset="100%" stopColor="#1E293B" />
           </linearGradient>
 
           {/* Black Metal Gradient for Pump/Motor */}
-          <linearGradient id="blackMetalGradient" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id={`blackMetalGradient-${idSuffix}`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#090D16" />
             <stop offset="30%" stopColor="#1E293B" />
             <stop offset="50%" stopColor="#334155" />
@@ -604,11 +607,43 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               {/* Inlet Pipe Elbow */}
               <path
                 d={`M ${inletPipeStartX},70 L ${INLET_CENTER_X - 12},70 A 12,12 0 0,1 ${INLET_CENTER_X},82 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke="url(#metalVerticalGradient)"
+                stroke={`url(#metalVerticalGradient-${idSuffix})`}
                 strokeWidth="13"
                 strokeLinecap="butt"
                 fill="none"
               />
+
+              {/* Valve/Connection Design at End of Pipe (Left side) */}
+              <g id={`pipe-valve-inlet-${idSuffix}`}>
+                {/* 1. Pipe connecting flange (dark heavy plate) */}
+                <rect
+                  x={inletPipeStartX - 8}
+                  y={70 - 12}
+                  width="4"
+                  height="24"
+                  rx="1"
+                  fill={`url(#metalGradient-${idSuffix})`}
+                  stroke="#0F172A"
+                  strokeWidth="0.8"
+                />
+                {/* Flange Bolts */}
+                <circle cx={inletPipeStartX - 6} cy={70 - 8} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+                <circle cx={inletPipeStartX - 6} cy={70 + 8} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+                
+                {/* 2. Steel threaded coupler/connector hex nut fitting */}
+                <rect
+                  x={inletPipeStartX - 4}
+                  y={70 - 10}
+                  width="4"
+                  height="20"
+                  fill={`url(#metalGradient-${idSuffix})`}
+                  stroke="#1E293B"
+                  strokeWidth="0.5"
+                />
+                {/* Hex division lines */}
+                <line x1={inletPipeStartX - 4} y1={70 - 3} x2={inletPipeStartX} y2={70 - 3} stroke="#475569" strokeWidth="0.5" />
+                <line x1={inletPipeStartX - 4} y1={70 + 3} x2={inletPipeStartX} y2={70 + 3} stroke="#475569" strokeWidth="0.5" />
+              </g>
 
               {/* Industrial Solenoid Valve & Flow Rate Sensor assembly on top filling pipe */}
               <g id="inlet-solenoid-flow-sensor">
@@ -634,7 +669,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                   width="16"
                   height="21"
                   rx="2.5"
-                  fill="url(#metalVerticalGradient)"
+                  fill={`url(#metalVerticalGradient-${idSuffix})`}
                   stroke="#334155"
                   strokeWidth="0.5"
                 />
@@ -702,7 +737,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                   y={121}
                   width="15"
                   height="11.5"
-                  fill="url(#metalVerticalGradient)"
+                  fill={`url(#metalVerticalGradient-${idSuffix})`}
                   stroke="#1E293B"
                   strokeWidth="0.5"
                 />
@@ -814,7 +849,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                 y={161.5}
                 width="17"
                 height="3"
-                fill="url(#metalVerticalGradient)"
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
                 stroke="#334155"
                 strokeWidth="0.5"
               />
@@ -844,7 +879,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                     L ${INLET_CENTER_X + 7.5},164.5 
                     L ${INLET_CENTER_X + 6.0},173
                     L ${INLET_CENTER_X - 6.0},173 Z`}
-                fill="url(#metalVerticalGradient)"
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
                 stroke="#1E293B"
                 strokeWidth="0.5"
               />
@@ -889,7 +924,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               {/* Overflow pipe */}
               <path
                 d={`M ${outerLeftX + 2},${TANK_CYLINDER_Y1 + 40} L ${outerLeftX - 26},${TANK_CYLINDER_Y1 + 40} A 10,10 0 0,0 ${outerLeftX - 36},${TANK_CYLINDER_Y1 + 50} L ${outerLeftX - 36},${TANK_CYLINDER_Y1 + 130}`}
-                stroke="url(#metalVerticalGradient)"
+                stroke={`url(#metalVerticalGradient-${idSuffix})`}
                 strokeWidth="9"
                 fill="none"
               />
@@ -911,7 +946,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                 y={TANK_CYLINDER_Y1 + 132}
                 width="13"
                 height="2.5"
-                fill="url(#metalVerticalGradient)"
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
                 stroke="#334155"
                 strokeWidth="0.5"
               />
@@ -941,7 +976,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                     L ${outerLeftX - 30.5},${TANK_CYLINDER_Y1 + 134.5} 
                     L ${outerLeftX - 32.5},${TANK_CYLINDER_Y1 + 140} 
                     L ${outerLeftX - 39.5},${TANK_CYLINDER_Y1 + 140} Z`}
-                fill="url(#metalVerticalGradient)"
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
                 stroke="#1E293B"
                 strokeWidth="0.5"
               />
@@ -1071,7 +1106,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
             {/* Main pipe cylinder */}
             <path
               d={pumpPipePathD}
-              stroke="url(#metalVerticalGradient)"
+              stroke={`url(#metalVerticalGradient-${idSuffix})`}
               strokeWidth="11"
               strokeLinecap="round"
               fill="none"
@@ -1086,7 +1121,40 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               opacity="0.28"
             />
 
+            {/* Valve/Connection Design at End of Pipe (Right side) */}
+            <g id={`pipe-valve-outlet-${idSuffix}`}>
+              {/* 1. Pipe connecting flange (dark heavy plate) */}
+              <rect
+                x={outletPipeEndX + 4}
+                y={90 - 12}
+                width="4"
+                height="24"
+                rx="1"
+                fill={`url(#metalGradient-${idSuffix})`}
+                stroke="#0F172A"
+                strokeWidth="0.8"
+              />
+              {/* Flange Bolts */}
+              <circle cx={outletPipeEndX + 6} cy={90 - 8} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+              <circle cx={outletPipeEndX + 6} cy={90 + 8} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+              
+              {/* 2. Steel threaded coupler/connector hex nut fitting */}
+              <rect
+                x={outletPipeEndX}
+                y={90 - 10}
+                width="4"
+                height="20"
+                fill={`url(#metalGradient-${idSuffix})`}
+                stroke="#1E293B"
+                strokeWidth="0.5"
+              />
+              {/* Hex division lines */}
+              <line x1={outletPipeEndX} y1={90 - 3} x2={outletPipeEndX + 4} y2={90 - 3} stroke="#475569" strokeWidth="0.5" />
+              <line x1={outletPipeEndX} y1={90 + 3} x2={outletPipeEndX + 4} y2={90 + 3} stroke="#475569" strokeWidth="0.5" />
+            </g>
+
             {/* Submersible Suction Motor / Pump Unit */}
+
             <g id="submersible-pump-motor">
               {/* Coupling flange connecting pipe to motor (Chrome bolts on dark background) */}
               <rect
@@ -1095,7 +1163,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                 width="16"
                 height="4"
                 rx="1"
-                fill="url(#blackMetalGradient)"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
                 stroke="#020617"
                 strokeWidth="0.75"
               />
@@ -1110,7 +1178,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                 width="28"
                 height="11"
                 rx="1.5"
-                fill="url(#blackMetalGradient)"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
                 stroke="#020617"
                 strokeWidth="0.8"
               />
@@ -1182,7 +1250,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                 width="24"
                 height="6"
                 rx="1"
-                fill="url(#blackMetalGradient)"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
                 stroke="#020617"
                 strokeWidth="0.8"
               />
@@ -1431,13 +1499,13 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         {/* Top & Bottom Seam collars */}
         <g id="heavy-seam-collars" opacity="0.95">
           {/* Flat top lip */}
-          <line x1={outerLeftX - 2} y1={TANK_CYLINDER_Y1} x2={outerRightX + 2} y2={TANK_CYLINDER_Y1} stroke="url(#metalGradient)" strokeWidth="6.5" />
+          <line x1={outerLeftX - 2} y1={TANK_CYLINDER_Y1} x2={outerRightX + 2} y2={TANK_CYLINDER_Y1} stroke={`url(#metalGradient-${idSuffix})`} strokeWidth="6.5" />
           {topCollarBolts.map((bolt, idx) => (
             <circle key={`top-bolt-${idx}`} cx={bolt.cx} cy={bolt.cy} r="1.5" fill="#1E293B" stroke="#E2E8F0" strokeWidth="0.5" />
           ))}
 
           {/* Flat bottom collar */}
-          <line x1={outerLeftX - 2} y1={TANK_CYLINDER_Y2} x2={outerRightX + 2} y2={TANK_CYLINDER_Y2} stroke="url(#metalGradient)" strokeWidth="6.5" />
+          <line x1={outerLeftX - 2} y1={TANK_CYLINDER_Y2} x2={outerRightX + 2} y2={TANK_CYLINDER_Y2} stroke={`url(#metalGradient-${idSuffix})`} strokeWidth="6.5" />
           {bottomCollarBolts.map((bolt, idx) => (
             <circle key={`bottom-bolt-${idx}`} cx={bolt.cx} cy={bolt.cy} r="1.5" fill="#1E293B" stroke="#E2E8F0" strokeWidth="0.5" />
           ))}
@@ -1446,9 +1514,9 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         {/* Analog pressure gauge */}
         {showGauge && (
           <g id="scada-pressure-gauge">
-            <rect x={outerRightX} y={GAUGE_CENTER_Y - 6} width="28" height="12" fill="url(#metalVerticalGradient)" stroke="#1E293B" strokeWidth="0.5" />
+            <rect x={outerRightX} y={GAUGE_CENTER_Y - 6} width="28" height="12" fill={`url(#metalVerticalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
             
-            <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="28" fill="url(#metalGradient)" stroke="#1E293B" strokeWidth="1" />
+            <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="28" fill={`url(#metalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="1" />
             <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="26" fill="none" stroke="#FFFFFF" strokeWidth="0.75" opacity="0.4" />
             
             <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="23" fill="url(#gaugeFace)" />
