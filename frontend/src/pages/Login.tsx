@@ -84,7 +84,7 @@ export default function Login() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 2px 12px rgba(0,0,0,0.20)',
           }}>
-            <Droplets size={21} color="#c8f135" strokeWidth={2.3} />
+            <Droplets size={21} color="#00ffff" strokeWidth={2.3} />
           </div>
           <div>
             <p style={{ fontSize: 16, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.5px', lineHeight: 1.2 }}>AquaTwin</p>
@@ -148,8 +148,8 @@ export default function Login() {
                   transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
                 onFocus={e => {
-                  e.currentTarget.style.borderColor = 'rgba(200,241,53,0.65)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,241,53,0.14)';
+                  e.currentTarget.style.borderColor = 'rgba(0,255,255,0.65)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,255,255,0.14)';
                 }}
                 onBlur={e => {
                   e.currentTarget.style.borderColor = errors.username ? 'rgba(239,68,68,0.45)' : dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)';
@@ -180,8 +180,8 @@ export default function Login() {
                   transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
                 onFocus={e => {
-                  e.currentTarget.style.borderColor = 'rgba(200,241,53,0.65)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,241,53,0.14)';
+                  e.currentTarget.style.borderColor = 'rgba(0,255,255,0.65)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,255,255,0.14)';
                 }}
                 onBlur={e => {
                   e.currentTarget.style.borderColor = errors.password ? 'rgba(239,68,68,0.45)' : dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)';
@@ -197,7 +197,7 @@ export default function Login() {
               style={{
                 height: 46, borderRadius: 12, border: 'none',
                 background: loading ? '#e9eeea' : '#17181c',
-                color: loading ? '#9ca3af' : '#c8f135',
+                color: loading ? '#9ca3af' : '#00ffff',
                 fontSize: 14.5, fontWeight: 800, letterSpacing: '-0.2px',
                 cursor: loading ? 'not-allowed' : 'pointer', fontFamily: FONT,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -216,7 +216,7 @@ export default function Login() {
             {/* Sign up link */}
             <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
               Don't have an account?{' '}
-              <a href="/signup" style={{ color: dark ? '#c8f135' : '#17181c', fontWeight: 700, textDecoration: 'none' }}>
+              <a href="/signup" style={{ color: dark ? '#00ffff' : '#17181c', fontWeight: 700, textDecoration: 'none' }}>
                 Sign up
               </a>
             </p>

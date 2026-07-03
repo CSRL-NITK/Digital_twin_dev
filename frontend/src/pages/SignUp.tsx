@@ -94,8 +94,8 @@ export default function SignUp() {
   });
 
   const onFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(200,241,53,0.65)';
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,241,53,0.12)';
+    e.currentTarget.style.borderColor = 'rgba(0,255,255,0.65)';
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,255,255,0.12)';
   };
   const onBlur = (e: React.FocusEvent<HTMLInputElement>, hasError: boolean) => {
     e.currentTarget.style.borderColor = hasError ? 'rgba(239,68,68,0.50)' : dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)';
@@ -158,7 +158,7 @@ export default function SignUp() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 2px 10px rgba(0,0,0,0.20)',
             }}>
-              <Droplets size={19} color="#c8f135" strokeWidth={2.3} />
+              <Droplets size={19} color="#00ffff" strokeWidth={2.3} />
             </div>
             <div>
               <p style={{ fontSize: 15, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.4px', lineHeight: 1.2 }}>AquaTwin</p>
@@ -306,7 +306,7 @@ export default function SignUp() {
                 style={{
                   height: 44, borderRadius: 11, border: 'none',
                   background: disabled ? (dark ? '#2a2b31' : '#e5e7eb') : '#17181c',
-                  color: disabled ? '#6b7280' : '#c8f135',
+                  color: disabled ? '#6b7280' : '#00ffff',
                   fontSize: 14, fontWeight: 800, letterSpacing: '-0.2px',
                   cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: FONT,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -324,7 +324,7 @@ export default function SignUp() {
             {/* Sign in link */}
             <p style={{ textAlign: 'center', fontSize: 12.5, color: '#9ca3af' }}>
               Already have an account?{' '}
-              <a href="/login" style={{ color: dark ? '#c8f135' : '#17181c', fontWeight: 700, textDecoration: 'none' }}>Sign in</a>
+              <a href="/login" style={{ color: dark ? '#00ffff' : '#17181c', fontWeight: 700, textDecoration: 'none' }}>Sign in</a>
             </p>
           </form>
         )}
