@@ -25,7 +25,7 @@ interface User {
 const getRoleConfig = (role: string, dark: boolean) => {
   if (role === 'admin') {
     return dark ? {
-      label: 'Admin', color: '#c8f135', bg: 'rgba(200,241,53,0.12)', border: 'rgba(200,241,53,0.28)', Icon: Crown, avatarBg: '#c8f135', avatarColor: '#17181c'
+      label: 'Admin', color: '#00ffff', bg: 'rgba(0,255,255,0.12)', border: 'rgba(0,255,255,0.28)', Icon: Crown, avatarBg: '#00ffff', avatarColor: '#17181c'
     } : {
       label: 'Admin', color: '#15803d', bg: '#ecfdf5', border: '#86efac', Icon: Crown, avatarBg: '#dcfce7', avatarColor: '#15803d'
     };
@@ -215,7 +215,7 @@ export default function UserManagement() {
           padding: '12px 18px', borderRadius: 12,
           background: toast.ok ? '#17181c' : 'rgba(239,68,68,0.95)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.28)',
-          color: toast.ok ? '#c8f135' : '#fff',
+          color: toast.ok ? '#00ffff' : '#fff',
           fontSize: 13, fontWeight: 600,
           animation: 'slideUp 0.2s ease',
         }}>
@@ -229,11 +229,11 @@ export default function UserManagement() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: dark ? 'rgba(200,241,53,0.12)' : '#111827',
+            background: dark ? 'rgba(0,255,255,0.12)' : '#111827',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
           }}>
-            <Users size={24} color="#c8f135" strokeWidth={2.2} />
+            <Users size={24} color="#00ffff" strokeWidth={2.2} />
           </div>
           <div>
             <h1 style={{ fontSize: 23, fontWeight: 800, color: textTitle, letterSpacing: '-0.5px', margin: 0 }}>
@@ -363,11 +363,11 @@ export default function UserManagement() {
                 return (
                   <tr key={u.id} style={{
                     borderBottom: i < filtered.length - 1 ? `1px solid ${dark ? 'rgba(255,255,255,0.05)' : '#f1f5f9'}` : 'none',
-                    background: isMe ? (dark ? 'rgba(200,241,53,0.05)' : '#f0fdf4') : 'transparent',
+                    background: isMe ? (dark ? 'rgba(0,255,255,0.05)' : '#f0fdf4') : 'transparent',
                     transition: 'background 0.12s',
                   }}
                     onMouseEnter={e => { if (!isMe) (e.currentTarget as any).style.background = dark ? 'rgba(255,255,255,0.03)' : '#f8fafc'; }}
-                    onMouseLeave={e => { if (!isMe) (e.currentTarget as any).style.background = isMe ? (dark ? 'rgba(200,241,53,0.05)' : '#f0fdf4') : 'transparent'; }}
+                    onMouseLeave={e => { if (!isMe) (e.currentTarget as any).style.background = isMe ? (dark ? 'rgba(0,255,255,0.05)' : '#f0fdf4') : 'transparent'; }}
                   >
                     {/* Name */}
                     <td style={{ padding: '16px 24px', verticalAlign: 'middle' }}>
@@ -387,9 +387,9 @@ export default function UserManagement() {
                             {isMe && (
                               <span style={{
                                 fontSize: 11, fontWeight: 700,
-                                color: dark ? '#c8f135' : '#15803d',
-                                background: dark ? 'rgba(200,241,53,0.15)' : '#dcfce7',
-                                border: `1px solid ${dark ? 'rgba(200,241,53,0.3)' : '#86efac'}`,
+                                color: dark ? '#00ffff' : '#15803d',
+                                background: dark ? 'rgba(0,255,255,0.15)' : '#dcfce7',
+                                border: `1px solid ${dark ? 'rgba(0,255,255,0.3)' : '#86efac'}`,
                                 padding: '2px 8px', borderRadius: 99, letterSpacing: '0.03em'
                               }}>
                                 You
@@ -432,12 +432,12 @@ export default function UserManagement() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 6,
                               padding: '6px 12px', borderRadius: 8,
-                              background: dark ? 'rgba(200,241,53,0.08)' : '#ecfdf5',
-                              border: `1px solid ${dark ? 'rgba(200,241,53,0.25)' : '#86efac'}`,
+                              background: dark ? 'rgba(0,255,255,0.08)' : '#ecfdf5',
+                              border: `1px solid ${dark ? 'rgba(0,255,255,0.25)' : '#86efac'}`,
                               fontSize: 12, fontWeight: 700,
-                              color: dark ? '#c8f135' : '#15803d'
+                              color: dark ? '#00ffff' : '#15803d'
                             }}>
-                              <Shield size={13} color={dark ? '#c8f135' : '#15803d'} />
+                              <Shield size={13} color={dark ? '#00ffff' : '#15803d'} />
                               Active Admin Session
                             </span>
                             <button
