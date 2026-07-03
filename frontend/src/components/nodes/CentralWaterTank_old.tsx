@@ -49,6 +49,11 @@ const interpolateColor = (color1: string, color2: string, factor: number): strin
   return `#${rHex}${gHex}${bHex}`;
 };
 
+// Wave speed durations (seconds)
+const WAVE_SPEED_SLOW = { front: '13s', mid: '10s', back: '16s' };
+const WAVE_SPEED_MEDIUM = { front: '7.5s', mid: '5.5s', back: '9.5s' };
+const WAVE_SPEED_FAST = { front: '3.8s', mid: '2.8s', back: '5s' };
+
 export const CentralWaterTank: React.FC<WaterTankProps> = ({
   fillPercentage,
   isFilling,
@@ -73,7 +78,7 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   tempMaxThreshold = 75.0,
 }) => {
   // Generate a unique ID suffix to avoid SVG ID collisions on dashboards with multiple tank instances
-  const idSuffix = useMemo(() => Math.random().toString(36).substring(2, 9), []);
+  const idSuffix = React.useId().replace(/:/g, '');
 
   // Constrain fill percentage
   const clampedFill = Math.max(0, Math.min(100, fillPercentage));
@@ -97,14 +102,6 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
     // Water Color & Thermal Temperature Thresholds
   const TEMP_THRESHOLD = tempThreshold;            // Temperature (°C) where water starts changing to warm color & boiling starts
   const TEMP_MAX_THRESHOLD = tempMaxThreshold;        // Temperature (°C) where water is completely warm & boiling is at max
-
-  // Wave speed durations (seconds)
-  const WAVE_SPEED_SLOW = { front: '13s', mid: '10s', back: '16s' };
-  const WAVE_SPEED_MEDIUM = { front: '7.5s', mid: '5.5s', back: '9.5s' };
-  const WAVE_SPEED_FAST = { front: '3.8s', mid: '2.8s', back: '5s' };
-
-
-
   // Derived layout and positioning coordinates
   const TANK_CENTER_X = 200;       // Center of the tank in the SVG
   const TANK_CYLINDER_Y1 = 300 - TANK_HEIGHT / 2; // Top of cylindrical body
@@ -118,17 +115,18 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   const INLET_CENTER_X = TANK_CENTER_X - TANK_OUTER_RADIUS_X * (40 / 90); // X-coord of the inlet stream
   const INLET2_CENTER_X = TANK_CENTER_X + TANK_OUTER_RADIUS_X * (40 / 90); // X-coord of second inlet stream
 
-  // Dynamic viewBox margins to prevent any component clipping on the sides
   const viewBoxMargin = TANK_OUTER_RADIUS_X + 90;
   const viewBoxX = TANK_CENTER_X - viewBoxMargin;
   const viewBoxWidth = viewBoxMargin * 2;
-  const inletPipeStartX = viewBoxX + 63;
-  const inlet2PipeStartX = viewBoxX + viewBoxWidth - 63;
-
   const outerLeftX = TANK_CENTER_X - TANK_OUTER_RADIUS_X;
   const outerRightX = TANK_CENTER_X + TANK_OUTER_RADIUS_X;
   const innerLeftX = TANK_CENTER_X - TANK_INNER_RADIUS_X;
   const innerRightX = TANK_CENTER_X + TANK_INNER_RADIUS_X;
+
+  const inletPipeStartX = outerLeftX - 10;
+  const inlet2PipeStartX = outerRightX + 10;
+  const outletPipeEndX = outerRightX + 10;
+  const outlet2PipeEndX = outerLeftX - 10;
 
   // Water volume height limits:
   const Y_TOP = TANK_CYLINDER_Y1; // Full level
@@ -161,16 +159,15 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   const ribY2 = TANK_CYLINDER_Y1 + TANK_HEIGHT * 0.46875;
   const ribY3 = TANK_CYLINDER_Y1 + TANK_HEIGHT * 0.75;
 
-
-
+  // Glossy reflection paths (unused in this design)
   // Outlet pump pipe coordinates
   const PUMP_PIPE_X = outerRightX - 32;
-  const pumpPipePathD = `M ${PUMP_PIPE_X},${TANK_CYLINDER_Y2 - 10} L ${PUMP_PIPE_X},124 A 14,14 0 0,1 ${PUMP_PIPE_X + 14},110 L ${inlet2PipeStartX},110`;
+  const pumpPipePathD = `M ${PUMP_PIPE_X},${TANK_CYLINDER_Y2 - 22} L ${PUMP_PIPE_X},124 A 14,14 0 0,1 ${PUMP_PIPE_X + 14},110 L ${outletPipeEndX},110`;
   
   const PUMP2_PIPE_X = outerLeftX + 32;
-  const pump2PipePathD = `M ${PUMP2_PIPE_X},${TANK_CYLINDER_Y2 - 10} L ${PUMP2_PIPE_X},124 A 14,14 0 0,0 ${PUMP2_PIPE_X - 14},110 L ${inletPipeStartX},110`;
+  const pump2PipePathD = `M ${PUMP2_PIPE_X},${TANK_CYLINDER_Y2 - 22} L ${PUMP2_PIPE_X},124 A 14,14 0 0,0 ${PUMP2_PIPE_X - 14},110 L ${outlet2PipeEndX},110`;
 
-  // Nozzle Y coordinates
+  // Hatch and nozzle Y coordinates
   const INLET_NOZZLE_Y = TANK_CYLINDER_Y1 + 33;
 
   // Pressure gauge center Y-coordinate
@@ -266,7 +263,8 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   return (
     <div
       id="tank-container"
-      className="relative w-full h-full select-none filter drop-shadow-2xl"
+      className="relative w-full select-none filter drop-shadow-2xl"
+      style={{ aspectRatio: `${viewBoxWidth} / 600`, willChange: 'transform', transform: 'translateZ(0)' }}
     >
       <svg
         id="water-tank-svg"
@@ -274,6 +272,7 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full"
+        style={{ willChange: 'transform' }}
       >
         <style>
           {`
@@ -515,15 +514,6 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
 
         {/* SVG Defs & Gradients */}
         <defs>
-          {/* Brass Valve Gradient */}
-          <linearGradient id={`brassGradient-${idSuffix}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#D97706" />
-            <stop offset="30%" stopColor="#FBBF24" />
-            <stop offset="60%" stopColor="#F59E0B" />
-            <stop offset="85%" stopColor="#CA8A04" />
-            <stop offset="100%" stopColor="#78350F" />
-          </linearGradient>
-
           {/* Inner Tank Clip Path */}
           <clipPath id={`tank-inner-${idSuffix}`}>
             <path d={innerPathD} />
@@ -655,17 +645,7 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
         <g id="background-piping">
           {showInletPipe && (
             <>
-              {/* Inlet Pipe Elbow Shadow */}
-              <path
-                d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke="#0F172A"
-                strokeWidth="17"
-                strokeLinecap="butt"
-                fill="none"
-                opacity="0.2"
-              />
-
-              {/* Inlet Pipe Elbow Main Casing */}
+              {/* Inlet Pipe Elbow */}
               <path
                 d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
                 stroke={`url(#metalVerticalGradient-${idSuffix})`}
@@ -674,75 +654,255 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
                 fill="none"
               />
 
-              {/* Inlet Pipe Inner Highlight */}
-              <path
-                d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke="#FFFFFF"
-                strokeWidth="2.2"
-                strokeLinecap="butt"
-                fill="none"
-                opacity="0.3"
+              {/* Industrial Solenoid Valve & Flow Rate Sensor assembly on top filling pipe */}
+              <g id="inlet-solenoid-flow-sensor">
+                {/* Solenoid Plastic Body on the pipe (Clean engineering plastic white) */}
+                <rect
+                  x={INLET_CENTER_X - 10}
+                  y={86}
+                  width="20"
+                  height="32"
+                  rx="2"
+                  fill="#F8FAFC"
+                  stroke="#94A3B8"
+                  strokeWidth="0.5"
+                />
+                {/* Horizontal reinforcement structural ribs on solenoid body */}
+                <rect x={INLET_CENTER_X - 10} y={90} width="20" height="3" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="0.5" />
+                <rect x={INLET_CENTER_X - 10} y={111} width="20" height="3" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="0.5" />
+
+                {/* Solenoid Metallic Bracket / Electromagnetic Block (Centered, perfectly vertical) */}
+                <rect
+                  x={INLET_CENTER_X - 8}
+                  y={91}
+                  width="16"
+                  height="21"
+                  rx="2.5"
+                  fill={`url(#metalVerticalGradient-${idSuffix})`}
+                  stroke="#334155"
+                  strokeWidth="0.5"
+                />
+                {/* Inner solenoid coil core housing (Sleek Matte Black, centered) */}
+                <rect
+                  x={INLET_CENTER_X - 5.5}
+                  y={93}
+                  width="11"
+                  height="17"
+                  rx="1.5"
+                  fill="#090D16"
+                  stroke="#020617"
+                  strokeWidth="0.5"
+                />
+
+                {/* Micro filling-state LED Indicator centered on the vertical block (Glows blue/cyan when active) */}
+                {isFilling1Flowing && (
+                  <circle
+                    cx={INLET_CENTER_X}
+                    cy={101.5}
+                    r="3.5"
+                    fill="#22D3EE"
+                    opacity="0.35"
+                    className="animate-pulse"
+                  />
+                )}
+                <circle
+                  cx={INLET_CENTER_X}
+                  cy={101.5}
+                  r="1.2"
+                  fill={isFilling1Flowing ? "#22D3EE" : "#EF4444"}
+                  className={isFilling1Flowing ? "animate-pulse" : ""}
+                  stroke="#020617"
+                  strokeWidth="0.4"
+                />
+
+                {/* Integrated, flush terminal block on top (neatly self-contained, vertical orientation) */}
+                <rect
+                  x={INLET_CENTER_X - 4.5}
+                  y={86.5}
+                  width="9"
+                  height="4.5"
+                  fill="#1E293B"
+                  stroke="#0F172A"
+                  strokeWidth="0.5"
+                />
+                {/* Integrated plug socket insert pins sticking out vertically */}
+                <rect x={INLET_CENTER_X - 2.5} y={83.5} width="1.5" height="3" fill="#D97706" />
+                <rect x={INLET_CENTER_X + 1} y={83.5} width="1.5" height="3" fill="#D97706" />
+
+                {/* Yellow PVC thread transition sticking out under solenoid */}
+                <rect
+                  x={INLET_CENTER_X - 5.5}
+                  y={117.5}
+                  width="11"
+                  height="3.5"
+                  fill="#FBBF24"
+                  stroke="#D97706"
+                  strokeWidth="0.4"
+                />
+
+                {/* Highly Polished Chrome Coupler / Adaptor */}
+                <rect
+                  x={INLET_CENTER_X - 7.5}
+                  y={121}
+                  width="15"
+                  height="11.5"
+                  fill={`url(#metalVerticalGradient-${idSuffix})`}
+                  stroke="#1E293B"
+                  strokeWidth="0.5"
+                />
+                {/* Chrome highlight glint */}
+                <rect
+                  x={INLET_CENTER_X - 6}
+                  y={122}
+                  width="2.5"
+                  height="9.5"
+                  fill="#FFFFFF"
+                  opacity="0.35"
+                />
+
+                {/* Black Circular Water Flow Rate Sensor Unit */}
+                <g id="flow-rate-sensor-unit">
+                  {/* Outer circular matte black casing */}
+                  <circle
+                    cx={INLET_CENTER_X}
+                    cy={145.5}
+                    r="13.5"
+                    fill="#0F172A"
+                    stroke="#020617"
+                    strokeWidth="0.8"
+                  />
+                  
+                  {/* Corner screw ears / mount flanges */}
+                  <circle cx={INLET_CENTER_X - 9.5} cy={136} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET_CENTER_X - 9.5} cy={136} r="0.8" fill="#CBD5E1" />
+
+                  <circle cx={INLET_CENTER_X + 9.5} cy={136} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET_CENTER_X + 9.5} cy={136} r="0.8" fill="#CBD5E1" />
+
+                  <circle cx={INLET_CENTER_X - 9.5} cy={155} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET_CENTER_X - 9.5} cy={155} r="0.8" fill="#CBD5E1" />
+
+                  <circle cx={INLET_CENTER_X + 9.5} cy={155} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET_CENTER_X + 9.5} cy={155} r="0.8" fill="#CBD5E1" />
+
+                  {/* Central face plate bevel */}
+                  <circle
+                    cx={INLET_CENTER_X}
+                    cy={145.5}
+                    r="8.5"
+                    fill="#1E293B"
+                    stroke="#0F172A"
+                    strokeWidth="0.5"
+                  />
+
+                  {/* Transparent circular inspection cover showing rotor inside */}
+                  <circle
+                    cx={INLET_CENTER_X}
+                    cy={145.5}
+                    r="7"
+                    fill="#090D16"
+                    stroke="#334155"
+                    strokeWidth="0.5"
+                  />
+
+                  {/* Interactive Spinning 4-blade Turbine Impeller (Yellow/Orange) */}
+                  <g className={isFilling1Flowing ? "sensor-rotor-active-1" : ""}>
+                    {/* Blade 1 */}
+                    <path d={`M ${INLET_CENTER_X},145.5 L ${INLET_CENTER_X},140 L ${INLET_CENTER_X - 2},141.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    {/* Blade 2 */}
+                    <path d={`M ${INLET_CENTER_X},145.5 L ${INLET_CENTER_X + 5.5},145.5 L ${INLET_CENTER_X + 4},143.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    {/* Blade 3 */}
+                    <path d={`M ${INLET_CENTER_X},145.5 L ${INLET_CENTER_X},151 L ${INLET_CENTER_X + 2},149.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    {/* Blade 4 */}
+                    <path d={`M ${INLET_CENTER_X},145.5 L ${INLET_CENTER_X - 5.5},145.5 L ${INLET_CENTER_X - 4},147.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    
+                    {/* Center cap/bearing of impeller */}
+                    <circle cx={INLET_CENTER_X} cy={145.5} r="1.8" fill="#D97706" />
+                    <circle cx={INLET_CENTER_X} cy={145.5} r="0.6" fill="#FFFFFF" />
+                  </g>
+
+                  {/* Curved glossy sheen over the transparent window cover */}
+                  <path
+                    d={`M ${INLET_CENTER_X - 4.5},142 A 6.5,6.5 0 0,1 ${INLET_CENTER_X + 4.5},142`}
+                    stroke="#FFFFFF"
+                    strokeWidth="0.75"
+                    fill="none"
+                    opacity="0.35"
+                  />
+
+                  {/* Integrated connection jack housing on side (Perfect flush socket, no hanging wires) */}
+                  <path
+                    d={`M ${INLET_CENTER_X + 12},148.5 L ${INLET_CENTER_X + 17},151.5 L ${INLET_CENTER_X + 15},155 L ${INLET_CENTER_X + 10},152 Z`}
+                    fill="#1E293B"
+                    stroke="#020617"
+                    strokeWidth="0.5"
+                  />
+                  <circle cx={INLET_CENTER_X + 13.5} cy={151.7} r="1" fill="#090D16" />
+                </g>
+              </g>
+
+              {/* Sleek metallic connection base underneath the black flow rate sensor */}
+              <rect
+                x={INLET_CENTER_X - 7.5}
+                y={159}
+                width="15"
+                height="2.5"
+                fill="#475569"
+                stroke="#1E293B"
+                strokeWidth="0.5"
               />
 
-              {/* Fluid flow inside the inlet pipe */}
-              {isFilling1Flowing && (
-                <g id="inlet-flow-core-1" style={{ pointerEvents: 'none' }}>
-                  {/* Elegant Stream - Outer Shimmer Glow */}
-                  <path
-                    d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke={`url(#waterStreamShimmer-${idSuffix})`}
-                    strokeWidth="8"
-                    strokeLinecap="butt"
-                    fill="none"
-                    opacity="0.45"
-                    className="shimmer-pulse"
-                  />
+              {/* Hex-shaped metallic compression coupling transition (Stainless Steel) */}
+              <rect
+                x={INLET_CENTER_X - 8.5}
+                y={161.5}
+                width="17"
+                height="3"
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
+                stroke="#334155"
+                strokeWidth="0.5"
+              />
+              {/* Hex vertical facet divider lines for maximum 3D detail */}
+              <line
+                x1={INLET_CENTER_X - 3}
+                y1={161.5}
+                x2={INLET_CENTER_X - 3}
+                y2={164.5}
+                stroke="#334155"
+                strokeWidth="0.5"
+                opacity="0.7"
+              />
+              <line
+                x1={INLET_CENTER_X + 3}
+                y1={161.5}
+                x2={INLET_CENTER_X + 3}
+                y2={164.5}
+                stroke="#334155"
+                strokeWidth="0.5"
+                opacity="0.7"
+              />
 
-                  {/* Elegant Stream - Core Fluid Flow */}
-                  <path
-                    d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke={`url(#waterStreamGradient-${idSuffix})`}
-                    strokeWidth="6.5"
-                    strokeLinecap="butt"
-                    fill="none"
-                    opacity="0.95"
-                  />
+              {/* Tapered Industrial Outlet Nozzle Tip (Stainless Steel / Matte Grey) */}
+              <path
+                d={`M ${INLET_CENTER_X - 7.5},164.5 
+                    L ${INLET_CENTER_X + 7.5},164.5 
+                    L ${INLET_CENTER_X + 6.0},173
+                    L ${INLET_CENTER_X - 6.0},173 Z`}
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
+                stroke="#1E293B"
+                strokeWidth="0.5"
+              />
 
-                  {/* Flowing stream current lines */}
-                  <path
-                    d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke="#22D3EE"
-                    strokeWidth="1.5"
-                    strokeDasharray="12, 16"
-                    strokeLinecap="butt"
-                    fill="none"
-                    className="fill-stream-fast"
-                    opacity="0.85"
-                  />
-
-                  <path
-                    d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke="#FFFFFF"
-                    strokeWidth="2.5"
-                    strokeDasharray="8, 12"
-                    strokeLinecap="butt"
-                    fill="none"
-                    className="fill-stream-super"
-                    opacity="0.95"
-                  />
-
-                  <path
-                    d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke="#0D9488"
-                    strokeWidth="1.5"
-                    strokeDasharray="16, 20"
-                    strokeLinecap="butt"
-                    fill="none"
-                    className="fill-stream-fast"
-                    opacity="0.75"
-                  />
-                </g>
-              )}
+              {/* Machined recess detail on the nozzle barrel (engraved groove) */}
+              <line
+                x1={INLET_CENTER_X - 6.8}
+                y1={168.5}
+                x2={INLET_CENTER_X + 6.8}
+                y2={168.5}
+                stroke="#1E293B"
+                strokeWidth="0.6"
+                opacity="0.85"
+              />
 
               {/* Nozzle outer metallic bezel lip ring */}
               <ellipse
@@ -765,54 +925,12 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
                 stroke="#1E293B"
                 strokeWidth="0.3"
               />
-
-              {/* Valve/Connection Design at End of Pipe (Left side, horizontal end at X=13, Y=45) */}
-              <g id={`pipe-valve-left-inlet-${idSuffix}`}>
-                {/* 1. Pipe connecting flange (dark heavy plate) */}
-                <rect
-                  x={inletPipeStartX - 8}
-                  y="33"
-                  width="4"
-                  height="24"
-                  rx="1"
-                  fill={`url(#metalGradient-${idSuffix})`}
-                  stroke="#0F172A"
-                  strokeWidth="0.8"
-                />
-                {/* Flange Bolts */}
-                <circle cx={inletPipeStartX - 6} cy="37" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-                <circle cx={inletPipeStartX - 6} cy="53" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-                
-                {/* 2. Steel threaded coupler/connector hex nut fitting */}
-                <rect
-                  x={inletPipeStartX - 4}
-                  y="35"
-                  width="4"
-                  height="20"
-                  fill={`url(#metalGradient-${idSuffix})`}
-                  stroke="#1E293B"
-                  strokeWidth="0.5"
-                />
-                {/* Hex division lines for 3D realism */}
-                <line x1={inletPipeStartX - 4} y1="42" x2={inletPipeStartX} y2="42" stroke="#475569" strokeWidth="0.5" />
-                <line x1={inletPipeStartX - 4} y1="48" x2={inletPipeStartX} y2="48" stroke="#475569" strokeWidth="0.5" />
-              </g>
             </>
           )}
 
           {showInletPipe2 && (
             <>
-              {/* Inlet Pipe Elbow 2 Shadow */}
-              <path
-                d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke="#0F172A"
-                strokeWidth="17"
-                strokeLinecap="butt"
-                fill="none"
-                opacity="0.2"
-              />
-
-              {/* Inlet Pipe Elbow 2 Main Casing */}
+              {/* Inlet Pipe Elbow 2 */}
               <path
                 d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
                 stroke={`url(#metalVerticalGradient-${idSuffix})`}
@@ -821,75 +939,255 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
                 fill="none"
               />
 
-              {/* Inlet Pipe 2 Inner Highlight */}
-              <path
-                d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke="#FFFFFF"
-                strokeWidth="2.2"
-                strokeLinecap="butt"
-                fill="none"
-                opacity="0.3"
+              {/* Industrial Solenoid Valve & Flow Rate Sensor assembly on top filling pipe 2 */}
+              <g id="inlet-solenoid-flow-sensor-2">
+                {/* Solenoid Plastic Body on the pipe */}
+                <rect
+                  x={INLET2_CENTER_X - 10}
+                  y={86}
+                  width="20"
+                  height="32"
+                  rx="2"
+                  fill="#F8FAFC"
+                  stroke="#94A3B8"
+                  strokeWidth="0.5"
+                />
+                {/* Horizontal reinforcement structural ribs on solenoid body */}
+                <rect x={INLET2_CENTER_X - 10} y={90} width="20" height="3" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="0.5" />
+                <rect x={INLET2_CENTER_X - 10} y={111} width="20" height="3" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="0.5" />
+
+                {/* Solenoid Metallic Bracket / Electromagnetic Block */}
+                <rect
+                  x={INLET2_CENTER_X - 8}
+                  y={91}
+                  width="16"
+                  height="21"
+                  rx="2.5"
+                  fill={`url(#metalVerticalGradient-${idSuffix})`}
+                  stroke="#334155"
+                  strokeWidth="0.5"
+                />
+                {/* Inner solenoid coil core housing */}
+                <rect
+                  x={INLET2_CENTER_X - 5.5}
+                  y={93}
+                  width="11"
+                  height="17"
+                  rx="1.5"
+                  fill="#090D16"
+                  stroke="#020617"
+                  strokeWidth="0.5"
+                />
+
+                {/* Micro filling-state LED Indicator centered on the vertical block */}
+                {isFilling2Flowing && (
+                  <circle
+                    cx={INLET2_CENTER_X}
+                    cy={101.5}
+                    r="3.5"
+                    fill="#22D3EE"
+                    opacity="0.35"
+                    className="animate-pulse"
+                  />
+                )}
+                <circle
+                  cx={INLET2_CENTER_X}
+                  cy={101.5}
+                  r="1.2"
+                  fill={isFilling2Flowing ? "#22D3EE" : "#EF4444"}
+                  className={isFilling2Flowing ? "animate-pulse" : ""}
+                  stroke="#020617"
+                  strokeWidth="0.4"
+                />
+
+                {/* Integrated, flush terminal block on top */}
+                <rect
+                  x={INLET2_CENTER_X - 4.5}
+                  y={86.5}
+                  width="9"
+                  height="4.5"
+                  fill="#1E293B"
+                  stroke="#0F172A"
+                  strokeWidth="0.5"
+                />
+                {/* Integrated plug socket insert pins sticking out vertically */}
+                <rect x={INLET2_CENTER_X - 2.5} y={83.5} width="1.5" height="3" fill="#D97706" />
+                <rect x={INLET2_CENTER_X + 1} y={83.5} width="1.5" height="3" fill="#D97706" />
+
+                {/* Yellow PVC thread transition sticking out under solenoid */}
+                <rect
+                  x={INLET2_CENTER_X - 5.5}
+                  y={117.5}
+                  width="11"
+                  height="3.5"
+                  fill="#FBBF24"
+                  stroke="#D97706"
+                  strokeWidth="0.4"
+                />
+
+                {/* Highly Polished Chrome Coupler / Adaptor */}
+                <rect
+                  x={INLET2_CENTER_X - 7.5}
+                  y={121}
+                  width="15"
+                  height="11.5"
+                  fill={`url(#metalVerticalGradient-${idSuffix})`}
+                  stroke="#1E293B"
+                  strokeWidth="0.5"
+                />
+                {/* Chrome highlight glint */}
+                <rect
+                  x={INLET2_CENTER_X - 6}
+                  y={122}
+                  width="2.5"
+                  height="9.5"
+                  fill="#FFFFFF"
+                  opacity="0.35"
+                />
+
+                {/* Black Circular Water Flow Rate Sensor Unit */}
+                <g id="flow-rate-sensor-unit-2">
+                  {/* Outer circular matte black casing */}
+                  <circle
+                    cx={INLET2_CENTER_X}
+                    cy={145.5}
+                    r="13.5"
+                    fill="#0F172A"
+                    stroke="#020617"
+                    strokeWidth="0.8"
+                  />
+                  
+                  {/* Corner screw ears / mount flanges */}
+                  <circle cx={INLET2_CENTER_X - 9.5} cy={136} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET2_CENTER_X - 9.5} cy={136} r="0.8" fill="#CBD5E1" />
+
+                  <circle cx={INLET2_CENTER_X + 9.5} cy={136} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET2_CENTER_X + 9.5} cy={136} r="0.8" fill="#CBD5E1" />
+
+                  <circle cx={INLET2_CENTER_X - 9.5} cy={155} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET2_CENTER_X - 9.5} cy={155} r="0.8" fill="#CBD5E1" />
+
+                  <circle cx={INLET2_CENTER_X + 9.5} cy={155} r="2.5" fill="#1E293B" stroke="#020617" strokeWidth="0.5" />
+                  <circle cx={INLET2_CENTER_X + 9.5} cy={155} r="0.8" fill="#CBD5E1" />
+
+                  {/* Central face plate bevel */}
+                  <circle
+                    cx={INLET2_CENTER_X}
+                    cy={145.5}
+                    r="8.5"
+                    fill="#1E293B"
+                    stroke="#0F172A"
+                    strokeWidth="0.5"
+                  />
+
+                  {/* Transparent circular inspection cover showing rotor inside */}
+                  <circle
+                    cx={INLET2_CENTER_X}
+                    cy={145.5}
+                    r="7"
+                    fill="#090D16"
+                    stroke="#334155"
+                    strokeWidth="0.5"
+                  />
+
+                  {/* Interactive Spinning 4-blade Turbine Impeller (Yellow/Orange) */}
+                  <g className={isFilling2Flowing ? "sensor-rotor-active-2" : ""}>
+                    {/* Blade 1 */}
+                    <path d={`M ${INLET2_CENTER_X},145.5 L ${INLET2_CENTER_X},140 L ${INLET2_CENTER_X - 2},141.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    {/* Blade 2 */}
+                    <path d={`M ${INLET2_CENTER_X},145.5 L ${INLET2_CENTER_X + 5.5},145.5 L ${INLET2_CENTER_X + 4},143.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    {/* Blade 3 */}
+                    <path d={`M ${INLET2_CENTER_X},145.5 L ${INLET2_CENTER_X},151 L ${INLET2_CENTER_X + 2},149.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    {/* Blade 4 */}
+                    <path d={`M ${INLET2_CENTER_X},145.5 L ${INLET2_CENTER_X - 5.5},145.5 L ${INLET2_CENTER_X - 4},147.5 Z`} fill="#F59E0B" stroke="#D97706" strokeWidth="0.2" />
+                    
+                    {/* Center cap/bearing of impeller */}
+                    <circle cx={INLET2_CENTER_X} cy={145.5} r="1.8" fill="#D97706" />
+                    <circle cx={INLET2_CENTER_X} cy={145.5} r="0.6" fill="#FFFFFF" />
+                  </g>
+
+                  {/* Curved glossy sheen over the transparent window cover */}
+                  <path
+                    d={`M ${INLET2_CENTER_X - 4.5},142 A 6.5,6.5 0 0,1 ${INLET2_CENTER_X + 4.5},142`}
+                    stroke="#FFFFFF"
+                    strokeWidth="0.75"
+                    fill="none"
+                    opacity="0.35"
+                  />
+
+                  {/* Integrated connection jack housing on side (Perfect flush socket) */}
+                  <path
+                    d={`M ${INLET2_CENTER_X - 12},148.5 L ${INLET2_CENTER_X - 17},151.5 L ${INLET2_CENTER_X - 15},155 L ${INLET2_CENTER_X - 10},152 Z`}
+                    fill="#1E293B"
+                    stroke="#020617"
+                    strokeWidth="0.5"
+                  />
+                  <circle cx={INLET2_CENTER_X - 13.5} cy={151.7} r="1" fill="#090D16" />
+                </g>
+              </g>
+
+              {/* Sleek metallic connection base underneath the black flow rate sensor */}
+              <rect
+                x={INLET2_CENTER_X - 7.5}
+                y={159}
+                width="15"
+                height="2.5"
+                fill="#475569"
+                stroke="#1E293B"
+                strokeWidth="0.5"
               />
 
-              {/* Fluid flow inside the inlet pipe 2 */}
-              {isFilling2Flowing && (
-                <g id="inlet-flow-core-2" style={{ pointerEvents: 'none' }}>
-                  {/* Elegant Stream - Outer Shimmer Glow */}
-                  <path
-                    d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke={`url(#waterStreamShimmer2-${idSuffix})`}
-                    strokeWidth="8"
-                    strokeLinecap="butt"
-                    fill="none"
-                    opacity="0.45"
-                    className="shimmer-pulse"
-                  />
+              {/* Hex-shaped metallic compression coupling transition */}
+              <rect
+                x={INLET2_CENTER_X - 8.5}
+                y={161.5}
+                width="17"
+                height="3"
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
+                stroke="#334155"
+                strokeWidth="0.5"
+              />
+              {/* Hex vertical facet divider lines */}
+              <line
+                x1={INLET2_CENTER_X - 3}
+                y1={161.5}
+                x2={INLET2_CENTER_X - 3}
+                y2={164.5}
+                stroke="#334155"
+                strokeWidth="0.5"
+                opacity="0.7"
+              />
+              <line
+                x1={INLET2_CENTER_X + 3}
+                y1={161.5}
+                x2={INLET2_CENTER_X + 3}
+                y2={164.5}
+                stroke="#334155"
+                strokeWidth="0.5"
+                opacity="0.7"
+              />
 
-                  {/* Elegant Stream - Core Fluid Flow */}
-                  <path
-                    d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke={`url(#waterStreamGradient2-${idSuffix})`}
-                    strokeWidth="6.5"
-                    strokeLinecap="butt"
-                    fill="none"
-                    opacity="0.95"
-                  />
+              {/* Tapered Industrial Outlet Nozzle Tip */}
+              <path
+                d={`M ${INLET2_CENTER_X - 7.5},164.5 
+                    L ${INLET2_CENTER_X + 7.5},164.5 
+                    L ${INLET2_CENTER_X + 6.0},173
+                    L ${INLET2_CENTER_X - 6.0},173 Z`}
+                fill={`url(#metalVerticalGradient-${idSuffix})`}
+                stroke="#1E293B"
+                strokeWidth="0.5"
+              />
 
-                  {/* Flowing stream current lines */}
-                  <path
-                    d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke="#22D3EE"
-                    strokeWidth="1.5"
-                    strokeDasharray="12, 16"
-                    strokeLinecap="butt"
-                    fill="none"
-                    className="fill-stream-fast"
-                    opacity="0.85"
-                  />
-
-                  <path
-                    d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke="#FFFFFF"
-                    strokeWidth="2.5"
-                    strokeDasharray="8, 12"
-                    strokeLinecap="butt"
-                    fill="none"
-                    className="fill-stream-super"
-                    opacity="0.95"
-                  />
-
-                  <path
-                    d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                    stroke="#0D9488"
-                    strokeWidth="1.5"
-                    strokeDasharray="16, 20"
-                    strokeLinecap="butt"
-                    fill="none"
-                    className="fill-stream-fast"
-                    opacity="0.75"
-                  />
-                </g>
-              )}
+              {/* Machined recess detail on the nozzle barrel */}
+              <line
+                x1={INLET2_CENTER_X - 6.8}
+                y1={168.5}
+                x2={INLET2_CENTER_X + 6.8}
+                y2={168.5}
+                stroke="#1E293B"
+                strokeWidth="0.6"
+                opacity="0.85"
+              />
 
               {/* Nozzle outer metallic bezel lip ring */}
               <ellipse
@@ -912,38 +1210,6 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
                 stroke="#1E293B"
                 strokeWidth="0.3"
               />
-
-              {/* Valve/Connection Design at End of Pipe (Right side, horizontal end at X=387, Y=45) */}
-              <g id={`pipe-valve-right-inlet-${idSuffix}`}>
-                {/* 1. Pipe connecting flange (dark heavy plate) */}
-                <rect
-                  x={inlet2PipeStartX + 4}
-                  y="33"
-                  width="4"
-                  height="24"
-                  rx="1"
-                  fill={`url(#metalGradient-${idSuffix})`}
-                  stroke="#0F172A"
-                  strokeWidth="0.8"
-                />
-                {/* Flange Bolts */}
-                <circle cx={inlet2PipeStartX + 6} cy="37" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-                <circle cx={inlet2PipeStartX + 6} cy="53" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-                
-                {/* 2. Steel threaded coupler/connector hex nut fitting */}
-                <rect
-                  x={inlet2PipeStartX}
-                  y="35"
-                  width="4"
-                  height="20"
-                  fill={`url(#metalGradient-${idSuffix})`}
-                  stroke="#1E293B"
-                  strokeWidth="0.5"
-                />
-                {/* Hex division lines */}
-                <line x1={inlet2PipeStartX} y1="42" x2={inlet2PipeStartX + 4} y2="42" stroke="#475569" strokeWidth="0.5" />
-                <line x1={inlet2PipeStartX} y1="48" x2={inlet2PipeStartX + 4} y2="48" stroke="#475569" strokeWidth="0.5" />
-              </g>
             </>
           )}
 
@@ -1149,7 +1415,127 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
               opacity="0.28"
             />
 
+            {/* Submersible Suction Motor / Pump Unit */}
+            <g id="submersible-pump-motor">
+              {/* Coupling flange connecting pipe to motor (Chrome bolts on dark background) */}
+              <rect
+                x={PUMP_PIPE_X - 8}
+                y={TANK_CYLINDER_Y2 - 25}
+                width="16"
+                height="4"
+                rx="1"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
+                stroke="#020617"
+                strokeWidth="0.75"
+              />
+              {/* Bolts */}
+              <circle cx={PUMP_PIPE_X - 5} cy={TANK_CYLINDER_Y2 - 23} r="0.8" fill="#E2E8F0" />
+              <circle cx={PUMP_PIPE_X + 5} cy={TANK_CYLINDER_Y2 - 23} r="0.8" fill="#E2E8F0" />
+              
+              {/* Upper Motor Casing (Professional Matte Black Casing with Cooling Fins) */}
+              <rect
+                x={PUMP_PIPE_X - 14}
+                y={TANK_CYLINDER_Y2 - 21}
+                width="28"
+                height="11"
+                rx="1.5"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
+                stroke="#020617"
+                strokeWidth="0.8"
+              />
+              
+              {/* Vertical black cooling fins for extra depth */}
+              <rect x={PUMP_PIPE_X - 11} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP_PIPE_X - 7.5} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP_PIPE_X - 4} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP_PIPE_X + 2.5} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP_PIPE_X + 6} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP_PIPE_X + 9.5} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
 
+              {/* Glossy casing highlight */}
+              <path
+                d={`M ${PUMP_PIPE_X - 13},${TANK_CYLINDER_Y2 - 20.5} L ${PUMP_PIPE_X - 13},${TANK_CYLINDER_Y2 - 10.5}`}
+                stroke="#FFFFFF"
+                strokeWidth="0.75"
+                strokeLinecap="round"
+                opacity="0.25"
+              />
+
+              {/* Compact Indicator LED Status Panel */}
+              <rect
+                x={PUMP_PIPE_X - 2.5}
+                y={TANK_CYLINDER_Y2 - 17.5}
+                width="5"
+                height="3.5"
+                rx="1"
+                fill="#090D16"
+                stroke="#1E293B"
+                strokeWidth="0.4"
+              />
+              {/* Glowing Aura if on */}
+              {isDraining1Flowing && (
+                <circle
+                  cx={PUMP_PIPE_X}
+                  cy={TANK_CYLINDER_Y2 - 15.7}
+                  r="3"
+                  fill="#22D3EE"
+                  opacity="0.35"
+                  className="animate-pulse"
+                />
+              )}
+              <circle
+                cx={PUMP_PIPE_X}
+                cy={TANK_CYLINDER_Y2 - 15.7}
+                r="1.2"
+                fill={isDraining1Flowing ? "#22D3EE" : "#EF4444"}
+                className={isDraining1Flowing ? "animate-pulse" : ""}
+                stroke="#020617"
+                strokeWidth="0.4"
+              />
+
+              {/* Middle collar rim */}
+              <rect
+                x={PUMP_PIPE_X - 15}
+                y={TANK_CYLINDER_Y2 - 10}
+                width="30"
+                height="2"
+                fill="#1E293B"
+                stroke="#020617"
+                strokeWidth="0.5"
+              />
+
+              {/* Lower Intake Strainer / Filter Cage (Matte Anodized Black) */}
+              <rect
+                x={PUMP_PIPE_X - 12}
+                y={TANK_CYLINDER_Y2 - 8}
+                width="24"
+                height="6"
+                rx="1"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
+                stroke="#020617"
+                strokeWidth="0.8"
+              />
+              {/* Fine Mesh pattern or dense slits inside cage */}
+              <line x1={PUMP_PIPE_X - 9} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP_PIPE_X - 9} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP_PIPE_X - 6} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP_PIPE_X - 6} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP_PIPE_X - 3} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP_PIPE_X - 3} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP_PIPE_X} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP_PIPE_X} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP_PIPE_X + 3} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP_PIPE_X + 3} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP_PIPE_X + 6} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP_PIPE_X + 6} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP_PIPE_X + 9} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP_PIPE_X + 9} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+
+              {/* Heavy-duty base plate/stand touching the bottom of the tank (Deep matte charcoal) */}
+              <rect
+                x={PUMP_PIPE_X - 14}
+                y={TANK_CYLINDER_Y2 - 2}
+                width="28"
+                height="2.5"
+                rx="0.5"
+                fill="#090D16"
+                stroke="#020617"
+                strokeWidth="0.5"
+              />
+            </g>
 
             {/* Mounting bracket holding the pipe at the top edge of the tank */}
             <g id="pump-pipe-bracket">
@@ -1219,38 +1605,6 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
                 />
               </g>
             )}
-
-            {/* Valve/Connection Design at End of Pipe (Right side, horizontal end at X=387, Y=110) */}
-            <g id={`pipe-valve-right-outlet-${idSuffix}`}>
-              {/* 1. Pipe connecting flange (dark heavy plate) */}
-              <rect
-                x={inlet2PipeStartX + 4}
-                y="98"
-                width="4"
-                height="24"
-                rx="1"
-                fill={`url(#metalGradient-${idSuffix})`}
-                stroke="#0F172A"
-                strokeWidth="0.8"
-              />
-              {/* Flange Bolts */}
-              <circle cx={inlet2PipeStartX + 6} cy="102" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-              <circle cx={inlet2PipeStartX + 6} cy="118" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-              
-              {/* 2. Steel threaded coupler/connector hex nut fitting */}
-              <rect
-                x={inlet2PipeStartX}
-                y="100"
-                width="4"
-                height="20"
-                fill={`url(#metalGradient-${idSuffix})`}
-                stroke="#1E293B"
-                strokeWidth="0.5"
-              />
-              {/* Hex division lines */}
-              <line x1={inlet2PipeStartX} y1="107" x2={inlet2PipeStartX + 4} y2="107" stroke="#475569" strokeWidth="0.5" />
-              <line x1={inlet2PipeStartX} y1="113" x2={inlet2PipeStartX + 4} y2="113" stroke="#475569" strokeWidth="0.5" />
-            </g>
           </g>
         )}
 
@@ -1284,7 +1638,127 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
               opacity="0.28"
             />
 
+            {/* Submersible Suction Motor / Pump Unit 2 */}
+            <g id="submersible-pump-motor-2">
+              {/* Coupling flange connecting pipe to motor */}
+              <rect
+                x={PUMP2_PIPE_X - 8}
+                y={TANK_CYLINDER_Y2 - 25}
+                width="16"
+                height="4"
+                rx="1"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
+                stroke="#020617"
+                strokeWidth="0.75"
+              />
+              {/* Bolts */}
+              <circle cx={PUMP2_PIPE_X - 5} cy={TANK_CYLINDER_Y2 - 23} r="0.8" fill="#E2E8F0" />
+              <circle cx={PUMP2_PIPE_X + 5} cy={TANK_CYLINDER_Y2 - 23} r="0.8" fill="#E2E8F0" />
+              
+              {/* Upper Motor Casing */}
+              <rect
+                x={PUMP2_PIPE_X - 14}
+                y={TANK_CYLINDER_Y2 - 21}
+                width="28"
+                height="11"
+                rx="1.5"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
+                stroke="#020617"
+                strokeWidth="0.8"
+              />
+              
+              {/* Vertical black cooling fins */}
+              <rect x={PUMP2_PIPE_X - 11} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP2_PIPE_X - 7.5} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP2_PIPE_X - 4} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP2_PIPE_X + 2.5} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP2_PIPE_X + 6} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
+              <rect x={PUMP2_PIPE_X + 9.5} y={TANK_CYLINDER_Y2 - 20} width="1.5" height="9" fill="#020617" rx="0.5" />
 
+              {/* Glossy casing highlight */}
+              <path
+                d={`M ${PUMP2_PIPE_X - 13},${TANK_CYLINDER_Y2 - 20.5} L ${PUMP2_PIPE_X - 13},${TANK_CYLINDER_Y2 - 10.5}`}
+                stroke="#FFFFFF"
+                strokeWidth="0.75"
+                strokeLinecap="round"
+                opacity="0.25"
+              />
+
+              {/* Compact Indicator LED Status Panel */}
+              <rect
+                x={PUMP2_PIPE_X - 2.5}
+                y={TANK_CYLINDER_Y2 - 17.5}
+                width="5"
+                height="3.5"
+                rx="1"
+                fill="#090D16"
+                stroke="#1E293B"
+                strokeWidth="0.4"
+              />
+              {/* Glowing Aura if on */}
+              {isDraining2Flowing && (
+                <circle
+                  cx={PUMP2_PIPE_X}
+                  cy={TANK_CYLINDER_Y2 - 15.7}
+                  r="3"
+                  fill="#22D3EE"
+                  opacity="0.35"
+                  className="animate-pulse"
+                />
+              )}
+              <circle
+                cx={PUMP2_PIPE_X}
+                cy={TANK_CYLINDER_Y2 - 15.7}
+                r="1.2"
+                fill={isDraining2Flowing ? "#22D3EE" : "#EF4444"}
+                className={isDraining2Flowing ? "animate-pulse" : ""}
+                stroke="#020617"
+                strokeWidth="0.4"
+              />
+
+              {/* Middle collar rim */}
+              <rect
+                x={PUMP2_PIPE_X - 15}
+                y={TANK_CYLINDER_Y2 - 10}
+                width="30"
+                height="2"
+                fill="#1E293B"
+                stroke="#020617"
+                strokeWidth="0.5"
+              />
+
+              {/* Lower Intake Strainer / Filter Cage */}
+              <rect
+                x={PUMP2_PIPE_X - 12}
+                y={TANK_CYLINDER_Y2 - 8}
+                width="24"
+                height="6"
+                rx="1"
+                fill={`url(#blackMetalGradient-${idSuffix})`}
+                stroke="#020617"
+                strokeWidth="0.8"
+              />
+              {/* Fine Mesh pattern or dense slits inside cage */}
+              <line x1={PUMP2_PIPE_X - 9} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP2_PIPE_X - 9} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP2_PIPE_X - 6} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP2_PIPE_X - 6} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP2_PIPE_X - 3} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP2_PIPE_X - 3} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP2_PIPE_X} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP2_PIPE_X} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP2_PIPE_X + 3} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP2_PIPE_X + 3} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP2_PIPE_X + 6} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP2_PIPE_X + 6} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1={PUMP2_PIPE_X + 9} y1={TANK_CYLINDER_Y2 - 7} x2={PUMP2_PIPE_X + 9} y2={TANK_CYLINDER_Y2 - 3} stroke="#090D16" strokeWidth="1.2" strokeLinecap="round" />
+
+              {/* Heavy-duty base plate/stand */}
+              <rect
+                x={PUMP2_PIPE_X - 14}
+                y={TANK_CYLINDER_Y2 - 2.5}
+                width="28"
+                height="2.5"
+                rx="0.5"
+                fill="#090D16"
+                stroke="#020617"
+                strokeWidth="0.5"
+              />
+            </g>
 
             {/* Mounting bracket holding the pipe at the top edge of the tank */}
             <g id="pump-pipe-bracket-2">
@@ -1354,38 +1828,6 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
                 />
               </g>
             )}
-
-            {/* Valve/Connection Design at End of Pipe (Left side, horizontal end at X=13, Y=110) */}
-            <g id={`pipe-valve-left-outlet-${idSuffix}`}>
-              {/* 1. Pipe connecting flange (dark heavy plate) */}
-              <rect
-                x={inletPipeStartX - 8}
-                y="98"
-                width="4"
-                height="24"
-                rx="1"
-                fill={`url(#metalGradient-${idSuffix})`}
-                stroke="#0F172A"
-                strokeWidth="0.8"
-              />
-              {/* Flange Bolts */}
-              <circle cx={inletPipeStartX - 6} cy="102" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-              <circle cx={inletPipeStartX - 6} cy="118" r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-              
-              {/* 2. Steel threaded coupler/connector hex nut fitting */}
-              <rect
-                x={inletPipeStartX - 4}
-                y="100"
-                width="4"
-                height="20"
-                fill={`url(#metalGradient-${idSuffix})`}
-                stroke="#1E293B"
-                strokeWidth="0.5"
-              />
-              {/* Hex division lines for 3D realism */}
-              <line x1={inletPipeStartX - 4} y1="107" x2={inletPipeStartX} y2="107" stroke="#475569" strokeWidth="0.5" />
-              <line x1={inletPipeStartX - 4} y1="113" x2={inletPipeStartX} y2="113" stroke="#475569" strokeWidth="0.5" />
-            </g>
           </g>
         )}
 
@@ -1727,12 +2169,10 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
 
           <path d={`M ${outerLeftX + 3.5},${TANK_CYLINDER_Y1 + 5} L ${outerLeftX + 3.5},${TANK_CYLINDER_Y2 - 5}`} stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" opacity="0.3" />
           <path d={`M ${outerLeftX + 6.5},${TANK_CYLINDER_Y1 + 20} L ${outerLeftX + 6.5},${TANK_CYLINDER_Y2 - 20}`} stroke="#FFFFFF" strokeWidth="1" strokeLinecap="round" opacity="0.2" />
+
           <path d={`M ${outerRightX - 3.5},${TANK_CYLINDER_Y1 + 5} L ${outerRightX - 3.5},${TANK_CYLINDER_Y2 - 5}`} stroke="#0F766E" strokeWidth="1.5" strokeLinecap="round" opacity="0.35" />
         </g>
       </svg>
     </div>
   );
 };
-
-export { CentralWaterTank as WaterTank };
-export default CentralWaterTank;
