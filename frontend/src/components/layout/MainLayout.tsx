@@ -64,9 +64,9 @@ function Sidebar() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 borderRadius: 12, textDecoration: 'none',
                 position: 'relative',
-                color:      active ? '#c8f135'                   : 'rgba(255,255,255,0.28)',
-                background: active ? 'rgba(200,241,53,0.12)'     : 'transparent',
-                border:     active ? '1px solid rgba(200,241,53,0.18)' : '1px solid transparent',
+                color:      active ? '#00ffff'                   : 'rgba(255,255,255,0.28)',
+                background: active ? 'rgba(0,255,255,0.12)'     : 'transparent',
+                border:     active ? '1px solid rgba(0,255,255,0.18)' : '1px solid transparent',
                 transition: 'all 0.16s ease',
               }}
             >
@@ -75,8 +75,8 @@ function Sidebar() {
                 <span style={{
                   position: 'absolute', left: -11, top: '50%', transform: 'translateY(-50%)',
                   width: 3, height: 20, borderRadius: 99,
-                  background: '#c8f135',
-                  boxShadow: '0 0 8px rgba(200,241,53,0.5)',
+                  background: '#00ffff',
+                  boxShadow: '0 0 8px rgba(0,255,255,0.5)',
                 }} />
               )}
             </Link>
@@ -97,9 +97,9 @@ function Sidebar() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 12, textDecoration: 'none',
                     position: 'relative',
-                    color:      active ? '#c8f135'                        : 'rgba(255,255,255,0.28)',
-                    background: active ? 'rgba(200,241,53,0.12)'          : 'transparent',
-                    border:     active ? '1px solid rgba(200,241,53,0.18)' : '1px solid transparent',
+                    color:      active ? '#00ffff'                        : 'rgba(255,255,255,0.28)',
+                    background: active ? 'rgba(0,255,255,0.12)'          : 'transparent',
+                    border:     active ? '1px solid rgba(0,255,255,0.18)' : '1px solid transparent',
                     transition: 'all 0.16s ease',
                   }}
                 >
@@ -108,8 +108,8 @@ function Sidebar() {
                     <span style={{
                       position: 'absolute', left: -11, top: '50%', transform: 'translateY(-50%)',
                       width: 3, height: 20, borderRadius: 99,
-                      background: '#c8f135',
-                      boxShadow: '0 0 8px rgba(200,241,53,0.5)',
+                      background: '#00ffff',
+                      boxShadow: '0 0 8px rgba(0,255,255,0.5)',
                     }} />
                   )}
                 </Link>
@@ -192,7 +192,7 @@ function TopBar() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 2px 10px rgba(23,24,28,0.18)',
         }}>
-          <Droplets size={18} color="#c8f135" strokeWidth={2.3} />
+          <Droplets size={18} color="#00ffff" strokeWidth={2.3} />
         </div>
         {/* Brand text */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -206,7 +206,7 @@ function TopBar() {
           <span style={{
             fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em',
             textTransform: 'uppercase', lineHeight: 1,
-            color: dark ? '#374151' : '#c8f135',
+            color: dark ? '#374151' : '#00ffff',
             fontFamily: 'var(--font)',
             background: dark ? 'transparent' : '#17181c',
             padding: dark ? '0' : '1px 5px',
@@ -255,8 +255,8 @@ function TopBar() {
             >
               <span style={{
                 width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                background: '#c8f135',
-                boxShadow: '0 0 7px rgba(200,241,53,0.6)',
+                background: '#00ffff',
+                boxShadow: '0 0 7px rgba(0,255,255,0.6)',
               }} />
               <span style={{
                 fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
@@ -401,7 +401,7 @@ function AnalyticsStrip() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <div style={{
             width: 28, height: 28, borderRadius: 8,
-            background: 'rgba(200,241,53,0.18)',
+            background: 'rgba(0,255,255,0.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Wifi size={14} color="#7fb200" strokeWidth={2.2} />
