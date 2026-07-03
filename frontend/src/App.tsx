@@ -33,8 +33,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         {/* Spinner */}
         <div style={{
           width: 44, height: 44, borderRadius: '50%',
-          border: '3px solid rgba(200,241,53,0.20)',
-          borderTopColor: '#c8f135',
+          border: '3px solid rgba(0,255,255,0.20)',
+          borderTopColor: '#00ffff',
           animation: 'spin 0.8s linear infinite',
         }} />
         <span style={{
