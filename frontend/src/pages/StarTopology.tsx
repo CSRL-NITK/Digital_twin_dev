@@ -9,6 +9,9 @@ import ReactFlow, {
   useViewport,
   useNodes,
   addEdge,
+  Handle,
+  Position,
+  useUpdateNodeInternals,
 } from 'reactflow';
 import type { Connection, Edge, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -19,6 +22,8 @@ import { useOutletContext } from 'react-router-dom';
 import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair, Move, Undo, Redo, Trash2, Layers, Gauge, Activity, Zap, Thermometer, Sliders } from 'lucide-react';
 
 import NodeDetailsPanel from '../components/NodeDetailsPanel';
+import FlowConnectionsMenu from '../components/topology/FlowConnectionsMenu';
+import WaterFlowEdge from '../components/topology/WaterFlowEdge';
 import { WaterTank as TankWaterTank } from '../components/nodes/WaterTank';
 import { CentralWaterTank } from '../components/nodes/CentralWaterTank';
 import { WaterTank as SourceWaterTank } from '../components/nodes/SourceWaterTank';
@@ -218,12 +223,50 @@ function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: strin
   );
 }
 
+/* ─── Helper for Exact Normalized Handles ─────────────────────── */
+const PrecisionHandle = ({ 
+  id, type, x, y, basePosition, isFlipped 
+}: { 
+  id: string, type: 'source'|'target', x: number, y: number, basePosition: Position, isFlipped: boolean 
+}) => {
+  let finalX = isFlipped ? (1 - x) : x;
+  let finalPosition = basePosition;
+  if (isFlipped) {
+    if (basePosition === Position.Left) finalPosition = Position.Right;
+    else if (basePosition === Position.Right) finalPosition = Position.Left;
+  }
+  
+  return (
+    <Handle 
+      id={id}
+      type={type} 
+      position={finalPosition}
+      style={{
+        left: `${finalX * 100}%`,
+        top: `${y * 100}%`,
+        transform: `translate(-50%, -50%)`,
+        width: 6,
+        height: 6,
+        background: 'red',
+        opacity: 0, // change to 1 to debug
+        border: 'none',
+        zIndex: 50
+      }} 
+    />
+  );
+};
+
 /* ─── node views (with optional NodeResizer) ─────────────────────── */
 function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   const isFlipped = !!data?.flipHorizontal;
   const isEditSwitches = !!data?.allowMoveSwitches;
   const { zoom } = useViewport();
+
+  const updateNodeInternals = useUpdateNodeInternals();
+  React.useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, data?.customWidth, data?.flipHorizontal, updateNodeInternals]);
 
   const inletOn = data?.inletValveOn !== false;
   const outletOn = data?.outletValveOn !== false;
@@ -347,8 +390,8 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           width: 150 * effInletScale,
           height: 195 * effInletScale,
           zIndex: 35,
-          border: isEditSwitches ? '2px solid #c8f135' : 'none',
-          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          border: isEditSwitches ? '2px solid #00ffff' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
           borderRadius: 6,
         }}
       >
@@ -365,9 +408,9 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
               fontSize: 9.5,
               fontWeight: 800,
               letterSpacing: 0.5,
-              color: '#c8f135',
+              color: '#00ffff',
               background: '#17181c',
-              border: '1.5px solid #c8f135',
+              border: '1.5px solid #00ffff',
               boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
               borderRadius: 4,
               padding: '2px 6px',
@@ -395,10 +438,10 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         </div>
         {isEditSwitches && (
           <>
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', top: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', bottom: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', bottom: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', top: -4, left: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', bottom: -4, left: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'inlet')} style={{ position: 'absolute', bottom: -4, right: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
           </>
         )}
       </div>
@@ -413,8 +456,8 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           width: 150 * effOutletScale,
           height: 195 * effOutletScale,
           zIndex: 35,
-          border: isEditSwitches ? '2px solid #c8f135' : 'none',
-          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          border: isEditSwitches ? '2px solid #00ffff' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
           borderRadius: 6,
         }}
       >
@@ -431,9 +474,9 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
               fontSize: 9.5,
               fontWeight: 800,
               letterSpacing: 0.5,
-              color: '#c8f135',
+              color: '#00ffff',
               background: '#17181c',
-              border: '1.5px solid #c8f135',
+              border: '1.5px solid #00ffff',
               boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
               borderRadius: 4,
               padding: '2px 6px',
@@ -461,13 +504,16 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         </div>
         {isEditSwitches && (
           <>
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', top: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', bottom: -4, left: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', bottom: -4, right: -4, width: 8, height: 8, background: '#c8f135', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', top: -4, left: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', bottom: -4, left: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={(e) => handleSwitchResize(e, 'outlet')} style={{ position: 'absolute', bottom: -4, right: -4, width: 8, height: 8, background: '#00ffff', border: '1px solid #17181c', borderRadius: 2, cursor: 'nwse-resize', zIndex: 40 }} />
           </>
         )}
       </div>
+
+      <PrecisionHandle id="inlet-1" type="target" x={0.1532} y={0.1167} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-1" type="source" x={0.8468} y={0.1500} basePosition={Position.Right} isFlipped={isFlipped} />
 
       {data.allowMoveResize && (
         <NodeResizer
@@ -476,8 +522,8 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           isVisible={selected}
           onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
           onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
-          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
-          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+          lineStyle={{ borderColor: '#00ffff', borderWidth: 2 }}
+          handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
       <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
@@ -504,20 +550,16 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
 function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   const isFlipped = !!data?.flipHorizontal;
+  const updateNodeInternals = useUpdateNodeInternals();
+  React.useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, data?.customWidth, data?.flipHorizontal, updateNodeInternals]);
+
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200 }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
-      {data.allowMoveResize && (
-        <NodeResizer
-          keepAspectRatio={true}
-          minWidth={170} minHeight={200}
-          isVisible={selected}
-          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
-          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
-          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
-          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
-        />
-      )}
+
+      {/* SVG fills container directly — no flex wrapper so handles align 1:1 with SVG */}
       <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
         <CentralWaterTank
           fillPercentage={tankState.fillPercentage}
@@ -533,16 +575,16 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           tempMaxThreshold={data?.tempMaxThreshold}
         />
       </div>
-    </div>
-  );
-}
 
-function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
-  const tankState = deriveTankState(data ?? {});
-  const isFlipped = !!data?.flipHorizontal;
-  return (
-    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200 }}>
-      <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
+      {/* Handles: x=0.1105 = pipe mouth at SVG x=-22 → (-22-(-85))/570=63/570=0.1105
+                  x=0.8895 = symmetric right side
+                  y=0.0750 = inlet centerline y=45/600
+                  y=0.1833 = outlet centerline y=110/600 */}
+      <PrecisionHandle id="inlet-1" type="target" x={0.2105} y={0.0750} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-2" type="target" x={0.7895} y={0.0750} basePosition={Position.Right} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-1" type="source" x={0.2105} y={0.1833} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-2" type="source" x={0.7895} y={0.1833} basePosition={Position.Right} isFlipped={isFlipped} />
+
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={true}
@@ -550,8 +592,36 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           isVisible={selected}
           onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
           onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
-          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
-          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+          lineStyle={{ borderColor: '#00ffff', borderWidth: 2 }}
+          handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
+  const tankState = deriveTankState(data ?? {});
+  const isFlipped = !!data?.flipHorizontal;
+  const updateNodeInternals = useUpdateNodeInternals();
+  React.useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, data?.customWidth, data?.flipHorizontal, updateNodeInternals]);
+
+  return (
+    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200 }}>
+      <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
+      <PrecisionHandle id="inlet-1" type="target" x={0.1739} y={0.1167} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-1" type="source" x={0.9413} y={0.7583} basePosition={Position.Right} isFlipped={isFlipped} />
+      {data.allowMoveResize && (
+        <NodeResizer
+          keepAspectRatio={true}
+          minWidth={170} minHeight={200}
+          isVisible={selected}
+          onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
+          onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
+          lineStyle={{ borderColor: '#00ffff', borderWidth: 2 }}
+          handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
       <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
@@ -628,8 +698,8 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           isVisible={selected}
           onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
           onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
-          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
-          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+          lineStyle={{ borderColor: '#00ffff', borderWidth: 2 }}
+          handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
 
@@ -643,14 +713,14 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           width: boxWidth,
           height: boxHeight,
           zIndex: 35,
-          border: isEditSwitches ? '2px solid #c8f135' : 'none',
-          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          border: isEditSwitches ? '2px solid #00ffff' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
           borderRadius: 6,
         }}
       >
         <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
         {isEditSwitches && (
-          <div style={{ position: 'absolute', top: -18, left: 0, right: 0, textAlign: 'center', fontSize: 9, fontWeight: 800, color: '#c8f135', background: '#17181c', borderRadius: 3, padding: '2px 4px', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: -18, left: 0, right: 0, textAlign: 'center', fontSize: 9, fontWeight: 800, color: '#00ffff', background: '#17181c', borderRadius: 3, padding: '2px 4px', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
             {`SWITCH - ${data?.nodeName?.toUpperCase() || 'CONTROL'}`}
           </div>
         )}
@@ -666,10 +736,10 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         </div>
         {isEditSwitches && (
           <>
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
           </>
         )}
       </div>
@@ -688,6 +758,11 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const canControl = true;
   const isEditSwitches = !!data?.allowMoveSwitches;
   const { zoom } = useViewport();
+
+  const updateNodeInternals = useUpdateNodeInternals();
+  React.useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, data?.customWidth, data?.flipHorizontal, updateNodeInternals]);
 
   const [switchPos, setSwitchPos] = React.useState({
     x: data?.switchOffsetX ?? 186.5,
@@ -781,6 +856,8 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 100, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
+      <PrecisionHandle id="inlet-1" type="target" x={0.0872} y={0.5000} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-1" type="source" x={0.7000} y={0.1149} basePosition={Position.Top} isFlipped={isFlipped} />
 
       <div
         className="nodrag nopan"
@@ -791,8 +868,8 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           width: 150 * effScale,
           height: 195 * effScale,
           zIndex: 35,
-          border: isEditSwitches ? '2px solid #c8f135' : 'none',
-          backgroundColor: isEditSwitches ? 'rgba(200, 241, 53, 0.08)' : 'transparent',
+          border: isEditSwitches ? '2px solid #00ffff' : 'none',
+          backgroundColor: isEditSwitches ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
           borderRadius: 6,
         }}
       >
@@ -809,9 +886,9 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
               fontSize: 9.5,
               fontWeight: 800,
               letterSpacing: 0.5,
-              color: '#c8f135',
+              color: '#00ffff',
               background: '#17181c',
-              border: '1.5px solid #c8f135',
+              border: '1.5px solid #00ffff',
               boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
               borderRadius: 4,
               padding: '2px 6px',
@@ -845,10 +922,10 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         {/* ── Exact 4 Corner Square Resize Handles matching NodeResizer ── */}
         {isEditSwitches && (
           <>
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
-            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#c8f135', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, left: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, left: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nesw-resize', zIndex: 40 }} />
+            <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
           </>
         )}
       </div>
@@ -859,8 +936,8 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           isVisible={selected}
           onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
           onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
-          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
-          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+          lineStyle={{ borderColor: '#00ffff', borderWidth: 2 }}
+          handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
       <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
@@ -901,14 +978,14 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           isVisible={selected}
           onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
           onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
-          lineStyle={{ borderColor: '#c8f135', borderWidth: 2 }}
-          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
+          lineStyle={{ borderColor: '#00ffff', borderWidth: 2 }}
+          handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
       <div style={{
         width: '100%', height: '100%',
         background: '#ffffff',
-        border: selected ? '2px solid #c8f135' : '1px solid rgba(0,0,0,0.08)',
+        border: selected ? '2px solid #00ffff' : '1px solid rgba(0,0,0,0.08)',
         borderRadius: 14,
         padding: '12px 14px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
@@ -951,19 +1028,19 @@ function ViewportGuideNode({ id, data, selected }: NodeProps<any>) {
           isVisible={selected}
           onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id || 'viewport-box')}
           onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id || 'viewport-box')}
-          lineStyle={{ borderColor: 'rgba(200,241,53,0.9)', borderWidth: 2, borderStyle: 'dashed', pointerEvents: 'auto' }}
-          handleStyle={{ background: '#c8f135', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3, pointerEvents: 'auto' }}
+          lineStyle={{ borderColor: 'rgba(0,255,255,0.9)', borderWidth: 2, borderStyle: 'dashed', pointerEvents: 'auto' }}
+          handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3, pointerEvents: 'auto' }}
         />
       )}
       <div style={{
         width: '100%', height: '100%',
-        border: '2px dashed rgba(200,241,53,0.90)',
+        border: '2px dashed rgba(0,255,255,0.90)',
         borderRadius: 20,
-        boxShadow: `0 0 0 4000px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(200,241,53,0.18)`,
+        boxShadow: `0 0 0 4000px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(0,255,255,0.18)`,
       }}>
         <span style={{
           position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)',
-          fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif", fontSize: 11, fontWeight: 700, color: '#c8f135',
+          fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif", fontSize: 11, fontWeight: 700, color: '#00ffff',
           background: 'rgba(23,24,28,0.90)', padding: '3px 12px', borderRadius: 6, whiteSpace: 'nowrap',
         }}>
           DASHBOARD VIEWPORT CAMERA
@@ -994,6 +1071,10 @@ const nodeTypes = {
   tds: SensorNodeViewMemo,
   temperature: SensorNodeViewMemo,
   sensor: SensorNodeViewMemo,
+};
+
+const edgeTypes = {
+  waterFlow: WaterFlowEdge,
 };
 
 const BACKEND_URL = 'http://localhost:3001';
@@ -1134,11 +1215,11 @@ function EditModeButton({ editMode, onToggle, isFullscreen = true }: { editMode:
         display: 'flex', alignItems: 'center', gap: isSmall ? 6 : 8,
         padding: isSmall ? '6px 12px' : '9px 16px', borderRadius: isSmall ? 8 : 12, cursor: 'pointer',
         border: editMode
-          ? '1.5px solid rgba(200,241,53,0.55)'
+          ? '1.5px solid rgba(0,255,255,0.55)'
           : '1.5px solid rgba(0,0,0,0.10)',
         background: editMode ? '#17181c' : '#ffffff',
         boxShadow: editMode
-          ? '0 0 18px rgba(200,241,53,0.20), 0 2px 8px rgba(0,0,0,0.14)'
+          ? '0 0 18px rgba(0,255,255,0.20), 0 2px 8px rgba(0,0,0,0.14)'
           : '0 2px 8px rgba(0,0,0,0.08)',
         transition: 'all 0.18s ease',
         fontFamily: FONT,
@@ -1147,19 +1228,19 @@ function EditModeButton({ editMode, onToggle, isFullscreen = true }: { editMode:
       {/* status dot */}
       <span style={{
         width: isSmall ? 5 : 7, height: isSmall ? 5 : 7, borderRadius: '50%', flexShrink: 0,
-        background: editMode ? '#c8f135' : '#9ca3af',
-        boxShadow: editMode ? '0 0 6px rgba(200,241,53,0.7)' : 'none',
+        background: editMode ? '#00ffff' : '#9ca3af',
+        boxShadow: editMode ? '0 0 6px rgba(0,255,255,0.7)' : 'none',
         transition: 'all 0.18s ease',
       }} />
 
       {editMode
-        ? <Pencil size={14} strokeWidth={2.5} color="#c8f135" />
+        ? <Pencil size={14} strokeWidth={2.5} color="#00ffff" />
         : <Lock size={14} strokeWidth={2} color="#9ca3af" />
       }
 
       <span style={{
         fontSize: isSmall ? 11 : 13, fontWeight: 700, letterSpacing: '-0.2px',
-        color: editMode ? '#c8f135' : '#5a5f6b',
+        color: editMode ? '#00ffff' : '#5a5f6b',
         transition: 'color 0.18s',
       }}>
         {editMode ? 'Edit Mode ON' : 'Edit Mode'}
@@ -1169,10 +1250,10 @@ function EditModeButton({ editMode, onToggle, isFullscreen = true }: { editMode:
         <span style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 18, height: 18, borderRadius: '50%',
-          background: 'rgba(200,241,53,0.15)',
+          background: 'rgba(0,255,255,0.15)',
           flexShrink: 0,
         }}>
-          <Check size={11} strokeWidth={3} color="#c8f135" />
+          <Check size={11} strokeWidth={3} color="#00ffff" />
         </span>
       )}
     </button>
@@ -1187,17 +1268,17 @@ function EditModeBanner() {
       zIndex: 20, display: 'flex', alignItems: 'center', gap: 8,
       padding: '7px 16px', borderRadius: 99,
       background: '#17181c',
-      border: '1px solid rgba(200,241,53,0.30)',
+      border: '1px solid rgba(0,255,255,0.30)',
       boxShadow: '0 2px 12px rgba(0,0,0,0.20)',
       fontFamily: FONT, pointerEvents: 'none',
     }}>
       <span style={{
         width: 6, height: 6, borderRadius: '50%',
-        background: '#c8f135',
-        boxShadow: '0 0 6px rgba(200,241,53,0.7)',
+        background: '#00ffff',
+        boxShadow: '0 0 6px rgba(0,255,255,0.7)',
         animation: 'pulse 1.5s ease-in-out infinite',
       }} />
-      <span style={{ fontSize: 12, fontWeight: 700, color: '#c8f135', letterSpacing: '0.04em' }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: '#00ffff', letterSpacing: '0.04em' }}>
         ADMIN EDIT MODE
       </span>
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', letterSpacing: '-0.1px' }}>
@@ -1219,11 +1300,11 @@ function CanvasCrosshair({ show }: { show: boolean }) {
   const { x: vpX, y: vpY } = useViewport();
   if (!show) return null;
 
-  const LINE = '1.5px dashed rgba(200,241,53,0.60)';
+  const LINE = '1.5px dashed rgba(0,255,255,0.60)';
   const LABEL: React.CSSProperties = {
     position: 'absolute',
     fontFamily: FONT, fontSize: 10, fontWeight: 700,
-    color: 'rgba(200,241,53,0.75)', letterSpacing: '0.06em',
+    color: 'rgba(0,255,255,0.75)', letterSpacing: '0.06em',
     pointerEvents: 'none', whiteSpace: 'nowrap',
     background: 'rgba(23,24,28,0.70)', padding: '2px 6px', borderRadius: 4,
   };
@@ -1243,7 +1324,7 @@ function CanvasCrosshair({ show }: { show: boolean }) {
         {/* Tick mark at center intersection */}
         <div style={{
           position: 'absolute', left: vpX, top: -4,
-          width: 1, height: 8, background: '#c8f135', transform: 'translateX(-50%)',
+          width: 1, height: 8, background: '#00ffff', transform: 'translateX(-50%)',
         }} />
       </div>
 
@@ -1260,7 +1341,7 @@ function CanvasCrosshair({ show }: { show: boolean }) {
         {/* Tick mark at center intersection */}
         <div style={{
           position: 'absolute', top: vpY, left: -4,
-          height: 1, width: 8, background: '#c8f135', transform: 'translateY(-50%)',
+          height: 1, width: 8, background: '#00ffff', transform: 'translateY(-50%)',
         }} />
       </div>
 
@@ -1270,8 +1351,8 @@ function CanvasCrosshair({ show }: { show: boolean }) {
         left: vpX, top: vpY,
         transform: 'translate(-50%, -50%)',
         width: 12, height: 12, borderRadius: '50%',
-        background: '#c8f135',
-        boxShadow: '0 0 0 5px rgba(200,241,53,0.15), 0 0 16px rgba(200,241,53,0.65)',
+        background: '#00ffff',
+        boxShadow: '0 0 0 5px rgba(0,255,255,0.15), 0 0 16px rgba(0,255,255,0.65)',
       }} />
 
       {/* Origin label */}
@@ -1280,7 +1361,7 @@ function CanvasCrosshair({ show }: { show: boolean }) {
         position: 'absolute', zIndex: 17, pointerEvents: 'none',
         left: vpX + 14, top: vpY + 14,
         fontSize: 11, fontWeight: 800,
-        color: '#c8f135', background: 'rgba(23,24,28,0.85)',
+        color: '#00ffff', background: 'rgba(23,24,28,0.85)',
       }}>
         (0, 0) ORIGIN
       </span>
@@ -1328,6 +1409,9 @@ export default function StarTopology() {
   const [activeCustomizeNodeId, setActiveCustomizeNodeId] = useState<string | null>(null);
   const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
   const [isViewportReady, setIsViewportReady] = useState(false);
+  const [showConnectMenu, setShowConnectMenu] = useState(false);
+  const [activeConnectNodeId, setActiveConnectNodeId] = useState<string | null>(null);
+  const [showCustomizeMenu, setShowCustomizeMenu] = useState(false);
   
   const { isAdmin, role } = useAuth();
   const canControlPump = isAdmin || role === 'operator';
@@ -1904,12 +1988,11 @@ export default function StarTopology() {
             id: edge.id,
             source: edge.sourceNodeId,
             target: edge.targetNodeId,
-            animated: isFlowing,
-            style: {
-              stroke: isFlowing ? 'var(--dt-accent)' : '#475569',
-              strokeWidth: isFlowing ? 2 : 1.5,
-              opacity: isFlowing ? 0.85 : 0.35,
-              strokeDasharray: isFlowing ? undefined : '5 5',
+            sourceHandle: edge.sourcePortId,
+            targetHandle: edge.targetPortId,
+            type: 'waterFlow',
+            data: {
+              isFlowing,
             },
           };
         });
@@ -2119,28 +2202,16 @@ export default function StarTopology() {
           }
         }
 
-        const nextAnimated = isFlowing;
-        const nextStroke = isFlowing ? 'var(--dt-accent)' : '#475569';
-        const nextOpacity = isFlowing ? 0.85 : 0.35;
-        const nextDash = isFlowing ? undefined : '5 5';
+        const nextIsFlowing = isFlowing;
 
-        if (
-          e.animated !== nextAnimated ||
-          e.style?.stroke !== nextStroke ||
-          e.style?.opacity !== nextOpacity ||
-          e.style?.strokeDasharray !== nextDash
-        ) {
+        if (e.data?.isFlowing !== nextIsFlowing) {
           changed = true;
           return {
             ...e,
-            animated: nextAnimated,
-            style: {
-              ...e.style,
-              stroke: nextStroke,
-              strokeWidth: isFlowing ? 2 : 1.5,
-              opacity: nextOpacity,
-              strokeDasharray: nextDash,
-            },
+            data: {
+              ...e.data,
+              isFlowing: nextIsFlowing,
+            }
           };
         }
         return e;
@@ -2328,6 +2399,8 @@ export default function StarTopology() {
     if (editMode) {
       if (allowCustomizeNodes && node.id !== 'viewport-box') {
         setActiveCustomizeNodeId(node.id);
+      } else if (showConnectMenu && node.id !== 'viewport-box') {
+        setActiveConnectNodeId(node.id);
       }
       return;
     }
@@ -2346,14 +2419,18 @@ export default function StarTopology() {
     async (params: Connection | Edge) => {
       setEdges((eds) => addEdge({
         ...params,
-        animated: true,
-        style: { stroke: 'var(--dt-accent)', strokeWidth: 2, opacity: 0.85 },
+        type: 'waterFlow',
+        data: {
+          isFlowing: true,
+        }
       }, eds));
       if (params.source && params.target) {
         try {
           await axios.post(`${BACKEND_URL}/api/edges`, {
             source: params.source,
             target: params.target,
+            sourceHandle: params.sourceHandle,
+            targetHandle: params.targetHandle,
           });
         } catch (e) { console.error('Failed to save edge', e); }
       }
@@ -2506,26 +2583,26 @@ export default function StarTopology() {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
               border: showViewport
-                ? '1.5px solid rgba(200,241,53,0.50)'
+                ? '1.5px solid rgba(0,255,255,0.50)'
                 : '1.5px solid rgba(0,0,0,0.09)',
               background: showViewport ? '#17181c' : '#ffffff',
               boxShadow: showViewport
-                ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                 : '0 2px 6px rgba(0,0,0,0.07)',
               fontFamily: FONT, transition: 'all 0.15s ease',
             }}
           >
-            <Frame size={13} strokeWidth={2.2} color={showViewport ? '#c8f135' : '#9ca3af'} />
+            <Frame size={13} strokeWidth={2.2} color={showViewport ? '#00ffff' : '#9ca3af'} />
             <span style={{
               fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-              color: showViewport ? '#c8f135' : '#5a5f6b',
+              color: showViewport ? '#00ffff' : '#5a5f6b',
             }}>
               Viewport
             </span>
             <span style={{
               width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-              background: showViewport ? '#c8f135' : 'transparent',
-              boxShadow: showViewport ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+              background: showViewport ? '#00ffff' : 'transparent',
+              boxShadow: showViewport ? '0 0 4px rgba(0,255,255,0.8)' : 'none',
               transition: 'all 0.15s ease',
             }} />
           </button>
@@ -2538,26 +2615,26 @@ export default function StarTopology() {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
               border: showCrosshair
-                ? '1.5px solid rgba(200,241,53,0.50)'
+                ? '1.5px solid rgba(0,255,255,0.50)'
                 : '1.5px solid rgba(0,0,0,0.09)',
               background: showCrosshair ? '#17181c' : '#ffffff',
               boxShadow: showCrosshair
-                ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                 : '0 2px 6px rgba(0,0,0,0.07)',
               fontFamily: FONT, transition: 'all 0.15s ease',
             }}
           >
-            <Crosshair size={13} strokeWidth={2.2} color={showCrosshair ? '#c8f135' : '#9ca3af'} />
+            <Crosshair size={13} strokeWidth={2.2} color={showCrosshair ? '#00ffff' : '#9ca3af'} />
             <span style={{
               fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-              color: showCrosshair ? '#c8f135' : '#5a5f6b',
+              color: showCrosshair ? '#00ffff' : '#5a5f6b',
             }}>
               Guide
             </span>
             <span style={{
               width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-              background: showCrosshair ? '#c8f135' : 'transparent',
-              boxShadow: showCrosshair ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+              background: showCrosshair ? '#00ffff' : 'transparent',
+              boxShadow: showCrosshair ? '0 0 4px rgba(0,255,255,0.8)' : 'none',
               transition: 'all 0.15s ease',
             }} />
           </button>
@@ -2573,6 +2650,7 @@ export default function StarTopology() {
                 } else {
                   setAllowMoveResize(false);
                   setShowDeleteMenu(false);
+                  setShowCustomizeMenu(false);
                 }
                 setShowPaletteMenu(v => !v);
               }}
@@ -2581,26 +2659,26 @@ export default function StarTopology() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
                 border: showPaletteMenu
-                  ? '1.5px solid rgba(200,241,53,0.50)'
+                  ? '1.5px solid rgba(0,255,255,0.50)'
                   : '1.5px solid rgba(0,0,0,0.09)',
                 background: showPaletteMenu ? '#17181c' : '#ffffff',
                 boxShadow: showPaletteMenu
-                  ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                  ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                   : '0 2px 6px rgba(0,0,0,0.07)',
                 fontFamily: FONT, transition: 'all 0.15s ease',
               }}
             >
-              <Layers size={13} strokeWidth={2.2} color={showPaletteMenu ? '#c8f135' : '#9ca3af'} />
+              <Layers size={13} strokeWidth={2.2} color={showPaletteMenu ? '#00ffff' : '#9ca3af'} />
               <span style={{
                 fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                color: showPaletteMenu ? '#c8f135' : '#5a5f6b',
+                color: showPaletteMenu ? '#00ffff' : '#5a5f6b',
               }}>
                 Asset Palette
               </span>
               <span style={{
                 width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                background: showPaletteMenu ? '#c8f135' : 'transparent',
-                boxShadow: showPaletteMenu ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+                background: showPaletteMenu ? '#00ffff' : 'transparent',
+                boxShadow: showPaletteMenu ? '0 0 4px rgba(0,255,255,0.8)' : 'none',
                 transition: 'all 0.15s ease',
               }} />
             </button>
@@ -2633,6 +2711,8 @@ export default function StarTopology() {
               {/* Divider */}
               <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
 
+
+
               {/* ── Delete Assets toggle button ─── */}
               <div style={{ position: 'relative', display: 'flex' }}>
                 <button
@@ -2643,6 +2723,7 @@ export default function StarTopology() {
                     } else {
                       setAllowMoveResize(false);
                       setShowPaletteMenu(false);
+                      setShowConnectMenu(false);
                     }
                     setShowDeleteMenu(v => !v);
                   }}
@@ -2651,26 +2732,26 @@ export default function StarTopology() {
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
                     border: showDeleteMenu
-                      ? '1.5px solid rgba(200,241,53,0.50)'
+                      ? '1.5px solid rgba(0,255,255,0.50)'
                       : '1.5px solid rgba(0,0,0,0.09)',
                     background: showDeleteMenu ? '#17181c' : '#ffffff',
                     boxShadow: showDeleteMenu
-                      ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                      ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                       : '0 2px 6px rgba(0,0,0,0.07)',
                     fontFamily: FONT, transition: 'all 0.15s ease',
                   }}
                 >
-                  <Trash2 size={13} strokeWidth={2.2} color={showDeleteMenu ? '#c8f135' : '#9ca3af'} />
+                  <Trash2 size={13} strokeWidth={2.2} color={showDeleteMenu ? '#00ffff' : '#9ca3af'} />
                   <span style={{
                     fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                    color: showDeleteMenu ? '#c8f135' : '#5a5f6b',
+                    color: showDeleteMenu ? '#00ffff' : '#5a5f6b',
                   }}>
                     Delete Assets
                   </span>
                   <span style={{
                     width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                    background: showDeleteMenu ? '#c8f135' : 'transparent',
-                    boxShadow: showDeleteMenu ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+                    background: showDeleteMenu ? '#00ffff' : 'transparent',
+                    boxShadow: showDeleteMenu ? '0 0 4px rgba(0,255,255,0.8)' : 'none',
                     transition: 'all 0.15s ease',
                   }} />
                 </button>
@@ -2699,6 +2780,7 @@ export default function StarTopology() {
                     } else {
                       setShowPaletteMenu(false);
                       setShowDeleteMenu(false);
+                      setShowConnectMenu(false);
                     }
                     setAllowMoveResize(v => !v);
                   }}
@@ -2707,27 +2789,27 @@ export default function StarTopology() {
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
                     border: allowMoveResize
-                      ? '1.5px solid rgba(200,241,53,0.50)'
+                      ? '1.5px solid rgba(0,255,255,0.50)'
                       : '1.5px solid rgba(0,0,0,0.09)',
                     background: allowMoveResize ? '#17181c' : '#ffffff',
                     boxShadow: allowMoveResize
-                      ? '0 0 12px rgba(200,241,53,0.12), 0 2px 6px rgba(0,0,0,0.10)'
+                      ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                       : '0 2px 6px rgba(0,0,0,0.07)',
                     fontFamily: FONT, transition: 'all 0.15s ease',
                   }}
                 >
-                  <Move size={13} strokeWidth={2.2} color={allowMoveResize ? '#c8f135' : '#9ca3af'} />
+                  <Move size={13} strokeWidth={2.2} color={allowMoveResize ? '#00ffff' : '#9ca3af'} />
                   <span style={{
                     fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                    color: allowMoveResize ? '#c8f135' : '#5a5f6b',
+                    color: allowMoveResize ? '#00ffff' : '#5a5f6b',
                   }}>
                     Move & Resize
                   </span>
                   {/* ON indicator dot */}
                   <span style={{
                     width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                    background: allowMoveResize ? '#c8f135' : 'transparent',
-                    boxShadow: allowMoveResize ? '0 0 4px rgba(200,241,53,0.8)' : 'none',
+                    background: allowMoveResize ? '#00ffff' : 'transparent',
+                    boxShadow: allowMoveResize ? '0 0 4px rgba(0,255,255,0.8)' : 'none',
                     transition: 'all 0.15s ease',
                   }} />
                 </button>
@@ -2782,16 +2864,18 @@ export default function StarTopology() {
 
       {/* ── Customize Assets button placed directly below Edit Mode ON when edit mode is active ── */}
       {isAdmin && editMode && (
-        <div style={{ position: 'absolute', top: 76, right: 16, zIndex: 30 }}>
+        <div style={{ position: 'absolute', top: 76, right: 16, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
           <button
             onClick={() => {
-              const nextVal = !allowCustomizeNodes;
-              setAllowCustomizeNodes(nextVal);
-              if (nextVal) {
+              if (!showCustomizeMenu) {
                 setAllowMoveResize(false);
                 setShowPaletteMenu(false);
                 setShowDeleteMenu(false);
-              } else {
+              }
+              setShowCustomizeMenu(v => !v);
+              if (showCustomizeMenu) {
+                setAllowCustomizeNodes(false);
+                setShowConnectMenu(false);
                 setActiveCustomizeNodeId(null);
               }
             }}
@@ -2799,30 +2883,75 @@ export default function StarTopology() {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
-              border: allowCustomizeNodes
-                ? '1.5px solid rgba(200,241,53,0.55)'
+              border: showCustomizeMenu
+                ? '1.5px solid rgba(0,255,255,0.55)'
                 : '1.5px solid rgba(0,0,0,0.09)',
-              background: allowCustomizeNodes ? '#17181c' : '#ffffff',
-              boxShadow: allowCustomizeNodes
-                ? '0 0 16px rgba(200,241,53,0.2), 0 4px 12px rgba(0,0,0,0.15)'
+              background: showCustomizeMenu ? '#17181c' : '#ffffff',
+              boxShadow: showCustomizeMenu
+                ? '0 0 16px rgba(0,255,255,0.2), 0 4px 12px rgba(0,0,0,0.15)'
                 : '0 2px 8px rgba(0,0,0,0.08)',
               fontFamily: FONT, transition: 'all 0.15s ease',
             }}
           >
-            <Sliders size={14} strokeWidth={2.2} color={allowCustomizeNodes ? '#c8f135' : '#9ca3af'} />
+            <Sliders size={14} strokeWidth={2.2} color={showCustomizeMenu ? '#00ffff' : '#9ca3af'} />
             <span style={{
               fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-              color: allowCustomizeNodes ? '#c8f135' : '#5a5f6b',
+              color: showCustomizeMenu ? '#00ffff' : '#5a5f6b',
             }}>
               Customize Assets
             </span>
             <span style={{
               width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-              background: allowCustomizeNodes ? '#c8f135' : 'transparent',
-              boxShadow: allowCustomizeNodes ? '0 0 6px rgba(200,241,53,0.9)' : 'none',
+              background: showCustomizeMenu ? '#00ffff' : 'transparent',
+              boxShadow: showCustomizeMenu ? '0 0 6px rgba(0,255,255,0.9)' : 'none',
               transition: 'all 0.15s ease',
             }} />
           </button>
+          
+          {showCustomizeMenu && (
+            <div style={{ position: 'relative', width: '100%' }}>
+              <div style={{
+                position: 'absolute', top: 6, right: 0,
+                background: 'rgba(23, 24, 28, 0.70)', border: '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.20)', minWidth: 200, zIndex: 50, backdropFilter: 'blur(10px)'
+              }}>
+                <Switch
+                  checked={allowCustomizeNodes}
+                  onChange={(val) => { 
+                    setAllowCustomizeNodes(val); 
+                    if (val) setShowConnectMenu(false);
+                    if (!val) setActiveCustomizeNodeId(null);
+                  }}
+                  label="Edit Node Details"
+                />
+                <Switch
+                  checked={showConnectMenu}
+                  onChange={(val) => { 
+                    setShowConnectMenu(val); 
+                    if (val) setAllowCustomizeNodes(false); 
+                  }}
+                  label="Update Flow Connections"
+                />
+              </div>
+              
+              {showConnectMenu && (
+                <div style={{ position: 'absolute', top: 120, right: 0 }}>
+                  <FlowConnectionsMenu
+                    nodes={nodes}
+                    edges={edges}
+                    onClose={() => setShowConnectMenu(false)}
+                    onSaveEdge={onConnect}
+                    onDeleteEdge={(edgeId) => {
+                      setEdges(eds => eds.filter(e => e.id !== edgeId));
+                      axios.delete(`${BACKEND_URL}/api/edges/${edgeId}`).catch(console.error);
+                    }}
+                    activeNodeId={activeConnectNodeId}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -2854,8 +2983,8 @@ export default function StarTopology() {
       {editMode && (
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 24, zIndex: 1, pointerEvents: 'none',
-          border: '2px solid rgba(200,241,53,0.30)',
-          boxShadow: 'inset 0 0 32px rgba(200,241,53,0.04)',
+          border: '2px solid rgba(0,255,255,0.30)',
+          boxShadow: 'inset 0 0 32px rgba(0,255,255,0.04)',
         }} />
       )}
 
@@ -2875,6 +3004,7 @@ export default function StarTopology() {
         onDragOver={onDragOver}
         onDrop={onDrop}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         nodesDraggable={editMode && allowMoveResize}
         nodesConnectable={editMode}
         onlyRenderVisibleElements={true}
@@ -2909,7 +3039,7 @@ export default function StarTopology() {
             maskColor="rgba(23,24,28,0.55)"
             style={{
               background: '#17181c',
-              border: '1px solid rgba(200,241,53,0.20)',
+              border: '1px solid rgba(0,255,255,0.20)',
               borderRadius: 14,
               overflow: 'hidden',
               boxShadow: '0 4px 24px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.04)',
