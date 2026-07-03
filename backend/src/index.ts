@@ -286,7 +286,7 @@ app.delete('/api/nodes/:id', async (req, res) => {
 });
 
 app.post('/api/edges', async (req, res) => {
-  const { source, target, topologyName } = req.body;
+  const { source, target, sourceHandle, targetHandle, topologyName } = req.body;
   try {
     let topology = await prisma.topology.findFirst({
       where: { name: topologyName || 'Star Topology' }
@@ -299,6 +299,8 @@ app.post('/api/edges', async (req, res) => {
         topologyId: topology.id,
         sourceNodeId: source,
         targetNodeId: target,
+        sourcePortId: sourceHandle || null,
+        targetPortId: targetHandle || null,
         edgeType: 'pipe',
         status: 'normal'
       }
