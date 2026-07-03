@@ -57,6 +57,8 @@ model Edge {
   sourceNodeId String   @map("source_node") @db.Uuid
   targetNodeId String   @map("target_node") @db.Uuid
   edgeType     String   @default("pipe") @map("edge_type") @db.VarChar(50)
+  sourcePortId String?  @map("source_port") @db.VarChar(100)
+  targetPortId String?  @map("target_port") @db.VarChar(100)
   status       String   @default("normal") @db.VarChar(30)
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
