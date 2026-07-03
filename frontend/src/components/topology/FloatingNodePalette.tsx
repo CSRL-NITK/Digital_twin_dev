@@ -106,7 +106,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
         .palette-item:hover {
           transform: translateY(-2px) scale(1.02);
           background: rgba(255, 255, 255, 0.08) !important;
-          border-color: rgba(200, 241, 53, 0.5) !important;
+          border-color: rgba(0, 255, 255, 0.5) !important;
         }
       `}</style>
 
@@ -121,7 +121,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
             transition: 'top 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             width: 235,
             background: 'rgba(23, 24, 28, 0.88)',
-            border: '1px solid rgba(200, 241, 53, 0.35)',
+            border: '1px solid rgba(0, 255, 255, 0.35)',
             borderRadius: 16,
             padding: '16px 14px',
             boxShadow: '0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.05)',
@@ -135,10 +135,10 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(200,241,53,0.18)', color: '#c8f135' }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(0,255,255,0.18)', color: '#00ffff' }}>
                 <Plus size={14} strokeWidth={3} />
               </span>
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#c8f135', letterSpacing: '0.08em' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#00ffff', letterSpacing: '0.08em' }}>
                 NODE PALETTE
               </span>
             </div>
@@ -207,7 +207,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
             transition: 'top 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             width: 235,
             background: 'rgba(23, 24, 28, 0.88)',
-            border: '1px solid rgba(200, 241, 53, 0.35)',
+            border: '1px solid rgba(0, 255, 255, 0.35)',
             borderRadius: 16,
             padding: '16px 14px',
             boxShadow: '0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.05)',
@@ -221,10 +221,10 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(200,241,53,0.18)', color: '#c8f135' }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(0,255,255,0.18)', color: '#00ffff' }}>
                 <Radio size={14} strokeWidth={3} />
               </span>
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#c8f135', letterSpacing: '0.08em' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#00ffff', letterSpacing: '0.08em' }}>
                 SENSOR PALETTE
               </span>
             </div>
