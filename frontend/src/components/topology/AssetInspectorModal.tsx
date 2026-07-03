@@ -109,7 +109,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
         maxWidth: '90vw',
         boxSizing: 'border-box',
         background: '#17181c',
-        border: '1.5px solid rgba(200, 241, 53, 0.45)',
+        border: '1.5px solid rgba(0, 255, 255, 0.45)',
         borderRadius: 20,
         padding: '24px',
         boxShadow: '0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
@@ -124,13 +124,13 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
             <span style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 36, height: 36, borderRadius: 10,
-              background: 'rgba(200, 241, 53, 0.15)', color: '#c8f135',
-              border: '1px solid rgba(200, 241, 53, 0.3)'
+              background: 'rgba(0, 255, 255, 0.15)', color: '#00ffff',
+              border: '1px solid rgba(0, 255, 255, 0.3)'
             }}>
               {isSensor ? <Gauge size={18} /> : <Sliders size={18} />}
             </span>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#c8f135', letterSpacing: '0.08em' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: '#00ffff', letterSpacing: '0.08em' }}>
                 {isSensor ? 'TELEMETRY SENSOR' : 'INDUSTRIAL ASSET'}
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.3px' }}>
@@ -179,7 +179,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                 fontWeight: 600,
                 outline: 'none',
               }}
-              onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+              onFocus={(e) => e.target.style.borderColor = '#00ffff'}
               onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
             />
           </div>
@@ -206,7 +206,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                   onClick={() => setFlipHorizontal(!flipHorizontal)}
                   style={{
                     width: 44, height: 24, borderRadius: 12, cursor: 'pointer',
-                    background: flipHorizontal ? '#c8f135' : 'rgba(255,255,255,0.15)',
+                    background: flipHorizontal ? '#00ffff' : 'rgba(255,255,255,0.15)',
                     border: 'none', position: 'relative', transition: 'all 0.2s ease',
                   }}
                 >
@@ -227,9 +227,9 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                 </label>
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  fontSize: 11, fontWeight: 700, color: '#c8f135',
-                  background: 'rgba(200,241,53,0.08)', padding: '7px 12px', borderRadius: 8,
-                  border: '1px solid rgba(200,241,53,0.25)'
+                  fontSize: 11, fontWeight: 700, color: '#00ffff',
+                  background: 'rgba(0,255,255,0.08)', padding: '7px 12px', borderRadius: 8,
+                  border: '1px solid rgba(0,255,255,0.25)'
                 }}>
                   <span>Actual Live Operating Value:</span>
                   <span style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -252,7 +252,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                     fontWeight: 600,
                     marginTop: 2,
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                  onFocus={(e) => e.target.style.borderColor = '#00ffff'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                 />
               </div>
@@ -260,7 +260,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
               {/* Fluid Dynamics & Thermal Settings */}
               {!isPump && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4, background: 'rgba(255,255,255,0.02)', padding: '14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: '#c8f135', letterSpacing: '0.04em' }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#00ffff', letterSpacing: '0.04em' }}>
                     FLUID DYNAMICS & THERMAL SETTINGS
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
@@ -270,7 +270,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                         type="number" step="0.5"
                         value={waveHeightCalm} onChange={(e) => setWaveHeightCalm(Number(e.target.value))}
                         style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
-                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onFocus={(e) => e.target.style.borderColor = '#00ffff'}
                         onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                       />
                     </div>
@@ -280,7 +280,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                         type="number" step="0.5"
                         value={waveHeightNormal} onChange={(e) => setWaveHeightNormal(Number(e.target.value))}
                         style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
-                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onFocus={(e) => e.target.style.borderColor = '#00ffff'}
                         onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                       />
                     </div>
@@ -290,7 +290,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                         type="number" step="0.5"
                         value={waveHeightActive} onChange={(e) => setWaveHeightActive(Number(e.target.value))}
                         style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
-                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onFocus={(e) => e.target.style.borderColor = '#00ffff'}
                         onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                       />
                     </div>
@@ -302,7 +302,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                         type="number" step="0.5"
                         value={tempThreshold} onChange={(e) => setTempThreshold(Number(e.target.value))}
                         style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
-                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onFocus={(e) => e.target.style.borderColor = '#00ffff'}
                         onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                       />
                     </div>
@@ -312,7 +312,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                         type="number" step="0.5"
                         value={tempMaxThreshold} onChange={(e) => setTempMaxThreshold(Number(e.target.value))}
                         style={{ width: '100%', boxSizing: 'border-box', background: '#0e0f12', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '7px 10px', color: '#ffffff', fontSize: 12, fontWeight: 600, outline: 'none' }}
-                        onFocus={(e) => e.target.style.borderColor = '#c8f135'}
+                        onFocus={(e) => e.target.style.borderColor = '#00ffff'}
                         onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                       />
                     </div>
@@ -326,7 +326,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
           {isSensor && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Link2 size={13} color="#c8f135" /> BIND TO PARENT INDUSTRIAL ASSET
+                <Link2 size={13} color="#00ffff" /> BIND TO PARENT INDUSTRIAL ASSET
               </label>
               <select
                 value={parentAssetId}
@@ -380,10 +380,10 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
               disabled={isSaving}
               style={{
                 padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                background: '#c8f135', color: '#17181c',
+                background: '#00ffff', color: '#17181c',
                 border: 'none', cursor: isSaving ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 6,
-                boxShadow: '0 4px 14px rgba(200,241,53,0.35)',
+                boxShadow: '0 4px 14px rgba(0,255,255,0.35)',
                 transition: 'all 0.15s ease'
               }}
             >
