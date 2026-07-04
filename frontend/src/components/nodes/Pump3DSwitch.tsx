@@ -20,7 +20,7 @@ export const Pump3DSwitch: React.FC<Pump3DSwitchProps> = ({
         className={`switch ${isOn ? 'is-checked' : ''}`}
         onClick={(e) => {
           e.stopPropagation();
-          if (onToggle) {
+          if (onToggle && canControl) {
             onToggle();
           }
         }}
@@ -43,7 +43,7 @@ const StyledWrapper = styled.div<{ $scale: number; $canControl: boolean }>`
   transform: scale(${(props) => props.$scale});
   transform-origin: top left;
   user-select: none;
-  cursor: pointer;
+  cursor: ${(props) => (props.$canControl ? 'pointer' : 'not-allowed')};
   pointer-events: auto;
 
   .switch {
@@ -57,7 +57,6 @@ const StyledWrapper = styled.div<{ $scale: number; $canControl: boolean }>`
     border-radius: 8px;
     padding: 20px;
     perspective: 700px;
-    cursor: pointer;
   }
 
   /* ── ON STATE (Checked - GREEN) ── */
@@ -157,7 +156,7 @@ const StyledWrapper = styled.div<{ $scale: number; $canControl: boolean }>`
     transform-style: preserve-3d;
     height: 100%;
     position: relative;
-    cursor: pointer;
+    cursor: inherit;
     background-repeat: no-repeat;
   }
 
