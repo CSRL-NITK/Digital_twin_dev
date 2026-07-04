@@ -47,6 +47,7 @@ model Node {
   sensors     Sensor[]
   alerts      Alert[]
 
+  @@index([topologyId])
   @@map("nodes")
 }
 
@@ -65,6 +66,9 @@ model Edge {
   sourceNode Node @relation("SourceEdges", fields: [sourceNodeId], references: [id], onDelete: Cascade)
   targetNode Node @relation("TargetEdges", fields: [targetNodeId], references: [id], onDelete: Cascade)
 
+  @@index([topologyId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
   @@map("edges")
 }
 
@@ -80,6 +84,7 @@ model Sensor {
 
   readings    SensorReading[]
 
+  @@index([nodeId])
   @@map("sensors")
 }
 
@@ -87,9 +92,10 @@ model SensorReading {
   id          BigInt   @id @default(autoincrement())
   sensorId    String   @map("sensor_id") @db.Uuid
   sensor      Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
-  value       Decimal  @db.Decimal(10, 2)
+  value       Float
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
+  @@index([sensorId, createdAt])
   @@map("sensor_readings")
 }
 
@@ -102,5 +108,6 @@ model Alert {
   message   String   @db.Text
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
+  @@index([nodeId])
   @@map("alerts")
 }
