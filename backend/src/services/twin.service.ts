@@ -15,15 +15,15 @@ export interface TwinState {
   }
 }
 
+// Simulated Redis client for stateless Digital Twin cache
+class MockRedis {
+  private store: Record<string, string> = {};
+  async get(key: string): Promise<string | null> { return this.store[key] || null; }
+  async set(key: string, value: string): Promise<void> { this.store[key] = value; }
+}
+
 class DigitalTwinEngine {
-  private state: TwinState = {
-    T1: {},
-    T2: {},
-    T3: {},
-    T4: {},
-    CENTRAL: {},
-    PUMP: {}
-  };
+  private redis = new MockRedis();
 
   private io: Server | null = null;
   private dbMappingInitialized = false;
@@ -47,20 +47,23 @@ class DigitalTwinEngine {
       'PUMP': 'Pump P1'
     };
 
+    const state = await this.getTwinState();
+    
     for (const [slug, mappedName] of Object.entries(nodeNameMap)) {
       const dbNode = nodes.find(n => n.nodeName.toLowerCase() === mappedName.toLowerCase());
       if (dbNode) {
-        this.state[slug].dbNodeId = dbNode.id;
-        this.state[slug].status = dbNode.status;
-        this.state[slug].dbSensors = dbNode.sensors;
+        if (!state[slug]) state[slug] = {};
+        state[slug].dbNodeId = dbNode.id;
+        state[slug].status = dbNode.status;
+        state[slug].dbSensors = dbNode.sensors;
       }
     }
     
     // Also map any newly added dynamic nodes from DB
     for (const dbNode of nodes) {
       const slug = dbNode.id;
-      if (!this.state[slug]) {
-        this.state[slug] = {
+      if (!state[slug]) {
+        state[slug] = {
           dbNodeId: dbNode.id,
           status: dbNode.status,
           dbSensors: dbNode.sensors,
@@ -70,14 +73,15 @@ class DigitalTwinEngine {
           temperature: 24
         };
       } else {
-        this.state[slug].dbNodeId = dbNode.id;
-        this.state[slug].status = dbNode.status;
-        this.state[slug].dbSensors = dbNode.sensors;
+        state[slug].dbNodeId = dbNode.id;
+        state[slug].status = dbNode.status;
+        state[slug].dbSensors = dbNode.sensors;
       }
     }
 
+    await this.saveState(state);
     this.dbMappingInitialized = true;
-    console.log('Digital Twin Engine: DB mapping initialized');
+    console.log('Digital Twin Engine: DB mapping initialized in Redis cache');
   }
 
   public async reloadDbMapping() {
@@ -85,17 +89,23 @@ class DigitalTwinEngine {
     await this.initDbMapping();
   }
 
-  public getTwinState() {
-    return this.state;
+  public async getTwinState(): Promise<TwinState> {
+    const raw = await this.redis.get('twin_state');
+    return raw ? JSON.parse(raw) : { T1: {}, T2: {}, T3: {}, T4: {}, CENTRAL: {}, PUMP: {} };
   }
 
-  public updateTwin(nodeSlug: string, payload: any) {
+  private async saveState(state: TwinState) {
+    await this.redis.set('twin_state', JSON.stringify(state));
+  }
+
+  public async updateTwin(nodeSlug: string, payload: any) {
+    const state = await this.getTwinState();
     const slug = nodeSlug.toUpperCase();
-    if (!this.state[slug]) {
-      this.state[slug] = {};
+    if (!state[slug]) {
+      state[slug] = {};
     }
 
-    const nodeState = this.state[slug];
+    const nodeState = state[slug];
 
     if (slug === 'T1' || slug === 'T2') {
       console.log(`[DEBUG] updateTwin ${slug}: dbNodeId=${nodeState.dbNodeId}, hasDbSensors=${!!nodeState.dbSensors}, payload.waterLevel=${payload.waterLevel}`);
@@ -127,7 +137,10 @@ class DigitalTwinEngine {
 
     nodeState.lastUpdated = new Date();
 
-    // Fire off async database insertion for EVERY MQTT packet
+    // Persist to cache
+    await this.saveState(state);
+
+    // Fire off async database insertion (don't await so webhook returns instantly)
     this.savePacketToDatabase(slug, nodeState, payload, worstStatus);
 
     // Broadcast instantly via WebSocket for zero latency UI
@@ -192,6 +205,8 @@ class DigitalTwinEngine {
         };
 
         const readingsToInsert = [];
+        const sensorUpdates = [];
+        
         for (const [sType, sValue] of Object.entries(sensorValues)) {
           const dbSensor = state.dbSensors.find((s: any) => s.sensorType === sType);
           if (dbSensor && sValue !== undefined) {
@@ -199,11 +214,13 @@ class DigitalTwinEngine {
             // Evaluate status using alertEngine
             const sStatus = alertEngine.evaluateSensor(sType, sValue);
 
-            // Update sensor lastSeen and status
-            await prisma.sensor.update({
-              where: { id: dbSensor.id },
-              data: { status: sStatus, lastSeen: state.lastUpdated }
-            });
+            // Queue sensor lastSeen and status update
+            sensorUpdates.push(
+              prisma.sensor.update({
+                where: { id: dbSensor.id },
+                data: { status: sStatus, lastSeen: state.lastUpdated }
+              })
+            );
 
             readingsToInsert.push({
               sensorId: dbSensor.id,
@@ -211,6 +228,10 @@ class DigitalTwinEngine {
               createdAt: state.lastUpdated
             });
           }
+        }
+
+        if (sensorUpdates.length > 0) {
+          await prisma.$transaction(sensorUpdates);
         }
 
         if (readingsToInsert.length > 0) {
