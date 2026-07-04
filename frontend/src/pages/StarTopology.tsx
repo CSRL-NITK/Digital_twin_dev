@@ -546,7 +546,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           tempMaxThreshold={data?.tempMaxThreshold}
         />
       </div>
-      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+      <div className="absolute top-[79%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
         {data?.nodeName || 'Unnamed Node'}
       </div>
     </div>
@@ -605,7 +605,7 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
-      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+      <div className="absolute top-[79%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
         {data?.nodeName || 'Unnamed Node'}
       </div>
     </div>
@@ -651,7 +651,7 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           tempMaxThreshold={data?.tempMaxThreshold}
         />
       </div>
-      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+      <div className="absolute top-[79%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
         {data?.nodeName || 'Unnamed Node'}
       </div>
     </div>
@@ -758,7 +758,7 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           </>
         )}
       </div>
-      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+      <div className="absolute top-[79%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
         {data?.nodeName || 'Unnamed Node'}
       </div>
     </div>
@@ -969,7 +969,7 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           efficiency={status === 'Critical' ? 74 : status === 'Warning' ? 85 : 92}
         />
       </div>
-      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+      <div className="absolute top-[85%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
         {data?.nodeName || 'Unnamed Node'}
       </div>
     </div>
