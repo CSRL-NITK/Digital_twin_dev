@@ -3,7 +3,8 @@ import { prisma } from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-dt-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error("FATAL: JWT_SECRET environment variable is missing.");
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -180,9 +181,14 @@ export const register = async (req: Request, res: Response) => {
 
 export const listUsers = async (req: Request, res: Response) => {
   try {
+    const take = req.query.take ? parseInt(req.query.take as string, 10) : 50;
+    const skip = req.query.skip ? parseInt(req.query.skip as string, 10) : 0;
+    
     const rawUsers = await prisma.user.findMany({
       select: { id: true, name: true, username: true, email: true, role: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
+      take,
+      skip,
     });
     const users = rawUsers.map(u => ({
       ...u,
