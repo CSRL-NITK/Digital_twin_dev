@@ -8,8 +8,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.routes';
-import { initMqttService } from './services/mqtt.service';
 import bcrypt from 'bcrypt';
+import { twinEngine } from './services/twin.service';
+import { alertEngine } from './services/alert.service';
 
 // Sync admin, operator, and viewer credentials from .env
 async function syncAdminUser() {
@@ -83,6 +84,16 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Global API Rate Limiter
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per window
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
+
 // Routes
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRoutes);
@@ -115,14 +126,19 @@ app.get('/api/topologies/:name', async (req, res) => {
 });
 
 app.get('/api/nodes', async (req, res) => {
+  const take = req.query.take ? parseInt(req.query.take as string, 10) : undefined;
+  const skip = req.query.skip ? parseInt(req.query.skip as string, 10) : undefined;
+  
   const nodes = await prisma.node.findMany({
+    take,
+    skip,
     include: { sensors: true }
   });
   res.json(nodes);
 });
 
 app.get('/api/readings/latest', async (req, res) => {
-  const state = twinEngine.getTwinState();
+  const state = await twinEngine.getTwinState();
   const formatted = [];
   
   for (const nodeState of Object.values(state)) {
@@ -273,8 +289,6 @@ app.delete('/api/nodes/:id', async (req, res) => {
   try {
     await prisma.node.delete({
       where: { id }
-    }).catch((err) => {
-      console.warn(`Notice on deleting node ${id} (may not exist in DB):`, err.message || err);
     });
     await twinEngine.reloadDbMapping();
     io.emit('node:deleted', { id });
@@ -316,7 +330,7 @@ app.post('/api/edges', async (req, res) => {
 app.delete('/api/edges/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.edge.delete({ where: { id } }).catch(() => {});
+    await prisma.edge.delete({ where: { id } });
     io.emit('edge:deleted', { id });
     res.json({ success: true, id });
   } catch (error) {
@@ -325,9 +339,13 @@ app.delete('/api/edges/:id', async (req, res) => {
 });
 
 app.get('/api/alerts', async (req, res) => {
+  const take = req.query.take ? parseInt(req.query.take as string, 10) : 50;
+  const skip = req.query.skip ? parseInt(req.query.skip as string, 10) : 0;
+  
   const alerts = await prisma.alert.findMany({
     orderBy: { createdAt: 'desc' },
-    take: 20
+    take,
+    skip
   });
   res.json(alerts);
 });
@@ -369,9 +387,24 @@ app.patch('/api/topologies/:name/viewport', async (req, res) => {
   }
 });
 
-// Endpoint for Python generator to push new readings
-app.post('/api/telemetry', async (req, res) => {
-  res.status(400).json({ error: "REST telemetry ingestion is deprecated. Use MQTT." });
+// Endpoint for ThingsBoard Rule Engine Webhook
+app.post('/api/telemetry/thingsboard', async (req, res) => {
+  try {
+    // ThingsBoard will push JSON payload containing telemetry
+    const { deviceName, telemetry } = req.body;
+    
+    if (!deviceName || !telemetry) {
+      return res.status(400).json({ error: "Missing deviceName or telemetry in payload" });
+    }
+
+    // Pass data directly to Digital Twin Engine
+    await twinEngine.updateTwin(deviceName, telemetry);
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Webhook Error:', error);
+    res.status(500).json({ error: 'Internal Server Error processing webhook' });
+  }
 });
 
 io.on('connection', (socket) => {
@@ -381,38 +414,18 @@ io.on('connection', (socket) => {
   });
 });
 
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled API Error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
-});
-
-// MQTT Broker Setup
-const { Aedes } = require('aedes');
-const mqttServerFactory = require('aedes-server-factory');
-const MQTT_PORT = 1883;
-
-import { twinEngine } from './services/twin.service';
-import { alertEngine } from './services/alert.service';
-
-Aedes.createBroker().then((aedes: any) => {
-  aedes.on('client', (client: any) => {
-    console.log('Aedes client connected:', client ? client.id : client);
-  });
-  aedes.on('clientError', (client: any, err: any) => console.log('Aedes Client error:', client ? client.id : '', err));
-  aedes.on('connectionError', (client: any, err: any) => console.log('Aedes Connection error:', client ? client.id : '', err));
-
-  const mqttServer = mqttServerFactory.createServer(aedes);
-  mqttServer.listen(MQTT_PORT, '0.0.0.0', () => {
-    console.log(`MQTT Broker running on port ${MQTT_PORT}`);
-    
-    // Initialize Twin Engine & Alert Engine
-    twinEngine.setSocketServer(io);
-    twinEngine.initDbMapping();
-    alertEngine.setSocketServer(io);
-
-    // Initialize the external MQTT service pipeline
-    initMqttService(io);
-  });
-}).catch((err: any) => {
-  console.error('Failed to start Aedes broker:', err);
+  
+  // Initialize Twin Engine & Alert Engine
+  twinEngine.setSocketServer(io);
+  twinEngine.initDbMapping();
+  alertEngine.setSocketServer(io);
 });
