@@ -125,6 +125,7 @@ const buildCustomConfigs = (nodes: any[]) => {
       customConfigs[n.id] = {
         flipHorizontal: n.data?.flipHorizontal,
         maxCapacity: n.data?.maxCapacity,
+        maxPumpOutlets: n.data?.maxPumpOutlets,
         parentAssetId: n.data?.parentAssetId,
         customWidth: n.data?.customWidth ?? (n.style as any)?.width,
         customHeight: n.data?.customHeight ?? (n.style as any)?.height,
@@ -1934,6 +1935,7 @@ export default function StarTopology() {
               editMode: false,
               flipHorizontal: cfg.flipHorizontal,
               maxCapacity: cfg.maxCapacity,
+              maxPumpOutlets: cfg.maxPumpOutlets,
               parentAssetId: cfg.parentAssetId,
               parentAssetName: parentNode ? parentNode.nodeName : undefined,
               customWidth: w,
@@ -2366,6 +2368,7 @@ export default function StarTopology() {
                 nodeName: updatedProps.nodeName,
                 flipHorizontal: updatedProps.flipHorizontal,
                 maxCapacity: updatedProps.maxCapacity,
+                maxPumpOutlets: updatedProps.maxPumpOutlets,
                 parentAssetId: updatedProps.parentAssetId,
                 parentAssetName: parentName,
                 customWidth: updatedProps.customWidth,

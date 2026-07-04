@@ -9,6 +9,7 @@ export interface AssetInspectorModalProps {
     nodeName?: string;
     flipHorizontal?: boolean;
     maxCapacity?: number;
+    maxPumpOutlets?: number;
     parentAssetId?: string;
     customWidth?: number;
     customHeight?: number;
@@ -39,6 +40,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
   const [nodeName, setNodeName] = useState<string>(node.data?.nodeName || '');
   const [flipHorizontal, setFlipHorizontal] = useState<boolean>(!!node.data?.flipHorizontal);
   const [maxCapacity, setMaxCapacity] = useState<number>(node.data?.maxCapacity || defaultCapacity);
+  const [maxPumpOutlets, setMaxPumpOutlets] = useState<number>(node.data?.maxPumpOutlets || 2);
   const [parentAssetId, setParentAssetId] = useState<string>(node.data?.parentAssetId || '');
   const [customWidth] = useState<number>(
     node.data?.customWidth || Number(node.style?.width) || defaultDims.width
@@ -67,6 +69,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
         nodeName: nodeName.trim() || 'Unnamed Asset',
         flipHorizontal,
         maxCapacity: Number(maxCapacity) || defaultCapacity,
+        maxPumpOutlets: isPump ? (Number(maxPumpOutlets) || 2) : undefined,
         parentAssetId: parentAssetId || undefined,
         customWidth: Number(customWidth) || defaultDims.width,
         customHeight: Number(customHeight) || defaultDims.height,
@@ -256,6 +259,36 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                   onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                 />
               </div>
+
+              {/* Pump specific: Max Outlets */}
+              {isPump && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em' }}>
+                    MAXIMUM CONNECTIONS PER OUTLET
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={maxPumpOutlets}
+                    onChange={(e) => setMaxPumpOutlets(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      background: '#0e0f12',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 10,
+                      padding: '10px 14px',
+                      color: '#ffffff',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      marginTop: 2,
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#00ffff'}
+                    onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                  />
+                </div>
+              )}
 
               {/* Fluid Dynamics & Thermal Settings */}
               {!isPump && (

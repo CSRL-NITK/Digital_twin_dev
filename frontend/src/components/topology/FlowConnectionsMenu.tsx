@@ -70,12 +70,12 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
     setSelectedCandidate('');
   };
 
-  // Helper to find existing connection for a specific port on the active node
-  const getPortConnection = (portType: 'outlet' | 'inlet', portId: string) => {
+  // Helper to find existing connections for a specific port on the active node
+  const getPortConnections = (portType: 'outlet' | 'inlet', portId: string) => {
     if (portType === 'outlet') {
-      return edges.find(e => e.source === activeNodeId && (!e.sourceHandle || e.sourceHandle === portId));
+      return edges.filter(e => e.source === activeNodeId && (!e.sourceHandle || e.sourceHandle === portId));
     } else {
-      return edges.find(e => e.target === activeNodeId && (!e.targetHandle || e.targetHandle === portId));
+      return edges.filter(e => e.target === activeNodeId && (!e.targetHandle || e.targetHandle === portId));
     }
   };
 
@@ -89,16 +89,22 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
       if (portType === 'outlet') {
         // Find free inlets on other nodes
         ports.inlets.forEach(inlet => {
-          const isOccupied = edges.some(e => e.target === node.id && (!e.targetHandle || e.targetHandle === inlet));
-          if (!isOccupied) {
+          const inletConnsCount = edges.filter(e => e.target === node.id && (!e.targetHandle || e.targetHandle === inlet)).length;
+          let maxInletConns = 1;
+          if (node.type === 'central_tank') maxInletConns = 2;
+          
+          if (inletConnsCount < maxInletConns) {
             candidates.push({ nodeId: node.id, nodeName: node.data?.nodeName || node.id, portId: inlet });
           }
         });
       } else {
         // Find free outlets on other nodes
         ports.outlets.forEach(outlet => {
-          const isOccupied = edges.some(e => e.source === node.id && (!e.sourceHandle || e.sourceHandle === outlet));
-          if (!isOccupied) {
+          const outletConnsCount = edges.filter(e => e.source === node.id && (!e.sourceHandle || e.sourceHandle === outlet)).length;
+          let maxOutletConns = 1;
+          if (node.type === 'pump') maxOutletConns = node.data?.maxPumpOutlets || 2;
+          
+          if (outletConnsCount < maxOutletConns) {
             candidates.push({ nodeId: node.id, nodeName: node.data?.nodeName || node.id, portId: outlet });
           }
         });
@@ -140,24 +146,27 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
           {nodePorts.outlets.length === 0 ? (
              <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>No outlets available.</div>
           ) : nodePorts.outlets.map(portId => {
-            const conn = getPortConnection('outlet', portId);
+            const conns = getPortConnections('outlet', portId);
+            let maxConns = 1;
+            if (nodeType === 'pump') maxConns = activeNode.data?.maxPumpOutlets || 2;
+            const isFull = conns.length >= maxConns;
             const isConnecting = candidatePort?.portId === portId && candidatePort.portType === 'outlet';
+            
             return (
               <div key={portId} style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, fontWeight: 500 }}>{portId}</span>
-                  {conn ? (
-                    <span style={{ fontSize: 11, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 6px', borderRadius: 10 }}>Occupied</span>
-                  ) : (
-                    <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', padding: '2px 6px', borderRadius: 10 }}>Free</span>
-                  )}
+                  <span style={{ fontSize: 11, background: isFull ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', color: isFull ? '#ef4444' : '#22c55e', padding: '2px 6px', borderRadius: 10 }}>
+                    {conns.length}/{maxConns}
+                  </span>
                 </div>
-                {conn ? (
-                  <div style={{ fontSize: 12, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 4 }}>
+                {conns.map(conn => (
+                  <div key={conn.id} style={{ fontSize: 12, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 4 }}>
                     ➔ {getNodeName(conn.target)} ({conn.targetHandle || 'inlet-1'})
                     <button onClick={() => onDeleteEdge(conn.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', marginLeft: 'auto' }}><Trash2 size={12}/></button>
                   </div>
-                ) : (
+                ))}
+                {!isFull && (
                   isConnecting ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <select value={selectedCandidate} onChange={e => setSelectedCandidate(e.target.value)} style={{ padding: '6px', borderRadius: 4, background: '#111216', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, outline: 'none' }}>
@@ -190,24 +199,26 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
           {nodePorts.inlets.length === 0 ? (
              <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>No inlets available.</div>
           ) : nodePorts.inlets.map(portId => {
-            const conn = getPortConnection('inlet', portId);
+            const conns = getPortConnections('inlet', portId);
+            let maxConns = 1;
+            if (nodeType === 'central_tank') maxConns = 2;
+            const isFull = conns.length >= maxConns;
             const isConnecting = candidatePort?.portId === portId && candidatePort.portType === 'inlet';
             return (
               <div key={portId} style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, fontWeight: 500 }}>{portId}</span>
-                  {conn ? (
-                    <span style={{ fontSize: 11, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 6px', borderRadius: 10 }}>Occupied</span>
-                  ) : (
-                    <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', padding: '2px 6px', borderRadius: 10 }}>Free</span>
-                  )}
+                  <span style={{ fontSize: 11, background: isFull ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', color: isFull ? '#ef4444' : '#22c55e', padding: '2px 6px', borderRadius: 10 }}>
+                    {conns.length}/{maxConns}
+                  </span>
                 </div>
-                {conn ? (
-                  <div style={{ fontSize: 12, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 4 }}>
+                {conns.map(conn => (
+                  <div key={conn.id} style={{ fontSize: 12, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 4 }}>
                     From {getNodeName(conn.source)} ({conn.sourceHandle || 'outlet-1'}) ➔
                     <button onClick={() => onDeleteEdge(conn.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', marginLeft: 'auto' }}><Trash2 size={12}/></button>
                   </div>
-                ) : (
+                ))}
+                {!isFull && (
                   isConnecting ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <select value={selectedCandidate} onChange={e => setSelectedCandidate(e.target.value)} style={{ padding: '6px', borderRadius: 4, background: '#111216', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, outline: 'none' }}>
