@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   ChevronDown, Bell, LogOut,
@@ -15,7 +15,7 @@ import { useAuth } from '../../hooks/useAuth';
    SIDEBAR
    bg: #17181c  |  active: lime  |  inactive: white-26
 ════════════════════════════════════════════════════════════════ */
-function Sidebar() {
+const Sidebar = memo(function Sidebar() {
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();
 
@@ -147,13 +147,13 @@ function Sidebar() {
       </button>
     </aside>
   );
-}
+});
 
 /* ════════════════════════════════════════════════════════════════
    TOP BAR  — 70px
    bg: #ffffff (card)  |  border-bottom: rgba(0,0,0,0.07)
 ════════════════════════════════════════════════════════════════ */
-function TopBar() {
+const TopBar = memo(function TopBar() {
   const { pathname } = useLocation();
   const { theme, setTheme } = useTheme();
   const dark = theme === 'dark';
@@ -299,14 +299,14 @@ function TopBar() {
       </div>
     </header>
   );
-}
+});
 
 
 /* ════════════════════════════════════════════════════════════════
    BLANK PANEL
    bg: #e9eeea  |  border: rgba(0,0,0,0.06)
 ════════════════════════════════════════════════════════════════ */
-function BlankPanel({ id }: { id: string }) {
+const BlankPanel = memo(function BlankPanel({ id }: { id: string }) {
   return (
     <div
       id={id}
@@ -336,14 +336,14 @@ function BlankPanel({ id }: { id: string }) {
       </span>
     </div>
   );
-}
+});
 
 /* ════════════════════════════════════════════════════════════════
    ANALYTICS STRIP  — 160px · 3 columns
    bg: #ffffff  |  dividers: rgba(0,0,0,0.06)
    col icons: tinted pill bg (amber/lime/green)
 ════════════════════════════════════════════════════════════════ */
-function AnalyticsStrip() {
+const AnalyticsStrip = memo(function AnalyticsStrip() {
   return (
     <div
       id="analytics-strip"
@@ -469,7 +469,7 @@ function AnalyticsStrip() {
       </div>
     </div>
   );
-}
+});
 
 /* ════════════════════════════════════════════════════════════════
    ROOT LAYOUT
@@ -480,6 +480,8 @@ export default function MainLayout() {
   const dark = theme === 'dark';
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const isUserManagement = pathname.startsWith('/user-management');
+
+  const outletContext = useMemo(() => ({ selectedNode, setSelectedNode }), [selectedNode]);
 
   return (
     <div
@@ -526,7 +528,7 @@ export default function MainLayout() {
               boxShadow: isUserManagement ? 'none' : '0 2px 8px rgba(0,0,0,0.05)',
             }}
           >
-            <Outlet context={{ selectedNode, setSelectedNode }} />
+            <Outlet context={outletContext} />
           </div>
 
           {/* Analytics strip — hide on user management */}

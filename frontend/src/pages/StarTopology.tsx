@@ -546,6 +546,9 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           tempMaxThreshold={data?.tempMaxThreshold}
         />
       </div>
+      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+        {data?.nodeName || 'Unnamed Node'}
+      </div>
     </div>
   );
 }
@@ -602,6 +605,9 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           handleStyle={{ background: '#00ffff', borderColor: '#17181c', width: 10, height: 10, borderRadius: 3 }}
         />
       )}
+      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+        {data?.nodeName || 'Unnamed Node'}
+      </div>
     </div>
   );
 }
@@ -615,7 +621,7 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   }, [id, data?.customWidth, data?.flipHorizontal, updateNodeInternals]);
 
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200 }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       <PrecisionHandle id="inlet-1" type="target" x={0.1739} y={0.1167} basePosition={Position.Left} isFlipped={isFlipped} />
       <PrecisionHandle id="outlet-1" type="source" x={0.9413} y={0.7583} basePosition={Position.Right} isFlipped={isFlipped} />
@@ -644,6 +650,9 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           tempThreshold={data?.tempThreshold}
           tempMaxThreshold={data?.tempMaxThreshold}
         />
+      </div>
+      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+        {data?.nodeName || 'Unnamed Node'}
       </div>
     </div>
   );
@@ -748,6 +757,9 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
             <div className="nodrag nopan" onMouseDown={handleSwitchResizeMouseDown} style={{ position: 'absolute', bottom: -5, right: -5, width: 10, height: 10, background: '#00ffff', border: '1.5px solid #17181c', borderRadius: 3, cursor: 'nwse-resize', zIndex: 40 }} />
           </>
         )}
+      </div>
+      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+        {data?.nodeName || 'Unnamed Node'}
       </div>
     </div>
   );
@@ -957,6 +969,9 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           efficiency={status === 'Critical' ? 74 : status === 'Warning' ? 85 : 92}
         />
       </div>
+      <div className="absolute bottom-[-27px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
+        {data?.nodeName || 'Unnamed Node'}
+      </div>
     </div>
   );
 }
@@ -975,7 +990,7 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const cfg = configs[type] || configs.water_level;
 
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 85 }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 85, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer

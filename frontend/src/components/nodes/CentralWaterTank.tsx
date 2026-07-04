@@ -73,7 +73,8 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   tempMaxThreshold = 75.0,
 }) => {
   // Generate a unique ID suffix to avoid SVG ID collisions on dashboards with multiple tank instances
-  const idSuffix = useMemo(() => Math.random().toString(36).substring(2, 9), []);
+  const rawId = React.useId();
+  const idSuffix = useMemo(() => rawId.replace(/:/g, ''), [rawId]);
 
   // Constrain fill percentage
   const clampedFill = Math.max(0, Math.min(100, fillPercentage));
