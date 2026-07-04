@@ -83,6 +83,24 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   
   return (
     <>
+      {isFlowing && (
+        <style>{`
+          @keyframes edgeStreamFlowFast {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -60; }
+          }
+          @keyframes edgeStreamFlowSuperFast {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -80; }
+          }
+          @keyframes edgeShimmerPulse {
+            0% { opacity: 0.35; }
+            50% { opacity: 0.6; }
+            100% { opacity: 0.35; }
+          }
+        `}</style>
+      )}
+
       {/* 1. Base Pipe (Thick dark background) */}
       <BaseEdge
         id={`${id}-base`}
@@ -96,39 +114,102 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
         }}
       />
       
-      {/* 2. Inner Liquid (Solid tint to show filled pipe) */}
-      {isFlowing && (
+      {isFlowing ? (
+        <>
+          {/* 2. Outer Shimmer Glow */}
+          <BaseEdge
+            id={`${id}-shimmer`}
+            path={svgPathString}
+            style={{
+              ...style,
+              stroke: '#A5F3FC',
+              strokeWidth: 10,
+              strokeLinejoin: 'round',
+              fill: 'none',
+              animation: 'edgeShimmerPulse 1.2s ease-in-out infinite',
+            }}
+          />
+
+          {/* 3. Core Fluid Flow */}
+          <BaseEdge
+            id={`${id}-core`}
+            path={svgPathString}
+            style={{
+              ...style,
+              stroke: '#06B6D4',
+              strokeWidth: 8,
+              strokeLinejoin: 'round',
+              opacity: 0.95,
+              fill: 'none',
+            }}
+          />
+
+          {/* 4. Stream Fast 1 */}
+          <BaseEdge
+            id={`${id}-fast1`}
+            path={svgPathString}
+            style={{
+              ...style,
+              stroke: '#22D3EE',
+              strokeWidth: 2,
+              strokeDasharray: '12, 16',
+              strokeLinejoin: 'round',
+              opacity: 0.85,
+              fill: 'none',
+              animation: 'edgeStreamFlowFast 0.45s linear infinite',
+            }}
+          />
+
+          {/* 5. Stream Super Fast (Main bubbly stream) */}
+          <BaseEdge
+            id={`${id}-super`}
+            path={svgPathString}
+            markerEnd={markerEnd}
+            style={{
+              ...style,
+              stroke: '#FFFFFF',
+              strokeWidth: 3,
+              strokeDasharray: '8, 12',
+              strokeLinejoin: 'round',
+              opacity: 0.95,
+              fill: 'none',
+              animation: 'edgeStreamFlowSuperFast 0.3s linear infinite',
+            }}
+          />
+
+          {/* 6. Stream Fast 2 */}
+          <BaseEdge
+            id={`${id}-fast2`}
+            path={svgPathString}
+            style={{
+              ...style,
+              stroke: '#0D9488',
+              strokeWidth: 2,
+              strokeDasharray: '16, 20',
+              strokeLinejoin: 'round',
+              opacity: 0.75,
+              fill: 'none',
+              animation: 'edgeStreamFlowFast 0.45s linear infinite',
+            }}
+          />
+        </>
+      ) : (
+        /* Off state */
         <BaseEdge
-          id={`${id}-liquid`}
+          id={id}
           path={svgPathString}
+          markerEnd={markerEnd}
           style={{
             ...style,
             stroke: strokeColor,
-            strokeWidth: 8,
-            strokeLinejoin: 'round',
-            opacity: 0.25,
+            strokeWidth: 2,
+            strokeDasharray: '4, 4',
+            opacity: 0.4,
+            strokeLinecap: 'round',
             fill: 'none',
           }}
         />
       )}
-
-      {/* 3. Inner Flow Stream (Animated bright dashes/bubbles) */}
-      <BaseEdge
-        id={id}
-        path={svgPathString}
-        markerEnd={markerEnd}
-        style={{
-          ...style,
-          stroke: isFlowing ? '#ffffff' : strokeColor,
-          strokeWidth: isFlowing ? 6 : 2,
-          strokeDasharray: isFlowing ? '6, 14' : '4, 4',
-          opacity: isFlowing ? 1 : 0.4,
-          filter: isFlowing ? 'drop-shadow(0px 0px 8px rgba(0,255,255,0.8))' : 'none',
-          animation: isFlowing ? 'dash-flow 0.6s linear infinite' : 'none',
-          strokeLinecap: 'round',
-          fill: 'none',
-        }}
-      />
     </>
   );
 };
