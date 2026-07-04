@@ -1429,6 +1429,7 @@ export default function StarTopology() {
     allowResizeNodes: false,
     allowDeleteNodes: false,
     allowMoveSwitches: false,
+    canControlPump: false,
   });
 
   /* ── inject pulse keyframe once ─────────────────────────── */
@@ -1706,7 +1707,7 @@ export default function StarTopology() {
 
   /* ── Unified Effect: push editMode/allowMoveResize/showViewport into nodes ─ */
   useEffect(() => {
-    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes, allowMoveSwitches };
+    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes, allowMoveSwitches, canControlPump };
 
     if (editMode) {
       setSelectedNode(null);
@@ -1964,6 +1965,7 @@ export default function StarTopology() {
               waveHeightActive: cfg.waveHeightActive,
               tempThreshold: cfg.tempThreshold,
               tempMaxThreshold: cfg.tempMaxThreshold,
+              canControlPump,
               onTogglePump: handleTogglePump,
               onToggleTankValve: handleToggleTankValve,
               onConnectSwitchToPump: handleConnectSwitchToPump,
@@ -2130,7 +2132,7 @@ export default function StarTopology() {
         const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 24;
 
         const cleanNds = nds.filter((n) => !(n.id.startsWith('temp-') && n.data?.nodeName === newNode.nodeName));
-        const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn } = interactivityRef.current;
+        const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn, canControlPump: ccp } = interactivityRef.current;
 
         return [
           ...cleanNds,
@@ -2148,6 +2150,7 @@ export default function StarTopology() {
               editMode: em,
               allowMoveResize: amr && arn,
               allowDeleteNodes: adn,
+              canControlPump: ccp,
               onDeleteNode: handleDeleteNode
             }
           }
@@ -2493,7 +2496,7 @@ export default function StarTopology() {
 
     const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const targetName = `${label || type}-${Math.floor(Math.random() * 900 + 100)}`;
-    const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn, allowMoveSwitches: ams } = interactivityRef.current;
+    const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn, allowMoveSwitches: ams, canControlPump: ccp } = interactivityRef.current;
     const isSwitchDrop = type === 'switch';
     const canDragDrop = isSwitchDrop ? (em && ams) : (em && amr && amn && !ams);
 
@@ -2521,6 +2524,7 @@ export default function StarTopology() {
         allowMoveResize: amr && arn && !ams,
         allowMoveSwitches: em && ams,
         allowDeleteNodes: adn,
+        canControlPump: ccp,
         onDeleteNode: handleDeleteNode,
         onTogglePump: handleTogglePump,
         onSwitchTransformEnd: handleSwitchTransformEnd,
