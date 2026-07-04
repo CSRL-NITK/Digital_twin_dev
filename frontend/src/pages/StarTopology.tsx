@@ -8,6 +8,7 @@ import ReactFlow, {
   useReactFlow,
   useViewport,
   useNodes,
+  useEdges,
   addEdge,
   Handle,
   Position,
@@ -263,6 +264,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const isFlipped = !!data?.flipHorizontal;
   const isEditSwitches = !!data?.allowMoveSwitches;
   const { zoom } = useViewport();
+  const edges = useEdges();
 
   const updateNodeInternals = useUpdateNodeInternals();
   React.useEffect(() => {
@@ -430,7 +432,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         >
           <Pump3DSwitch
             isOn={inletOn}
-            canControl={!isEditSwitches}
+            canControl={!!data?.canControlPump && !isEditSwitches}
             onToggle={() => {
               if (!isEditSwitches) data?.onToggleTankValve?.(id, 'inlet', !inletOn);
             }}
@@ -496,7 +498,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         >
           <Pump3DSwitch
             isOn={outletOn}
-            canControl={!isEditSwitches}
+            canControl={!!data?.canControlPump && !isEditSwitches}
             onToggle={() => {
               if (!isEditSwitches) data?.onToggleTankValve?.(id, 'outlet', !outletOn);
             }}
@@ -513,8 +515,8 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         )}
       </div>
 
-      <PrecisionHandle id="inlet-1" type="target" x={0.1532} y={0.1167} basePosition={Position.Left} isFlipped={isFlipped} />
-      <PrecisionHandle id="outlet-1" type="source" x={0.8468} y={0.1500} basePosition={Position.Right} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-1" type="target" x={0.1439} y={0.1167} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-1" type="source" x={0.8558} y={0.1500} basePosition={Position.Right} isFlipped={isFlipped} />
 
       {data.allowMoveResize && (
         <NodeResizer
@@ -530,7 +532,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
       <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
         <TankWaterTank
           fillPercentage={tankState.fillPercentage}
-          isFilling={tankState.isFilling && inletOn}
+          isFilling={tankState.isFilling && inletOn && edges.some(e => e.target === id && (e.data as any)?.isFlowing)}
           isDraining={tankState.isDraining && outletOn}
           showInletPipe={true}
           showOutletPipe={true}
@@ -552,6 +554,7 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const tankState = deriveTankState(data ?? {});
   const isFlipped = !!data?.flipHorizontal;
   const updateNodeInternals = useUpdateNodeInternals();
+  const edges = useEdges();
   React.useEffect(() => {
     updateNodeInternals(id);
   }, [id, data?.customWidth, data?.flipHorizontal, updateNodeInternals]);
@@ -566,6 +569,8 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           fillPercentage={tankState.fillPercentage}
           isFilling={tankState.isFilling}
           isDraining={tankState.isDraining}
+          isFillingActive={edges.some(e => e.target === id && (!e.targetHandle || e.targetHandle === 'inlet-1') && (e.data as any)?.isFlowing)}
+          isFilling2Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-2' && (e.data as any)?.isFlowing)}
           waveSpeed={tankState.waveSpeed}
           waveHeight={tankState.waveHeight}
           temperature={tankState.temperature}
@@ -581,10 +586,10 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
                   x=0.8895 = symmetric right side
                   y=0.0750 = inlet centerline y=45/600
                   y=0.1833 = outlet centerline y=110/600 */}
-      <PrecisionHandle id="inlet-1" type="target" x={0.2105} y={0.0750} basePosition={Position.Left} isFlipped={isFlipped} />
-      <PrecisionHandle id="inlet-2" type="target" x={0.7895} y={0.0750} basePosition={Position.Right} isFlipped={isFlipped} />
-      <PrecisionHandle id="outlet-1" type="source" x={0.2105} y={0.1833} basePosition={Position.Left} isFlipped={isFlipped} />
-      <PrecisionHandle id="outlet-2" type="source" x={0.7895} y={0.1833} basePosition={Position.Right} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-1" type="target" x={0.1945} y={0.0750} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-2" type="target" x={0.8055} y={0.0750} basePosition={Position.Right} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-1" type="source" x={0.1945} y={0.1833} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-2" type="source" x={0.8055} y={0.1833} basePosition={Position.Right} isFlipped={isFlipped} />
 
       {data.allowMoveResize && (
         <NodeResizer
@@ -651,7 +656,7 @@ function SwitchNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
 
   const status = (targetPump?.data as LiveNodeData | undefined)?.status ?? data?.status ?? 'Healthy';
   const isOn = status !== 'Offline';
-  const canControl = true;
+  const canControl = !!data?.canControlPump;
   const isEditSwitches = !!data?.allowMoveSwitches;
   const { zoom } = useViewport();
 
@@ -756,7 +761,7 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const isOn = status !== 'Offline';
   const vibrationBoost = status === 'Critical' ? 1.5 : status === 'Warning' ? 1.15 : 1;
   const isFlipped = !!data?.flipHorizontal;
-  const canControl = true;
+  const canControl = !!data?.canControlPump;
   const isEditSwitches = !!data?.allowMoveSwitches;
   const { zoom } = useViewport();
 
@@ -857,8 +862,8 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', minWidth: 160, minHeight: 100, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
-      <PrecisionHandle id="inlet-1" type="target" x={0.0872} y={0.5000} basePosition={Position.Left} isFlipped={isFlipped} />
-      <PrecisionHandle id="outlet-1" type="source" x={0.7000} y={0.1149} basePosition={Position.Top} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-1" type="target" x={0.0572} y={0.5000} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="outlet-1" type="source" x={0.7000} y={0.0949} basePosition={Position.Top} isFlipped={isFlipped} />
 
       <div
         className="nodrag nopan"
@@ -1993,6 +1998,7 @@ export default function StarTopology() {
             sourceHandle: edge.sourcePortId,
             targetHandle: edge.targetPortId,
             type: 'waterFlow',
+            zIndex: isFlowing ? 10 : 0,
             data: {
               isFlowing,
             },
@@ -2206,10 +2212,11 @@ export default function StarTopology() {
 
         const nextIsFlowing = isFlowing;
 
-        if (e.data?.isFlowing !== nextIsFlowing) {
+        if ((e.data as any)?.isFlowing !== nextIsFlowing) {
           changed = true;
           return {
             ...e,
+            zIndex: nextIsFlowing ? 10 : 0,
             data: {
               ...e.data,
               isFlowing: nextIsFlowing,
@@ -2423,6 +2430,7 @@ export default function StarTopology() {
       setEdges((eds) => addEdge({
         ...params,
         type: 'waterFlow',
+        zIndex: 10,
         data: {
           isFlowing: true,
         }
