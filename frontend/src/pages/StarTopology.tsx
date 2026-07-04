@@ -1965,7 +1965,7 @@ export default function StarTopology() {
               waveHeightActive: cfg.waveHeightActive,
               tempThreshold: cfg.tempThreshold,
               tempMaxThreshold: cfg.tempMaxThreshold,
-              canControlPump,
+              canControlPump: interactivityRef.current.canControlPump,
               onTogglePump: handleTogglePump,
               onToggleTankValve: handleToggleTankValve,
               onConnectSwitchToPump: handleConnectSwitchToPump,

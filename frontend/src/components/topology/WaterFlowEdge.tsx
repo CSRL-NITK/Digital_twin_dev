@@ -29,7 +29,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   // Fallback to smooth step if smart routing fails
   let svgPathString = '';
   
-  const LEAD_PX = 16;
+  const LEAD_PX = 42;
   
   let modSourceX = sourceX;
   let modSourceY = sourceY;
@@ -76,6 +76,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
       targetY,
       targetPosition,
       borderRadius: 12,
+      offset: LEAD_PX,
     });
     svgPathString = path;
   }
@@ -89,25 +90,41 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
         style={{
           ...style,
           stroke: pipeColor,
-          strokeWidth: isFlowing ? 8 : 6,
+          strokeWidth: isFlowing ? 14 : 10,
           strokeLinejoin: 'round',
           fill: 'none',
         }}
       />
       
-      {/* 2. Inner Flow Stream (Animated dots/dashes) */}
+      {/* 2. Inner Liquid (Solid tint to show filled pipe) */}
+      {isFlowing && (
+        <BaseEdge
+          id={`${id}-liquid`}
+          path={svgPathString}
+          style={{
+            ...style,
+            stroke: strokeColor,
+            strokeWidth: 8,
+            strokeLinejoin: 'round',
+            opacity: 0.25,
+            fill: 'none',
+          }}
+        />
+      )}
+
+      {/* 3. Inner Flow Stream (Animated bright dashes/bubbles) */}
       <BaseEdge
         id={id}
         path={svgPathString}
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: strokeColor,
-          strokeWidth: isFlowing ? 4 : 2,
-          strokeDasharray: isFlowing ? '6, 12' : '4, 4',
-          opacity: isFlowing ? 0.9 : 0.4,
-          filter: isFlowing ? 'drop-shadow(0px 0px 6px rgba(0,255,255,0.6))' : 'none',
-          animation: isFlowing ? 'dash-flow 1s linear infinite' : 'none',
+          stroke: isFlowing ? '#ffffff' : strokeColor,
+          strokeWidth: isFlowing ? 6 : 2,
+          strokeDasharray: isFlowing ? '6, 14' : '4, 4',
+          opacity: isFlowing ? 1 : 0.4,
+          filter: isFlowing ? 'drop-shadow(0px 0px 8px rgba(0,255,255,0.8))' : 'none',
+          animation: isFlowing ? 'dash-flow 0.6s linear infinite' : 'none',
           strokeLinecap: 'round',
           fill: 'none',
         }}
