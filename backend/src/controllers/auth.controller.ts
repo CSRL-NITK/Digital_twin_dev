@@ -203,8 +203,8 @@ export const listUsers = async (req: Request, res: Response) => {
 
 export const deleteUser = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id as string;
-    const requesterId = (req as any).user?.userId;
+    const id = parseInt(String(req.params.id), 10);
+    const requesterId = parseInt((req as any).user?.userId, 10);
     if (id === requesterId) return res.status(400).json({ error: "You cannot delete your own account" });
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -218,9 +218,9 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const updateUserRole = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id as string;
+    const id = parseInt(String(req.params.id), 10);
     const role = req.body.role as string;
-    const requesterId = (req as any).user?.userId;
+    const requesterId = parseInt((req as any).user?.userId, 10);
     const allowedRoles = ['admin', 'operator', 'viewer'];
     if (!allowedRoles.includes(role)) return res.status(400).json({ error: 'Invalid role' });
     if (id === requesterId && role !== 'admin') return res.status(400).json({ error: "You cannot demote your own admin account" });
