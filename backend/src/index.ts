@@ -87,7 +87,7 @@ app.use(cookieParser());
 // Global API Rate Limiter
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per window
+  max: 60000, 
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -104,17 +104,16 @@ app.get('/api/topologies', async (req, res) => {
   res.json(topologies);
 });
 
-app.get('/api/topologies/:name', async (req, res) => {
-  const { name } = req.params;
-  // Convert basic param to matching name
-  const topologyName = name === 'star' ? 'Star Topology' : name;
-  const topology = await prisma.topology.findFirst({
-    where: { name: { contains: topologyName, mode: 'insensitive' } },
+app.get('/api/topologies/:id', async (req, res) => {
+  const topologyId = parseInt(req.params.id, 10);
+  if (isNaN(topologyId)) {
+    return res.status(400).json({ error: 'Invalid topology ID' });
+  }
+  const topology = await prisma.topology.findUnique({
+    where: { id: topologyId },
     include: {
       nodes: {
-        include: {
-          sensors: true
-        }
+        include: { sensors: true }
       },
       edges: true
     }
@@ -169,7 +168,7 @@ app.get('/api/readings/latest', async (req, res) => {
 });
 
 app.get('/api/readings/history/:nodeId', async (req, res) => {
-  const { nodeId } = req.params;
+  const nodeId = parseInt(req.params.nodeId, 10);
   const history = await prisma.sensorReading.findMany({
     where: { sensor: { nodeId } },
     include: { sensor: true },
@@ -180,7 +179,7 @@ app.get('/api/readings/history/:nodeId', async (req, res) => {
 });
 
 app.patch('/api/nodes/:id/position', async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const { positionX, positionY } = req.body;
   
   try {
@@ -195,7 +194,7 @@ app.patch('/api/nodes/:id/position', async (req, res) => {
 });
 
 app.patch('/api/nodes/:id/status', async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const { status } = req.body;
   
   try {
@@ -264,15 +263,25 @@ app.post('/api/nodes', async (req, res) => {
 });
 
 app.patch('/api/nodes/:id', async (req, res) => {
-  const { id } = req.params;
-  const { nodeName, status, nodeType } = req.body;
+  const id = parseInt(req.params.id, 10);
+  const { nodeName, status, nodeType, attributes } = req.body;
   try {
+    const existingNode = await prisma.node.findUnique({ where: { id } });
+    if (!existingNode) return res.status(404).json({ error: 'Node not found' });
+
+    let mergedAttributes = existingNode.attributes;
+    if (attributes !== undefined) {
+      const currentAttrs = (existingNode.attributes as object) || {};
+      mergedAttributes = { ...currentAttrs, ...attributes };
+    }
+
     const updated = await prisma.node.update({
       where: { id },
       data: {
-        ...(nodeName && { nodeName }),
-        ...(status && { status }),
-        ...(nodeType && { nodeType })
+        ...(nodeName !== undefined && { nodeName }),
+        ...(status !== undefined && { status }),
+        ...(nodeType !== undefined && { nodeType }),
+        ...(attributes !== undefined && { attributes: mergedAttributes as any })
       },
       include: { sensors: true }
     });
@@ -285,7 +294,7 @@ app.patch('/api/nodes/:id', async (req, res) => {
 });
 
 app.delete('/api/nodes/:id', async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   try {
     await prisma.node.delete({
       where: { id }
@@ -311,8 +320,8 @@ app.post('/api/edges', async (req, res) => {
     const newEdge = await prisma.edge.create({
       data: {
         topologyId: topology.id,
-        sourceNodeId: source,
-        targetNodeId: target,
+        sourceNodeId: parseInt(source, 10),
+        targetNodeId: parseInt(target, 10),
         sourcePortId: sourceHandle || null,
         targetPortId: targetHandle || null,
         edgeType: 'pipe',
@@ -328,7 +337,7 @@ app.post('/api/edges', async (req, res) => {
 });
 
 app.delete('/api/edges/:id', async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   try {
     await prisma.edge.delete({ where: { id } });
     io.emit('edge:deleted', { id });
@@ -351,41 +360,45 @@ app.get('/api/alerts', async (req, res) => {
 });
 
 // Endpoint to update topology viewport / custom asset configs (saved as JSON in description)
-app.patch('/api/topologies/:name/viewport', async (req, res) => {
-  const { name } = req.params;
-  const topologyName = name === 'star' ? 'Star Topology' : name;
+app.patch('/api/topologies/:id/viewport', async (req, res) => {
+  const topologyId = parseInt(req.params.id, 10);
   const { x, y, w, h, customConfigs } = req.body;
   
+  if (isNaN(topologyId)) {
+    return res.status(400).json({ error: 'Invalid topology ID' });
+  }
+
   try {
-    const topology = await prisma.topology.findFirst({ where: { name: topologyName } });
+    const topology = await prisma.topology.findUnique({ where: { id: topologyId } });
     if (!topology) {
       return res.status(404).json({ error: 'Topology not found' });
     }
     
-    // Parse existing description or start fresh
-    let config: any = {};
+    let descriptionObj: any = {};
     if (topology.description) {
-      try { config = JSON.parse(topology.description); } catch (e) {}
+      try {
+        descriptionObj = JSON.parse(topology.description);
+      } catch (e) {}
     }
     
     if (x !== undefined && y !== undefined && w !== undefined && h !== undefined) {
-      config.viewport = { x, y, w, h };
+      descriptionObj.viewport = { x, y, w, h };
     }
     if (customConfigs !== undefined) {
-      config.customConfigs = { ...(config.customConfigs || {}), ...customConfigs };
+      descriptionObj.customConfigs = customConfigs;
     }
     
-    await prisma.topology.update({
-      where: { id: topology.id },
-      data: { description: JSON.stringify(config) }
+    const updated = await prisma.topology.update({
+      where: { id: topologyId },
+      data: { description: JSON.stringify(descriptionObj) }
     });
     
-    res.json({ success: true, config });
-  } catch (error) {
-    console.error('Failed to update topology viewport:', error);
+    res.json({ success: true, updated });
+  } catch (err) {
     res.status(500).json({ error: 'Failed to update viewport' });
   }
 });
+
 
 // Endpoint for ThingsBoard Rule Engine Webhook
 app.post('/api/telemetry/thingsboard', async (req, res) => {
