@@ -12,6 +12,7 @@ interface WaterTankProps {
   waveSpeed: 'slow' | 'medium' | 'fast';
   waveHeight: 'calm' | 'normal' | 'active';
   temperature: number;
+  idSuffix?: string;
   waveHeightCalm?: number;
   waveHeightNormal?: number;
   waveHeightActive?: number;
@@ -56,6 +57,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   waveHeightActive = 17,
   tempThreshold = 55.0,
   tempMaxThreshold = 75.0,
+  idSuffix = 'default',
 }) => {
   // Constrain fill percentage
   const clampedFill = Math.max(0, Math.min(100, fillPercentage));
@@ -468,17 +470,17 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         {/* SVG Defs & Gradients */}
         <defs>
           {/* Inner Tank Clip Path */}
-          <clipPath id="tank-inner">
+          <clipPath id={`tank-inner-${idSuffix}`}>
             <path d={innerPathD} />
           </clipPath>
 
           {/* Water level clip path */}
-          <clipPath id="water-level-clip">
+          <clipPath id={`water-level-clip-${idSuffix}`}>
             <rect x={outerLeftX - 10} y={Y_water} width={TANK_WIDTH + 20} height={Y_BOTTOM - Y_water + 20} />
           </clipPath>
 
           {/* Glass Shell Gradient */}
-          <linearGradient id="glassGradient" x1={outerLeftX} y1={(TANK_CYLINDER_Y1 + TANK_CYLINDER_Y2) / 2} x2={outerRightX} y2={(TANK_CYLINDER_Y1 + TANK_CYLINDER_Y2) / 2} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`glassGradient-${idSuffix}`} x1={outerLeftX} y1={(TANK_CYLINDER_Y1 + TANK_CYLINDER_Y2) / 2} x2={outerRightX} y2={(TANK_CYLINDER_Y1 + TANK_CYLINDER_Y2) / 2} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#0F766E" stopOpacity="0.25" />
             <stop offset="20%" stopColor="#0F766E" stopOpacity="0.06" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.28" />
@@ -487,7 +489,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Metal Parts Gradient (Flanges, Legs, Hatch) */}
-          <linearGradient id="metalGradient" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id={`metalGradient-${idSuffix}`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#475569" />
             <stop offset="25%" stopColor="#CBD5E1" />
             <stop offset="50%" stopColor="#94A3B8" />
@@ -496,14 +498,14 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Metal Vertical Gradient (Pipes) */}
-          <linearGradient id="metalVerticalGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`metalVerticalGradient-${idSuffix}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#334155" />
             <stop offset="50%" stopColor="#CBD5E1" />
             <stop offset="100%" stopColor="#1E293B" />
           </linearGradient>
 
           {/* Tank Outline Gradient */}
-          <linearGradient id="tankOutlineGradient" x1={outerLeftX} y1={Y_TOP} x2={outerRightX} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`tankOutlineGradient-${idSuffix}`} x1={outerLeftX} y1={Y_TOP} x2={outerRightX} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#E2E8F0" />
             <stop offset="20%" stopColor="#0F766E" />
             <stop offset="50%" stopColor="#0D9488" />
@@ -512,24 +514,24 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Water Layers Gradients */}
-          <linearGradient id="waterGradientFront" x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterGradientFront-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.frontTop} stopOpacity="0.92" />
             <stop offset="100%" stopColor={waterColors.frontBottom} stopOpacity="0.98" />
           </linearGradient>
 
-          <linearGradient id="waterGradientMiddle" x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterGradientMiddle-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.midTop} stopOpacity="0.72" />
             <stop offset="100%" stopColor={waterColors.midBottom} stopOpacity="0.85" />
           </linearGradient>
 
-          <linearGradient id="waterGradientBack" x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterGradientBack-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.backTop} stopOpacity="0.52" />
             <stop offset="100%" stopColor={waterColors.backBottom} stopOpacity="0.68" />
           </linearGradient>
 
           {/* Thermal Convection Gradient */}
           <linearGradient 
-            id="thermalConvectionGradient" 
+            id={`thermalConvectionGradient-${idSuffix}`} 
             x1={TANK_CENTER_X} 
             y1={Y_BOTTOM} 
             x2={TANK_CENTER_X} 
@@ -543,20 +545,20 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Water Pour Stream Gradients */}
-          <linearGradient id="waterStreamGradient" x1={INLET_CENTER_X - 4} y1="0" x2={INLET_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterStreamGradient-${idSuffix}`} x1={INLET_CENTER_X - 4} y1="0" x2={INLET_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
             <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
             <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
           </linearGradient>
 
-          <linearGradient id="waterStreamShimmer" x1={INLET_CENTER_X - 7} y1="0" x2={INLET_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterStreamShimmer-${idSuffix}`} x1={INLET_CENTER_X - 7} y1="0" x2={INLET_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
             <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
           </linearGradient>
 
           {/* Gauge Dial Face Gradient */}
-          <radialGradient id="gaugeFace" cx="50%" cy="50%" r="50%">
+          <radialGradient id={`gaugeFace-${idSuffix}`} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#1E293B" />
             <stop offset="85%" stopColor="#0F172A" />
             <stop offset="100%" stopColor="#020617" />
@@ -565,8 +567,8 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
         {/* Supporting legs */}
         <g id="tank-legs">
-          <path d={`M ${legOL_x1},${legOL_y1} L ${legOL_x2},${legOL_y2} L ${legOL_x3},${legOL_y2} L ${legOL_x4},${legOL_y4} Z`} fill="url(#metalGradient)" stroke="#1E293B" strokeWidth="0.5" />
-          <path d={`M ${legOR_x1},${legOR_y1} L ${legOR_x2},${legOR_y2} L ${legOR_x3},${legOR_y2} L ${legOR_x4},${legOR_y4} Z`} fill="url(#metalGradient)" stroke="#1E293B" strokeWidth="0.5" />
+          <path d={`M ${legOL_x1},${legOL_y1} L ${legOL_x2},${legOL_y2} L ${legOL_x3},${legOL_y2} L ${legOL_x4},${legOL_y4} Z`} fill={`url(#metalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
+          <path d={`M ${legOR_x1},${legOR_y1} L ${legOR_x2},${legOR_y2} L ${legOR_x3},${legOR_y2} L ${legOR_x4},${legOR_y4} Z`} fill={`url(#metalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
           
           <path d={`M ${legIL_x1},${legI_y1} L ${legIL_x1},552 L ${legIL_x2},552 L ${legIL_x2},${legI_y2} Z`} fill="#334155" opacity="0.9" />
           <path d={`M ${legIR_x1},${legI_y1} L ${legIR_x1},552 L ${legIR_x2},552 L ${legIR_x2},${legI_y2} Z`} fill="#1E293B" opacity="0.95" />
@@ -588,7 +590,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           {/* Inlet Pipe Elbow */}
           <path
             d={`M ${inletPipeStartX},70 L ${INLET_CENTER_X - 12},70 A 12,12 0 0,1 ${INLET_CENTER_X},82 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-            stroke="url(#metalVerticalGradient)"
+            stroke={`url(#metalVerticalGradient-${idSuffix})`}
             strokeWidth="13"
             strokeLinecap="round"
             fill="none"
@@ -602,7 +604,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           {/* Overflow pipe */}
           <path
             d={`M ${outerLeftX + 2},${TANK_CYLINDER_Y1 + 40} L ${outerLeftX - 26},${TANK_CYLINDER_Y1 + 40} A 10,10 0 0,0 ${outerLeftX - 36},${TANK_CYLINDER_Y1 + 50} L ${outerLeftX - 36},${TANK_CYLINDER_Y1 + 130}`}
-            stroke="url(#metalVerticalGradient)"
+            stroke={`url(#metalVerticalGradient-${idSuffix})`}
             strokeWidth="9"
             fill="none"
           />
@@ -611,7 +613,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
         {/* Bottom center drain plug */}
         <g id="bottom-center-plug">
-          <rect x={TANK_CENTER_X - 7} y={Y_BOTTOM - 1} width="14" height="12" fill="url(#metalVerticalGradient)" />
+          <rect x={TANK_CENTER_X - 7} y={Y_BOTTOM - 1} width="14" height="12" fill={`url(#metalVerticalGradient-${idSuffix})`} />
           <rect x={TANK_CENTER_X - 14} y={Y_BOTTOM + 6} width="28" height="6" rx="1.5" fill="#64748B" stroke="#1E293B" strokeWidth="0.75" />
           <circle cx={TANK_CENTER_X - 8} cy={Y_BOTTOM + 9} r="1.2" fill="#1E293B" />
           <circle cx={TANK_CENTER_X} cy={Y_BOTTOM + 9} r="1.2" fill="#1E293B" />
@@ -622,18 +624,18 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         <path
           id="tank-shell-bg"
           d={outerPathD}
-          fill="url(#glassGradient)"
+          fill={`url(#glassGradient-${idSuffix})`}
         />
 
         {/* Thermal convection background glow */}
         {clampedFill > 0 && thermalIntensity > 0 && (
-          <g id="thermal-backdrop-layer" clipPath="url(#tank-inner)" className="thermal-glow-convection" style={{ mixBlendMode: 'screen' }}>
+          <g id={`thermal-backdrop-layer-${idSuffix}`} clipPath={`url(#tank-inner-${idSuffix})`} className="thermal-glow-convection" style={{ mixBlendMode: 'screen' }}>
             <rect
               x={outerLeftX}
               y={Y_water}
               width={TANK_WIDTH}
               height={Y_BOTTOM - Y_water + 20}
-              fill="url(#thermalConvectionGradient)"
+              fill={`url(#thermalConvectionGradient-${idSuffix})`}
               opacity={thermalIntensity * 0.7}
             />
           </g>
@@ -641,12 +643,12 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
         {/* Dynamic fluid container and waves */}
         {clampedFill > 0 && (
-          <g id="animated-water" clipPath="url(#tank-inner)">
+          <g id={`animated-water-${idSuffix}`} clipPath={`url(#tank-inner-${idSuffix})`}>
             {/* Back Wave */}
             <g transform={`translate(0, ${Y_water})`}>
               <path
                 d={backWaveD}
-                fill="url(#waterGradientBack)"
+                fill={`url(#waterGradientBack-${idSuffix})`}
                 className="wave-back"
               />
             </g>
@@ -655,7 +657,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
             <g transform={`translate(0, ${Y_water})`}>
               <path
                 d={midWaveD}
-                fill="url(#waterGradientMiddle)"
+                fill={`url(#waterGradientMiddle-${idSuffix})`}
                 className="wave-middle"
               />
             </g>
@@ -664,7 +666,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
             <g transform={`translate(0, ${Y_water})`}>
               <path
                 d={frontWaveD}
-                fill="url(#waterGradientFront)"
+                fill={`url(#waterGradientFront-${idSuffix})`}
                 className="wave-front"
               />
             </g>
@@ -677,14 +679,14 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                   y={Y_water - 15}
                   width={TANK_WIDTH + 20}
                   height={Y_BOTTOM - Y_water + 30}
-                  fill="url(#thermalConvectionGradient)"
+                  fill={`url(#thermalConvectionGradient-${idSuffix})`}
                   opacity={thermalIntensity * 0.55}
                 />
               </g>
             )}
 
             {/* Floating bubbles */}
-            <g id="water-bubbles" clipPath="url(#water-level-clip)">
+            <g id={`water-bubbles-${idSuffix}`} clipPath={`url(#water-level-clip-${idSuffix})`}>
               <circle cx="0" cy="0" r="3.2" fill="#FFFFFF" opacity="0.65" className="bubble-1" />
               <circle cx="0" cy="0" r="2.0" fill="#FFFFFF" opacity="0.50" className="bubble-2" />
               <circle cx="0" cy="0" r="4.2" fill="#FFFFFF" opacity="0.75" className="bubble-3" />
@@ -710,11 +712,11 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           <circle cx={outerRightX - 2.5} cy={TANK_CYLINDER_Y2 - 20} r="1.1" fill="#1E293B" />
           <circle cx={outerRightX - 2.5} cy={TANK_CYLINDER_Y2 - 9} r="1.1" fill="#1E293B" />
 
-          <rect x={outerRightX + 1} y={TANK_CYLINDER_Y2 - 28} width="42" height="16" fill="url(#metalVerticalGradient)" stroke="#1E293B" strokeWidth="0.5" />
+          <rect x={outerRightX + 1} y={TANK_CYLINDER_Y2 - 28} width="42" height="16" fill={`url(#metalVerticalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
 
           <path
             d={`M ${outerRightX + 40},${TANK_CYLINDER_Y2 - 28} L ${outerRightX + 54},${TANK_CYLINDER_Y2 - 28} A 12,12 0 0,1 ${outerRightX + 66},${TANK_CYLINDER_Y2 - 16} L ${outerRightX + 66},${TANK_CYLINDER_Y2 + 4} L ${outerRightX + 50},${TANK_CYLINDER_Y2 + 4} L ${outerRightX + 50},${TANK_CYLINDER_Y2 - 12} A 4,4 0 0,0 ${outerRightX + 46},${TANK_CYLINDER_Y2 - 16} L ${outerRightX + 40},${TANK_CYLINDER_Y2 - 16} Z`}
-            fill="url(#metalVerticalGradient)"
+            fill={`url(#metalVerticalGradient-${idSuffix})`}
             stroke="#1E293B"
             strokeWidth="0.5"
           />
@@ -722,7 +724,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           <rect x={outerRightX + 48} y={TANK_CYLINDER_Y2 + 4} width="20" height="4" rx="1" fill="#94A3B8" stroke="#1E293B" strokeWidth="0.5" />
 
           {/* Integrated valve handwheel */}
-          <rect x={outerRightX + 29} y={TANK_CYLINDER_Y2 - 42} width="6" height="14" fill="url(#metalVerticalGradient)" stroke="#1E293B" strokeWidth="0.5" />
+          <rect x={outerRightX + 29} y={TANK_CYLINDER_Y2 - 42} width="6" height="14" fill={`url(#metalVerticalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
           <rect x={outerRightX + 25} y={TANK_CYLINDER_Y2 - 36} width="14" height="4" rx="1" fill="#475569" stroke="#1E293B" strokeWidth="0.5" />
 
           <g className={isDraining ? 'valve-wheel-active' : ''}>
@@ -736,10 +738,10 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           {/* Fluid flow inside pipes */}
           {isDraining && clampedFill > 1 && (
             <g id="outlet-flow-core">
-              <rect x={outerRightX - 2} y={TANK_CYLINDER_Y2 - 24} width="44" height="8" fill="url(#waterGradientFront)" opacity="0.92" />
+              <rect x={outerRightX - 2} y={TANK_CYLINDER_Y2 - 24} width="44" height="8" fill={`url(#waterGradientFront-${idSuffix})`} opacity="0.92" />
               <path
                 d={spoutCurveD}
-                fill="url(#waterGradientFront)"
+                fill={`url(#waterGradientFront-${idSuffix})`}
                 opacity="0.92"
               />
 
@@ -765,7 +767,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               y={TANK_CYLINDER_Y2 + 8}
               width="10"
               height={Math.max(0, 552 - (TANK_CYLINDER_Y2 + 8))}
-              fill="url(#waterStreamGradient)"
+              fill={`url(#waterStreamGradient-${idSuffix})`}
               opacity="0.92"
             />
             <line
@@ -805,7 +807,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               y={INLET_NOZZLE_Y}
               width="18"
               height={Math.max(0, Y_water - INLET_NOZZLE_Y)}
-              fill="url(#waterStreamShimmer)"
+              fill={`url(#waterStreamShimmer-${idSuffix})`}
               className="shimmer-pulse"
               opacity="0.4"
             />
@@ -815,7 +817,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               y={INLET_NOZZLE_Y}
               width="10"
               height={Math.max(0, Y_water - INLET_NOZZLE_Y)}
-              fill="url(#waterStreamGradient)"
+              fill={`url(#waterStreamGradient-${idSuffix})`}
               opacity="0.95"
               rx="3"
             />
@@ -861,7 +863,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               cy={INLET_NOZZLE_Y}
               rx="12"
               ry="5"
-              fill="url(#waterStreamGradient)"
+              fill={`url(#waterStreamGradient-${idSuffix})`}
               className="nozzle-spray"
               opacity="0.9"
             />
@@ -900,7 +902,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
               y={TANK_CYLINDER_Y1 + 130}
               width="4.5"
               height={Math.max(0, 552 - (TANK_CYLINDER_Y1 + 130))}
-              fill="url(#waterStreamGradient)"
+              fill={`url(#waterStreamGradient-${idSuffix})`}
               opacity="0.85"
             />
             <line
@@ -919,12 +921,12 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
         {/* Top & Bottom Seam collars */}
         <g id="heavy-seam-collars" opacity="0.95">
-          <path d={`M ${outerLeftX},${TANK_CYLINDER_Y1} A ${TANK_OUTER_RADIUS_X},14 0 0,0 ${outerRightX},${TANK_CYLINDER_Y1}`} stroke="url(#metalGradient)" strokeWidth="6.5" fill="none" />
+          <path d={`M ${outerLeftX},${TANK_CYLINDER_Y1} A ${TANK_OUTER_RADIUS_X},14 0 0,0 ${outerRightX},${TANK_CYLINDER_Y1}`} stroke={`url(#metalGradient-${idSuffix})`} strokeWidth="6.5" fill="none" />
           {topCollarBolts.map((bolt, idx) => (
             <circle key={`top-bolt-${idx}`} cx={bolt.cx} cy={bolt.cy} r="1.5" fill="#1E293B" stroke="#E2E8F0" strokeWidth="0.5" />
           ))}
 
-          <path d={`M ${outerLeftX},${TANK_CYLINDER_Y2} A ${TANK_OUTER_RADIUS_X},14 0 0,0 ${outerRightX},${TANK_CYLINDER_Y2}`} stroke="url(#metalGradient)" strokeWidth="6.5" fill="none" />
+          <path d={`M ${outerLeftX},${TANK_CYLINDER_Y2} A ${TANK_OUTER_RADIUS_X},14 0 0,0 ${outerRightX},${TANK_CYLINDER_Y2}`} stroke={`url(#metalGradient-${idSuffix})`} strokeWidth="6.5" fill="none" />
           {bottomCollarBolts.map((bolt, idx) => (
             <circle key={`bottom-bolt-${idx}`} cx={bolt.cx} cy={bolt.cy} r="1.5" fill="#1E293B" stroke="#E2E8F0" strokeWidth="0.5" />
           ))}
@@ -932,12 +934,12 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
         {/* Analog pressure gauge */}
         <g id="scada-pressure-gauge">
-          <rect x={outerRightX} y={GAUGE_CENTER_Y - 6} width="28" height="12" fill="url(#metalVerticalGradient)" stroke="#1E293B" strokeWidth="0.5" />
+          <rect x={outerRightX} y={GAUGE_CENTER_Y - 6} width="28" height="12" fill={`url(#metalVerticalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
           
-          <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="28" fill="url(#metalGradient)" stroke="#1E293B" strokeWidth="1" />
+          <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="28" fill={`url(#metalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="1" />
           <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="26" fill="none" stroke="#FFFFFF" strokeWidth="0.75" opacity="0.4" />
           
-          <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="23" fill="url(#gaugeFace)" />
+          <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="23" fill={`url(#gaugeFace-${idSuffix})`} />
 
           {/* Color sectors */}
           <path d={`M ${outerRightX + 28.5},${GAUGE_CENTER_Y - 11.5} A 22,22 0 0,1 ${outerRightX + 34},${GAUGE_CENTER_Y - 19}`} stroke="#EF4444" strokeWidth="1.5" fill="none" opacity="0.65" />
@@ -985,7 +987,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         <g id="glass-specular-highlights" pointerEvents="none">
           <path
             d={outerPathD}
-            stroke="url(#tankOutlineGradient)"
+            stroke={`url(#tankOutlineGradient-${idSuffix})`}
             strokeWidth="3.8"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -1012,8 +1014,8 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
           {/* Top inspection hatch */}
           <g id="inspection-hatch">
-            <rect x={TANK_CENTER_X - 18} y={HATCH_BASE_Y - 6} width="36" height="6" fill="url(#metalVerticalGradient)" stroke="#1E293B" strokeWidth="0.5" />
-            <rect x={TANK_CENTER_X - 23} y={HATCH_BASE_Y - 12} width="46" height="6" rx="1.5" fill="url(#metalGradient)" stroke="#1E293B" strokeWidth="0.5" />
+            <rect x={TANK_CENTER_X - 18} y={HATCH_BASE_Y - 6} width="36" height="6" fill={`url(#metalVerticalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
+            <rect x={TANK_CENTER_X - 23} y={HATCH_BASE_Y - 12} width="46" height="6" rx="1.5" fill={`url(#metalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="0.5" />
             
             <rect x={TANK_CENTER_X - 17} y={HATCH_BASE_Y - 17} width="5" height="5" rx="1" fill="#475569" stroke="#1E293B" strokeWidth="0.5" />
             <rect x={TANK_CENTER_X + 12} y={HATCH_BASE_Y - 17} width="5" height="5" rx="1" fill="#475569" stroke="#1E293B" strokeWidth="0.5" />

@@ -487,17 +487,17 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         {/* SVG Defs & Gradients */}
         <defs>
           {/* Inner Tank Clip Path */}
-          <clipPath id="tank-inner">
+          <clipPath id={`tank-inner-${idSuffix}`}>
             <path d={innerPathD} />
           </clipPath>
 
           {/* Water level clip path */}
-          <clipPath id="water-level-clip">
+          <clipPath id={`water-level-clip-${idSuffix}`}>
             <rect x={outerLeftX - 10} y={Y_water} width={TANK_WIDTH + 20} height={Y_BOTTOM - Y_water + 20} />
           </clipPath>
 
           {/* Glass Shell Gradient */}
-          <linearGradient id="glassGradient" x1={outerLeftX} y1={TANK_CYLINDER_Y1} x2={outerRightX} y2={TANK_CYLINDER_Y2} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`glassGradient-${idSuffix}`} x1={outerLeftX} y1={TANK_CYLINDER_Y1} x2={outerRightX} y2={TANK_CYLINDER_Y2} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#0F766E" stopOpacity="0.18" />
             <stop offset="15%" stopColor="#0F766E" stopOpacity="0.05" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.02" />
@@ -506,7 +506,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Diagonal Glare Gradient */}
-          <linearGradient id="diagonalGlareGradient" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id={`diagonalGlareGradient-${idSuffix}`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
             <stop offset="35%" stopColor="#FFFFFF" stopOpacity="0.45" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
@@ -540,7 +540,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Tank Outline Gradient */}
-          <linearGradient id="tankOutlineGradient" x1={outerLeftX} y1={Y_TOP} x2={outerRightX} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`tankOutlineGradient-${idSuffix}`} x1={outerLeftX} y1={Y_TOP} x2={outerRightX} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#E2E8F0" />
             <stop offset="20%" stopColor="#0F766E" />
             <stop offset="50%" stopColor="#0D9488" />
@@ -549,24 +549,24 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Water Layers Gradients */}
-          <linearGradient id="waterGradientFront" x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterGradientFront-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.frontTop} stopOpacity="0.92" />
             <stop offset="100%" stopColor={waterColors.frontBottom} stopOpacity="0.98" />
           </linearGradient>
 
-          <linearGradient id="waterGradientMiddle" x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterGradientMiddle-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.midTop} stopOpacity="0.72" />
             <stop offset="100%" stopColor={waterColors.midBottom} stopOpacity="0.85" />
           </linearGradient>
 
-          <linearGradient id="waterGradientBack" x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterGradientBack-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.backTop} stopOpacity="0.52" />
             <stop offset="100%" stopColor={waterColors.backBottom} stopOpacity="0.68" />
           </linearGradient>
 
           {/* Thermal Convection Gradient */}
           <linearGradient 
-            id="thermalConvectionGradient" 
+            id={`thermalConvectionGradient-${idSuffix}`} 
             x1={TANK_CENTER_X} 
             y1={Y_BOTTOM} 
             x2={TANK_CENTER_X} 
@@ -580,20 +580,20 @@ export const WaterTank: React.FC<WaterTankProps> = ({
           </linearGradient>
 
           {/* Water Pour Stream Gradients */}
-          <linearGradient id="waterStreamGradient" x1={INLET_CENTER_X - 4} y1="0" x2={INLET_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterStreamGradient-${idSuffix}`} x1={INLET_CENTER_X - 4} y1="0" x2={INLET_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
             <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
             <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
           </linearGradient>
 
-          <linearGradient id="waterStreamShimmer" x1={INLET_CENTER_X - 7} y1="0" x2={INLET_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
+          <linearGradient id={`waterStreamShimmer-${idSuffix}`} x1={INLET_CENTER_X - 7} y1="0" x2={INLET_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
             <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
           </linearGradient>
 
           {/* Gauge Dial Face Gradient */}
-          <radialGradient id="gaugeFace" cx="50%" cy="50%" r="50%">
+          <radialGradient id={`gaugeFace-${idSuffix}`} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#1E293B" />
             <stop offset="85%" stopColor="#0F172A" />
             <stop offset="100%" stopColor="#020617" />
@@ -1012,18 +1012,18 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         <path
           id="tank-shell-bg"
           d={outerPathD}
-          fill="url(#glassGradient)"
+          fill={`url(#glassGradient-${idSuffix})`}
         />
 
         {/* Thermal convection background glow */}
         {clampedFill > 0 && thermalIntensity > 0 && (
-          <g id="thermal-backdrop-layer" clipPath="url(#tank-inner)" className="thermal-glow-convection" style={{ mixBlendMode: 'screen' }}>
+          <g id={`thermal-backdrop-layer-${idSuffix}`} clipPath={`url(#tank-inner-${idSuffix})`} className="thermal-glow-convection" style={{ mixBlendMode: 'screen' }}>
             <rect
               x={outerLeftX}
               y={Y_water}
               width={TANK_WIDTH}
               height={Y_BOTTOM - Y_water + 20}
-              fill="url(#thermalConvectionGradient)"
+              fill={`url(#thermalConvectionGradient-${idSuffix})`}
               opacity={thermalIntensity * 0.7}
             />
           </g>
@@ -1031,12 +1031,12 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
         {/* Dynamic fluid container and waves */}
         {clampedFill > 0 && (
-          <g id="animated-water" clipPath="url(#tank-inner)">
+          <g id={`animated-water-${idSuffix}`} clipPath={`url(#tank-inner-${idSuffix})`}>
             {/* Back Wave */}
             <g transform={`translate(0, ${Y_water})`}>
               <path
                 d={backWaveD}
-                fill="url(#waterGradientBack)"
+                fill={`url(#waterGradientBack-${idSuffix})`}
                 className="wave-back"
               />
             </g>
@@ -1045,7 +1045,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
             <g transform={`translate(0, ${Y_water})`}>
               <path
                 d={midWaveD}
-                fill="url(#waterGradientMiddle)"
+                fill={`url(#waterGradientMiddle-${idSuffix})`}
                 className="wave-middle"
               />
             </g>
@@ -1054,7 +1054,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
             <g transform={`translate(0, ${Y_water})`}>
               <path
                 d={frontWaveD}
-                fill="url(#waterGradientFront)"
+                fill={`url(#waterGradientFront-${idSuffix})`}
                 className="wave-front"
               />
             </g>
@@ -1067,14 +1067,14 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                   y={Y_water - 15}
                   width={TANK_WIDTH + 20}
                   height={Y_BOTTOM - Y_water + 30}
-                  fill="url(#thermalConvectionGradient)"
+                  fill={`url(#thermalConvectionGradient-${idSuffix})`}
                   opacity={thermalIntensity * 0.55}
                 />
               </g>
             )}
 
             {/* Floating bubbles */}
-            <g id="water-bubbles" clipPath="url(#water-level-clip)">
+            <g id={`water-bubbles-${idSuffix}`} clipPath={`url(#water-level-clip-${idSuffix})`}>
               <circle cx="0" cy="0" r="3.2" fill="#FFFFFF" opacity="0.65" className="bubble-1" />
               <circle cx="0" cy="0" r="2.0" fill="#FFFFFF" opacity="0.50" className="bubble-2" />
               <circle cx="0" cy="0" r="4.2" fill="#FFFFFF" opacity="0.75" className="bubble-3" />
@@ -1289,7 +1289,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                 {/* Elegant Tapered Stream - Outer Shimmer Glow */}
                 <path
                   d={pumpPipePathD}
-                  stroke="url(#waterStreamShimmer)"
+                  stroke={`url(#waterStreamShimmer-${idSuffix})`}
                   strokeWidth="7"
                   strokeLinecap="round"
                   fill="none"
@@ -1300,7 +1300,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                 {/* Elegant Tapered Stream - Core Fluid Flow */}
                 <path
                   d={pumpPipePathD}
-                  stroke="url(#waterStreamGradient)"
+                  stroke={`url(#waterStreamGradient-${idSuffix})`}
                   strokeWidth="5.5"
                   strokeLinecap="round"
                   fill="none"
@@ -1362,7 +1362,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                   Q ${INLET_CENTER_X - 5.0},${(INLET_NOZZLE_Y + Y_water) / 2} ${INLET_CENTER_X - 4.0},${Y_water}
                   L ${INLET_CENTER_X + 4.0},${Y_water}
                   Q ${INLET_CENTER_X + 5.0},${(INLET_NOZZLE_Y + Y_water) / 2} ${INLET_CENTER_X + 6.0},${INLET_NOZZLE_Y} Z`}
-              fill="url(#waterStreamShimmer)"
+              fill={`url(#waterStreamShimmer-${idSuffix})`}
               opacity="0.45"
               className="shimmer-pulse"
             />
@@ -1373,7 +1373,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                   Q ${INLET_CENTER_X - 4.0},${(INLET_NOZZLE_Y + Y_water) / 2} ${INLET_CENTER_X - 3.0},${Y_water}
                   L ${INLET_CENTER_X + 3.0},${Y_water}
                   Q ${INLET_CENTER_X + 4.0},${(INLET_NOZZLE_Y + Y_water) / 2} ${INLET_CENTER_X + 5.0},${INLET_NOZZLE_Y} Z`}
-              fill="url(#waterStreamGradient)"
+              fill={`url(#waterStreamGradient-${idSuffix})`}
               opacity="0.95"
             />
 
@@ -1442,7 +1442,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                     Q ${OVERFLOW_X - 2.8},${(OVERFLOW_Y_START + OVERFLOW_Y_END) / 2} ${OVERFLOW_X - 2.2},${OVERFLOW_Y_END}
                     L ${OVERFLOW_X + 2.2},${OVERFLOW_Y_END}
                     Q ${OVERFLOW_X + 2.8},${(OVERFLOW_Y_START + OVERFLOW_Y_END) / 2} ${OVERFLOW_X + 3.5},${OVERFLOW_Y_START} Z`}
-                fill="url(#waterStreamShimmer)"
+                fill={`url(#waterStreamShimmer-${idSuffix})`}
                 opacity="0.45"
                 className="shimmer-pulse"
               />
@@ -1453,7 +1453,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
                     Q ${OVERFLOW_X - 2.2},${(OVERFLOW_Y_START + OVERFLOW_Y_END) / 2} ${OVERFLOW_X - 1.5},${OVERFLOW_Y_END}
                     L ${OVERFLOW_X + 1.5},${OVERFLOW_Y_END}
                     Q ${OVERFLOW_X + 2.2},${(OVERFLOW_Y_START + OVERFLOW_Y_END) / 2} ${OVERFLOW_X + 2.8},${OVERFLOW_Y_START} Z`}
-                fill="url(#waterStreamGradient)"
+                fill={`url(#waterStreamGradient-${idSuffix})`}
                 opacity="0.95"
               />
 
@@ -1519,7 +1519,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
             <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="28" fill={`url(#metalGradient-${idSuffix})`} stroke="#1E293B" strokeWidth="1" />
             <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="26" fill="none" stroke="#FFFFFF" strokeWidth="0.75" opacity="0.4" />
             
-            <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="23" fill="url(#gaugeFace)" />
+            <circle cx={outerRightX + 48} cy={GAUGE_CENTER_Y} r="23" fill={`url(#gaugeFace-${idSuffix})`} />
 
             {/* Color sectors */}
             <path d={`M ${outerRightX + 28.5},${GAUGE_CENTER_Y - 11.5} A 22,22 0 0,1 ${outerRightX + 34},${GAUGE_CENTER_Y - 19}`} stroke="#EF4444" strokeWidth="1.5" fill="none" opacity="0.65" />
@@ -1568,24 +1568,24 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         <g id="glass-specular-highlights" pointerEvents="none">
           <path
             d={openOuterPathStrokeD}
-            stroke="url(#tankOutlineGradient)"
+            stroke={`url(#tankOutlineGradient-${idSuffix})`}
             strokeWidth="3.8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
           {/* Flat Glass Diagonal Sheen & Glares */}
-          <g id="glass-diagonal-sheen" clipPath="url(#tank-inner)">
+          <g id={`glass-diagonal-sheen-${idSuffix}`} clipPath={`url(#tank-inner-${idSuffix})`}>
             {/* Primary soft broad diagonal glare */}
             <path
               d={`M ${outerLeftX - 40},${TANK_CYLINDER_Y1} L ${outerLeftX + 30},${TANK_CYLINDER_Y1} L ${outerRightX - 30},${TANK_CYLINDER_Y2} L ${outerRightX - 100},${TANK_CYLINDER_Y2} Z`}
-              fill="url(#diagonalGlareGradient)"
+              fill={`url(#diagonalGlareGradient-${idSuffix})`}
               opacity="0.3"
             />
             {/* Secondary sharper diagonal glare */}
             <path
               d={`M ${outerLeftX + 50},${TANK_CYLINDER_Y1} L ${outerLeftX + 70},${TANK_CYLINDER_Y1} L ${outerRightX + 10},${TANK_CYLINDER_Y2} L ${outerRightX - 10},${TANK_CYLINDER_Y2} Z`}
-              fill="url(#diagonalGlareGradient)"
+              fill={`url(#diagonalGlareGradient-${idSuffix})`}
               opacity="0.45"
             />
           </g>

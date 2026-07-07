@@ -82,8 +82,8 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   // Computed individual flow states
   const isFilling1Flowing = isFilling && isFillingActive;
   const isFilling2Flowing = isFilling && isFilling2Active;
-  const isDraining1Flowing = isDraining && isDrainingActive;
-  const isDraining2Flowing = isDraining && isDraining2Active;
+  const isDraining1Flowing = isDraining && isDraining2Active; // Outlet 2 (Right side)
+  const isDraining2Flowing = isDraining && isDrainingActive;  // Outlet 1 (Left side)
 
   // TANK GEOMETRY CONSTANTS
   const TANK_WIDTH = 390;          // Total outer width
