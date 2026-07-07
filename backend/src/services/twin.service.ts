@@ -10,7 +10,7 @@ export interface TwinState {
     temperature?: number;
     status?: string;
     lastUpdated?: Date;
-    dbNodeId?: string;
+    dbNodeId?: number;
     dbSensors?: any[];
   }
 }
@@ -61,7 +61,7 @@ class DigitalTwinEngine {
     
     // Also map any newly added dynamic nodes from DB
     for (const dbNode of nodes) {
-      const slug = dbNode.id;
+      const slug = dbNode.id.toString();
       if (!state[slug]) {
         state[slug] = {
           dbNodeId: dbNode.id,
@@ -98,9 +98,9 @@ class DigitalTwinEngine {
     await this.redis.set('twin_state', JSON.stringify(state));
   }
 
-  public async updateTwin(nodeSlug: string, payload: any) {
+  public async updateTwin(nodeSlug: string | number, payload: any) {
     const state = await this.getTwinState();
-    const slug = nodeSlug.toUpperCase();
+    const slug = String(nodeSlug).toUpperCase();
     if (!state[slug]) {
       state[slug] = {};
     }

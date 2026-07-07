@@ -54,7 +54,7 @@ class AlertEngine {
     return rule.condition(value);
   }
 
-  public async triggerAlert(nodeId: string, nodeSlug: string, severity: string, message: string) {
+  public async triggerAlert(nodeId: number, nodeSlug: string, severity: string, message: string) {
     if (severity === 'Healthy' || severity === 'Offline') return;
 
     try {
