@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   ChevronDown, Bell, LogOut,
@@ -20,7 +20,7 @@ const Sidebar = memo(function Sidebar() {
   const { isAdmin } = useAuth();
 
   const nav = [
-    { label: 'Live',       to: '/star-topology',    Icon: Activity       },
+    { label: 'Live',       to: '/topology/1',    Icon: Activity       },
     { label: 'Dashboard',  to: '/dashboard',         Icon: LayoutDashboard },
     { label: 'Simulation', to: '/analytics',         Icon: BarChart2      },
   ];
@@ -55,7 +55,7 @@ const Sidebar = memo(function Sidebar() {
         gap: 4, flex: 1, width: '100%', padding: '0 10px',
       }}>
         {nav.map(({ label, to, Icon }) => {
-          const active = pathname.startsWith(to);
+          const active = to === '/topology/1' ? pathname.startsWith('/topology') : pathname.startsWith(to);
           return (
             <Link
               key={label} to={to} title={label}
@@ -88,7 +88,7 @@ const Sidebar = memo(function Sidebar() {
           <>
             <div style={{ width: '60%', height: 1, background: 'rgba(255,255,255,0.07)', margin: '6px 0' }} />
             {adminNav.map(({ label, to, Icon }) => {
-              const active = pathname.startsWith(to);
+              const active = to === '/topology/1' ? pathname.startsWith('/topology') : pathname.startsWith(to);
               return (
                 <Link
                   key={label} to={to} title={label}
@@ -158,6 +158,18 @@ const TopBar = memo(function TopBar() {
   const { theme, setTheme } = useTheme();
   const dark = theme === 'dark';
   const isUserManagement = pathname.startsWith('/user-management');
+
+  const [topologies, setTopologies] = useState<any[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    axios.get('http://localhost:3001/api/topologies')
+      .then(res => setTopologies(res.data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const currentTopologyId = pathname.startsWith('/topology/') ? pathname.split('/')[2] : '1';
+  const currentTopology = topologies.find(t => t.id.toString() === currentTopologyId);
 
   const iconBtn: React.CSSProperties = {
     width: 38, height: 38, borderRadius: 10,
@@ -243,8 +255,10 @@ const TopBar = memo(function TopBar() {
         {/* Topology pill — hide on user management */}
         {!isUserManagement && (
           <>
+            <div style={{ position: 'relative' }}>
             <div
               id="topology-selector"
+              onClick={() => setMenuOpen(!menuOpen)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
@@ -263,10 +277,39 @@ const TopBar = memo(function TopBar() {
                 color: dark ? '#f0f0f2' : '#17181c',
                 fontFamily: 'var(--font)',
               }}>
-                Star Topology
+                {currentTopology ? currentTopology.name : 'Loading...'}
               </span>
               <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#6b7280'} />
             </div>
+            
+            {menuOpen && (
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 8,
+                width: 200, borderRadius: 12, overflow: 'hidden',
+                background: dark ? '#2a2b34' : '#ffffff',
+                border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                zIndex: 100, display: 'flex', flexDirection: 'column'
+              }}>
+                {topologies.map(t => (
+                  <Link 
+                    key={t.id} 
+                    to={`/topology/${t.id}`}
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      padding: '12px 16px', textDecoration: 'none',
+                      color: dark ? '#f0f0f2' : '#17181c',
+                      fontSize: 13.5, fontWeight: 600,
+                      borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                      background: currentTopologyId === t.id.toString() ? (dark ? 'rgba(0,255,255,0.1)' : 'rgba(0,255,255,0.15)') : 'transparent'
+                    }}
+                  >
+                    {t.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
             {/* Divider */}
             <div style={{
