@@ -65,7 +65,7 @@ async function main() {
       { name: 'T4', type: 'tank', x: 836, y: 592 },
     ];
 
-    const createdNodes: Record<string, string> = {};
+    const createdNodes: Record<string, number> = {};
 
     for (const node of nodesData) {
       const created = await prisma.node.create({
