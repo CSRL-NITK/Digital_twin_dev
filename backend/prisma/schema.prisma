@@ -7,7 +7,7 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           Int      @id @default(autoincrement())
   name         String   @db.VarChar(100)
   username     String   @unique @db.VarChar(255)
   email        String?  @unique @db.VarChar(255)
@@ -19,7 +19,7 @@ model User {
 }
 
 model Topology {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          Int      @id @default(autoincrement())
   name        String   @db.VarChar(100)
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
@@ -31,14 +31,15 @@ model Topology {
 }
 
 model Node {
-  id         String   @id @default(uuid()) @db.Uuid
-  topologyId String   @map("topology_id") @db.Uuid
+  id         Int      @id @default(autoincrement())
+  topologyId Int      @map("topology_id")
   topology   Topology @relation(fields: [topologyId], references: [id], onDelete: Cascade)
   nodeName   String   @map("node_name") @db.VarChar(100)
   nodeType   String   @map("node_type") @db.VarChar(50)
   positionX  Int      @map("position_x")
   positionY  Int      @map("position_y")
   status     String   @default("healthy") @db.VarChar(30)
+  attributes Json?
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
   sourceEdges Edge[] @relation("SourceEdges")
@@ -52,11 +53,11 @@ model Node {
 }
 
 model Edge {
-  id           String   @id @default(uuid()) @db.Uuid
-  topologyId   String   @map("topology_id") @db.Uuid
+  id           Int      @id @default(autoincrement())
+  topologyId   Int      @map("topology_id")
   topology     Topology @relation(fields: [topologyId], references: [id], onDelete: Cascade)
-  sourceNodeId String   @map("source_node") @db.Uuid
-  targetNodeId String   @map("target_node") @db.Uuid
+  sourceNodeId Int      @map("source_node")
+  targetNodeId Int      @map("target_node")
   edgeType     String   @default("pipe") @map("edge_type") @db.VarChar(50)
   sourcePortId String?  @map("source_port") @db.VarChar(100)
   targetPortId String?  @map("target_port") @db.VarChar(100)
@@ -73,8 +74,8 @@ model Edge {
 }
 
 model Sensor {
-  id          String   @id @default(uuid()) @db.Uuid
-  nodeId      String   @map("node_id") @db.Uuid
+  id          Int      @id @default(autoincrement())
+  nodeId      Int      @map("node_id")
   node        Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
   sensorName  String   @map("sensor_name") @db.VarChar(100)
   sensorType  String   @map("sensor_type") @db.VarChar(50)
@@ -90,7 +91,7 @@ model Sensor {
 
 model SensorReading {
   id          BigInt   @id @default(autoincrement())
-  sensorId    String   @map("sensor_id") @db.Uuid
+  sensorId    Int      @map("sensor_id")
   sensor      Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
   value       Float
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
@@ -100,8 +101,8 @@ model SensorReading {
 }
 
 model Alert {
-  id        String   @id @default(uuid()) @db.Uuid
-  nodeId    String   @map("node_id") @db.Uuid
+  id        Int      @id @default(autoincrement())
+  nodeId    Int      @map("node_id")
   node      Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
   alertType String   @map("alert_type") @db.VarChar(50)
   severity  String   @db.VarChar(20)
