@@ -5,7 +5,7 @@ import MainLayout from './components/layout/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
-import StarTopology from './pages/StarTopology';
+import TopologyCanvas from './pages/TopologyCanvas';
 import Analytics from './pages/Analytics';
 import Alerts from './pages/Alerts';
 import UserManagement from './pages/UserManagement';
@@ -64,9 +64,9 @@ function App() {
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<Navigate to="/star-topology" replace />} />
+          <Route index element={<Navigate to="/topology/1" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="star-topology" element={<StarTopology />} />
+          <Route path="topology/:id" element={<TopologyCanvas />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="alerts" element={<Alerts />} />
           <Route path="user-management" element={<UserManagement />} />
