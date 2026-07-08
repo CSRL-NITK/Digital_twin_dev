@@ -91,7 +91,6 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
         ports.inlets.forEach(inlet => {
           const inletConnsCount = edges.filter(e => e.target === node.id && (!e.targetHandle || e.targetHandle === inlet)).length;
           let maxInletConns = 1;
-          if (node.type === 'central_tank') maxInletConns = 2;
           
           if (inletConnsCount < maxInletConns) {
             candidates.push({ nodeId: node.id, nodeName: node.data?.nodeName || node.id, portId: inlet });
@@ -124,12 +123,27 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
           transition: all 0.2s ease;
           z-index: 1000 !important;
         }
+        .flow-connections-menu::-webkit-scrollbar {
+          width: 6px;
+        }
+        .flow-connections-menu::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.1);
+          border-radius: 4px;
+        }
+        .flow-connections-menu::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+        }
+        .flow-connections-menu::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
       `}</style>
-      <div style={{
+      <div className="flow-connections-menu" style={{
         background: 'rgba(23, 24, 28, 0.90)', border: '1px solid rgba(255,255,255,0.15)',
         borderRadius: 10, padding: '16px', display: 'flex', flexDirection: 'column', gap: 16,
         boxShadow: '0 8px 32px rgba(0,0,0,0.40)', minWidth: 320, zIndex: 50, backdropFilter: 'blur(10px)',
-        color: '#fff', fontFamily: '"Inter", sans-serif'
+        color: '#fff', fontFamily: '"Inter", sans-serif',
+        maxHeight: '75vh', overflowY: 'auto'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#00ffff' }}>
@@ -201,7 +215,6 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
           ) : nodePorts.inlets.map(portId => {
             const conns = getPortConnections('inlet', portId);
             let maxConns = 1;
-            if (nodeType === 'central_tank') maxConns = 2;
             const isFull = conns.length >= maxConns;
             const isConnecting = candidatePort?.portId === portId && candidatePort.portType === 'inlet';
             return (
