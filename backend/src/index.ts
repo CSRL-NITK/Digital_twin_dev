@@ -105,6 +105,9 @@ app.get('/api/topologies', async (req, res) => {
       _count: {
         select: { nodes: true, edges: true },
       },
+      nodes: {
+        select: { nodeType: true, _count: { select: { sensors: true } } },
+      },
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -117,8 +120,26 @@ app.post('/api/topologies', async (req, res) => {
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
+    let finalDescription = description;
+    
+    // Try to inherit viewport/configs from Star Topology if the provided description is not a JSON config
+    try {
+      JSON.parse(finalDescription);
+    } catch {
+      const starTopology = await prisma.topology.findFirst({ where: { name: 'Star Topology' } });
+      if (starTopology && starTopology.description) {
+        try {
+          // If Star Topology has a JSON config, use it as the base
+          JSON.parse(starTopology.description);
+          finalDescription = starTopology.description;
+        } catch {
+          // Star Topology doesn't have a JSON config either, leave it alone
+        }
+      }
+    }
+
     const newTopology = await prisma.topology.create({
-      data: { name, description },
+      data: { name, description: finalDescription },
     });
     res.status(201).json(newTopology);
   } catch (error) {
@@ -266,11 +287,17 @@ app.patch('/api/nodes/:id/status', async (req, res) => {
 });
 
 app.post('/api/nodes', async (req, res) => {
-  const { topologyName, nodeName, nodeType, positionX, positionY, status } = req.body;
+  const { topologyId, topologyName, nodeName, nodeType, positionX, positionY, status } = req.body;
   try {
-    let topology = await prisma.topology.findFirst({
-      where: { name: topologyName || 'Star Topology' }
-    });
+    let topology = null;
+    if (topologyId) {
+      topology = await prisma.topology.findUnique({ where: { id: parseInt(topologyId, 10) } });
+    }
+    if (!topology) {
+      topology = await prisma.topology.findFirst({
+        where: { name: topologyName || 'Star Topology' }
+      });
+    }
     if (!topology) {
       topology = await prisma.topology.findFirst();
     }
@@ -364,11 +391,17 @@ app.delete('/api/nodes/:id', async (req, res) => {
 });
 
 app.post('/api/edges', async (req, res) => {
-  const { source, target, sourceHandle, targetHandle, topologyName } = req.body;
+  const { topologyId, source, target, sourceHandle, targetHandle, topologyName } = req.body;
   try {
-    let topology = await prisma.topology.findFirst({
-      where: { name: topologyName || 'Star Topology' }
-    });
+    let topology = null;
+    if (topologyId) {
+      topology = await prisma.topology.findUnique({ where: { id: parseInt(topologyId, 10) } });
+    }
+    if (!topology) {
+      topology = await prisma.topology.findFirst({
+        where: { name: topologyName || 'Star Topology' }
+      });
+    }
     if (!topology) topology = await prisma.topology.findFirst();
     if (!topology) return res.status(404).json({ error: 'No topology found' });
 
