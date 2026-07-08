@@ -26,6 +26,7 @@ const Sidebar = memo(function Sidebar() {
   ];
 
   const adminNav = [
+    { label: 'Workspaces', to: '/topologies', Icon: Server },
     { label: 'Users', to: '/user-management', Icon: Users },
   ];
 
@@ -522,6 +523,7 @@ export default function MainLayout() {
   const { theme } = useTheme();
   const dark = theme === 'dark';
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies');
   const isUserManagement = pathname.startsWith('/user-management');
 
   const outletContext = useMemo(() => ({ selectedNode, setSelectedNode }), [selectedNode]);
@@ -548,8 +550,8 @@ export default function MainLayout() {
       >
         <Sidebar />
 
-        {/* Left blank panel — hide on user management */}
-        {!isUserManagement && (
+        {/* Left blank panel — hide on full width pages */}
+        {!isFullWidthPage && (
           <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
             <BlankPanel id="left-panel" />
           </div>
@@ -574,12 +576,12 @@ export default function MainLayout() {
             <Outlet context={outletContext} />
           </div>
 
-          {/* Analytics strip — hide on user management */}
-          {!isUserManagement && <AnalyticsStrip />}
+          {/* Analytics strip — hide on full width pages */}
+          {!isFullWidthPage && <AnalyticsStrip />}
         </div>
 
-        {/* Right blank panel — hide on user management */}
-        {!isUserManagement && (
+        {/* Right blank panel — hide on full width pages */}
+        {!isFullWidthPage && (
           <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
             <BlankPanel id="right-panel" />
           </div>
