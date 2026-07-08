@@ -9,6 +9,7 @@ import TopologyCanvas from './pages/TopologyCanvas';
 import Analytics from './pages/Analytics';
 import Alerts from './pages/Alerts';
 import UserManagement from './pages/UserManagement';
+import TopologyManagement from './pages/TopologyManagement';
 import './index.css';
 
 // Global axios defaults
@@ -69,6 +70,7 @@ function App() {
           <Route path="topology/:id" element={<TopologyCanvas />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="alerts" element={<Alerts />} />
+          <Route path="topologies" element={<TopologyManagement />} />
           <Route path="user-management" element={<UserManagement />} />
         </Route>
       </Routes>
