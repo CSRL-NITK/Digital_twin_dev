@@ -75,7 +75,7 @@ export default function SignUp() {
         firstName: values.firstName, lastName: values.lastName,
         username: values.username, email: values.email, password: values.password,
       });
-      if (res.status === 201) { setSuccess(true); setTimeout(() => { window.location.href = '/star-topology'; }, 1500); }
+      if (res.status === 201) { setSuccess(true); setTimeout(() => { window.location.href = '/'; }, 1500); }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally { setLoading(false); }
