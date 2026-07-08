@@ -2164,7 +2164,7 @@ export default function TopologyCanvas() {
         return [
           ...cleanNds,
           {
-            id: newNode.id,
+            id: newNode.id.toString(),
             type: newNode.nodeType,
             position: { x: newNode.positionX, y: newNode.positionY },
             draggable: em && amr && amn,
@@ -2206,7 +2206,7 @@ export default function TopologyCanvas() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       socket.disconnect();
     };
-  }, [setNodes, setEdges, setSelectedNode, handleDeleteNode]);
+  }, [id, setNodes, setEdges, setSelectedNode, handleDeleteNode]);
 
   /* ── Sync Edge Animations & Styles with Node Switch/Valve Statuses ── */
   useEffect(() => {
@@ -2508,6 +2508,7 @@ export default function TopologyCanvas() {
       if (params.source && params.target) {
         try {
           const res = await axios.post(`${BACKEND_URL}/api/edges`, {
+            topologyId: id,
             source: params.source,
             target: params.target,
             sourceHandle: params.sourceHandle,
@@ -2520,7 +2521,7 @@ export default function TopologyCanvas() {
         } catch (e) { console.error('Failed to save edge', e); }
       }
     },
-    [setEdges]
+    [setEdges, id]
   );
 
   const onEdgesDelete = useCallback(
@@ -2610,6 +2611,7 @@ export default function TopologyCanvas() {
 
     try {
       const res = await axios.post(`${BACKEND_URL}/api/nodes`, {
+        topologyId: id,
         topologyName: 'Star Topology',
         nodeName: targetName,
         nodeType: type,
@@ -2626,12 +2628,12 @@ export default function TopologyCanvas() {
 
       setNodes((nds) => {
         // If socket already added real ID, remove temp node
-        if (nds.some((n) => n.id === newNode.id)) {
+        if (nds.some((n) => n.id === newNode.id.toString())) {
           return nds.filter((n) => n.id !== tempId);
         }
         return nds.map((n) => n.id === tempId ? {
           ...n,
-          id: newNode.id,
+          id: newNode.id.toString(),
           position: { x: newNode.positionX, y: newNode.positionY },
           data: { ...n.data, waterLevel: wl, ph, tds, temperature: temp }
         } : n);
@@ -2641,7 +2643,7 @@ export default function TopologyCanvas() {
       // Revert optimistic spawn if API fails
       setNodes((nds) => nds.filter((n) => n.id !== tempId));
     }
-  }, [rfInstance, setNodes, handleDeleteNode, handleTogglePump, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, handleHideTankSwitch]);
+  }, [rfInstance, setNodes, handleDeleteNode, handleTogglePump, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, handleHideTankSwitch, id]);
 
   /* ── loading ────────────────────────────────────────────── */
   if (loading) {

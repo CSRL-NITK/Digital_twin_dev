@@ -26,7 +26,7 @@ const Sidebar = memo(function Sidebar() {
   ];
 
   const adminNav = [
-    { label: 'Workspaces', to: '/topologies', Icon: Server },
+    { label: 'Topologies', to: '/topologies', Icon: Server },
     { label: 'Users', to: '/user-management', Icon: Users },
   ];
 
@@ -167,7 +167,7 @@ const TopBar = memo(function TopBar() {
     axios.get('http://localhost:3001/api/topologies')
       .then(res => setTopologies(res.data))
       .catch(err => console.error(err));
-  }, []);
+  }, [pathname]);
 
   const currentTopologyId = pathname.startsWith('/topology/') ? pathname.split('/')[2] : '1';
   const currentTopology = topologies.find(t => t.id.toString() === currentTopologyId);
@@ -259,7 +259,14 @@ const TopBar = memo(function TopBar() {
             <div style={{ position: 'relative' }}>
             <div
               id="topology-selector"
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={() => {
+                if (!menuOpen) {
+                  axios.get('http://localhost:3001/api/topologies')
+                    .then(res => setTopologies(res.data))
+                    .catch(err => console.error(err));
+                }
+                setMenuOpen(!menuOpen);
+              }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
@@ -524,7 +531,6 @@ export default function MainLayout() {
   const dark = theme === 'dark';
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies');
-  const isUserManagement = pathname.startsWith('/user-management');
 
   const outletContext = useMemo(() => ({ selectedNode, setSelectedNode }), [selectedNode]);
 
@@ -567,10 +573,10 @@ export default function MainLayout() {
             id="visualization-panel"
             style={{
               flex: 1, minHeight: 0,
-              background: isUserManagement ? 'transparent' : '#ffffff',
-              border: isUserManagement ? 'none' : '1px solid rgba(0,0,0,0.07)',
-              borderRadius: isUserManagement ? 0 : 18, overflow: 'hidden', position: 'relative',
-              boxShadow: isUserManagement ? 'none' : '0 2px 8px rgba(0,0,0,0.05)',
+              background: isFullWidthPage ? 'transparent' : (dark ? '#1c1d22' : '#ffffff'),
+              border: isFullWidthPage ? 'none' : `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)'}`,
+              borderRadius: isFullWidthPage ? 0 : 18, overflow: 'hidden', position: 'relative',
+              boxShadow: isFullWidthPage ? 'none' : (dark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.05)'),
             }}
           >
             <Outlet context={outletContext} />

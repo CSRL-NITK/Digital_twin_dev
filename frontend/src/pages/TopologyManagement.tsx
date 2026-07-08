@@ -3,11 +3,12 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
   FolderOpen, Plus, Trash2, Edit2, Server, LayoutTemplate, 
-  ExternalLink, Search, X, AlertCircle, Loader2
+  Search, X, AlertCircle, Loader2
 } from 'lucide-react';
 import { useTheme } from '../components/ThemeProvider';
 import BorderGlow from '../components/ui/BorderGlow';
 import PushableButton from '../components/ui/PushableButton';
+import OpenTopologyButton from '../components/ui/OpenTopologyButton';
 
 const BACKEND_URL = 'http://localhost:3001';
 const FONT = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
@@ -47,20 +48,6 @@ export default function TopologyManagement() {
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-
-  // Helper to safely extract description if it was stored as JSON
-  const getDisplayDescription = (desc: string | null) => {
-    if (!desc) return '';
-    try {
-      const parsed = JSON.parse(desc);
-      if (parsed && typeof parsed === 'object') {
-        return parsed.description || parsed.notes || 'Configuration Data';
-      }
-    } catch (e) {
-      // Not JSON
-    }
-    return desc;
-  };
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -147,7 +134,7 @@ export default function TopologyManagement() {
 
   const openEdit = (topology: Topology) => {
     setActiveTopology(topology);
-    setFormData({ name: topology.name, description: getDisplayDescription(topology.description) });
+    setFormData({ name: topology.name, description: topology.description || '' });
     setIsEditModalOpen(true);
   };
 
@@ -300,10 +287,10 @@ export default function TopologyManagement() {
 
               <p style={{ 
                 fontSize: 13.5, color: dark ? '#d1d5db' : '#4b5563', lineHeight: 1.5,
-                margin: '0 0 20px', flex: 1,
-                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                margin: '0 0 20px', flex: 1, minHeight: 81,
+                display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden'
               }}>
-                {getDisplayDescription(topology.description) || 'No description provided.'}
+                {topology.description || 'No description provided.'}
               </p>
 
               {(() => {
@@ -333,21 +320,7 @@ export default function TopologyManagement() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => navigate(`/topology/${topology.id}`)}
-                      style={{
-                        height: 36, padding: '0 16px', borderRadius: 8, border: 'none',
-                        background: dark ? '#22232a' : '#f3f4f6',
-                        color: dark ? '#f0f0f2' : '#17181c', fontSize: 13, fontWeight: 600,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        transition: 'background 0.15s',
-                        width: '100%'
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = dark ? '#2a2b33' : '#e5e7eb'}
-                      onMouseLeave={e => e.currentTarget.style.background = dark ? '#22232a' : '#f3f4f6'}
-                    >
-                      Open Topology <ExternalLink size={14} />
-                    </button>
+                    <OpenTopologyButton onClick={() => navigate(`/topology/${topology.id}`)} dark={dark} />
                   </div>
                 );
               })()}
