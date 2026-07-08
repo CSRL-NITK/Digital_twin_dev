@@ -1,10 +1,14 @@
 import React from 'react';
-import { BaseEdge, getSmoothStepPath, useNodes, Position } from 'reactflow';
+import { BaseEdge, getSmoothStepPath, useNodes, useEdges, Position } from 'reactflow';
 import type { EdgeProps } from 'reactflow';
 import { getSmartEdge } from '@tisoap/react-flow-smart-edge';
 
 const WaterFlowEdge: React.FC<EdgeProps> = ({
   id,
+  source,
+  sourceHandleId,
+  target,
+  targetHandleId,
   sourceX,
   sourceY,
   targetX,
@@ -16,9 +20,16 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   markerEnd,
 }) => {
   const nodes = useNodes();
+  const edges = useEdges();
   
   // Extract flow properties from edge data
   const isFlowing = data?.isFlowing ?? true;
+
+  // Detect if this edge originates from a shared source handle (a Split)
+  const isSplit = edges.filter(e => e.source === source && e.sourceHandle === sourceHandleId).length > 1;
+  // Detect if this edge terminates at a shared target handle (a Merge)
+  const isMerge = edges.filter(e => e.target === target && e.targetHandle === targetHandleId).length > 1;
+
   // If isFlowing is false, we want it to look inactive/grayed out
   
   // Base configuration
@@ -209,6 +220,37 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
             fill: 'none',
           }}
         />
+      )}
+
+      {/* 7. Automatic Split/Merge Joints */}
+      {isSplit && (
+        <g transform={`translate(${modSourceX}, ${modSourceY})`} style={{ zIndex: 100 }}>
+          {/* Main joint block */}
+          <rect x={-16} y={-16} width={32} height={32} rx={6} fill="#3d4048" stroke="#1a1c23" strokeWidth={1.5} filter="drop-shadow(0 4px 6px rgba(0,0,0,0.4))" />
+          {/* Inner core */}
+          <circle cx={0} cy={0} r={9} fill="#1e293b" stroke="#1a1c23" strokeWidth={1} />
+          {isFlowing && <circle cx={0} cy={0} r={5} fill="#06B6D4" className="animate-pulse" />}
+          {/* Bolt details */}
+          <circle cx={-11} cy={-11} r={1.5} fill="#94a3b8" />
+          <circle cx={11} cy={-11} r={1.5} fill="#94a3b8" />
+          <circle cx={-11} cy={11} r={1.5} fill="#94a3b8" />
+          <circle cx={11} cy={11} r={1.5} fill="#94a3b8" />
+        </g>
+      )}
+
+      {isMerge && (
+        <g transform={`translate(${modTargetX}, ${modTargetY})`} style={{ zIndex: 100 }}>
+          {/* Main joint block */}
+          <rect x={-16} y={-16} width={32} height={32} rx={6} fill="#3d4048" stroke="#1a1c23" strokeWidth={1.5} filter="drop-shadow(0 4px 6px rgba(0,0,0,0.4))" />
+          {/* Inner core */}
+          <circle cx={0} cy={0} r={9} fill="#1e293b" stroke="#1a1c23" strokeWidth={1} />
+          {isFlowing && <circle cx={0} cy={0} r={5} fill="#06B6D4" className="animate-pulse" />}
+          {/* Bolt details */}
+          <circle cx={-11} cy={-11} r={1.5} fill="#94a3b8" />
+          <circle cx={11} cy={-11} r={1.5} fill="#94a3b8" />
+          <circle cx={-11} cy={11} r={1.5} fill="#94a3b8" />
+          <circle cx={11} cy={11} r={1.5} fill="#94a3b8" />
+        </g>
       )}
     </>
   );
