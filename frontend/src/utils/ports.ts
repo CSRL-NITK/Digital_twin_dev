@@ -5,7 +5,7 @@ export const NODE_PORTS: Record<string, { outlets: string[]; inlets: string[] }>
   },
   central_tank: {
     outlets: ['outlet-1', 'outlet-2'],
-    inlets: ['inlet-1', 'inlet-2'],
+    inlets: ['inlet-1', 'inlet-2', 'inlet-3', 'inlet-4'],
   },
   source_tank: {
     outlets: ['outlet-1'],
