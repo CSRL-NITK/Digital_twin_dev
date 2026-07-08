@@ -51,6 +51,7 @@ type LiveNodeData = {
   allowDeleteNodes?: boolean;
   flipHorizontal?: boolean;
   maxCapacity?: number;
+  outletCount?: number;
   parentAssetId?: string;
   parentAssetName?: string;
   customWidth?: number;
@@ -545,7 +546,9 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           isFilling={tankState.isFilling}
           isDraining={tankState.isDraining}
           isFillingActive={edges.some(e => e.target === id && (!e.targetHandle || e.targetHandle === 'inlet-1') && (e.data as any)?.isFlowing)}
-          isFilling2Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-2' && (e.data as any)?.isFlowing)}
+          isFilling2Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-4' && (e.data as any)?.isFlowing)}
+          isFilling3Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-2' && (e.data as any)?.isFlowing)}
+          isFilling4Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-3' && (e.data as any)?.isFlowing)}
           isDrainingActive={edges.some(e => e.source === id && (!e.sourceHandle || e.sourceHandle === 'outlet-1') && (e.data as any)?.isFlowing)}
           isDraining2Active={edges.some(e => e.source === id && e.sourceHandle === 'outlet-2' && (e.data as any)?.isFlowing)}
           waveSpeed={tankState.waveSpeed}
@@ -564,7 +567,9 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
                   y=0.0750 = inlet centerline y=45/600
                   y=0.1833 = outlet centerline y=110/600 */}
       <PrecisionHandle id="inlet-1" type="target" x={0.1195} y={0.1482} basePosition={Position.Left} isFlipped={isFlipped} />
-      <PrecisionHandle id="inlet-2" type="target" x={0.8955} y={0.1482} basePosition={Position.Right} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-2" type="target" x={0.4430} y={0.0930} basePosition={Position.Top} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-3" type="target" x={0.5580} y={0.0930} basePosition={Position.Top} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-4" type="target" x={0.8955} y={0.1482} basePosition={Position.Right} isFlipped={isFlipped} />
       <PrecisionHandle id="outlet-1" type="source" x={0.1145} y={0.2376} basePosition={Position.Left} isFlipped={isFlipped} />
       <PrecisionHandle id="outlet-2" type="source" x={0.8955} y={0.2376} basePosition={Position.Right} isFlipped={isFlipped} />
 
@@ -1057,6 +1062,7 @@ const SourceTankNodeViewMemo = memo(SourceTankNodeView);
 const SwitchNodeViewMemo = memo(SwitchNodeView);
 const PumpNodeViewMemo = memo(PumpNodeView);
 const SensorNodeViewMemo = memo(SensorNodeView);
+
 
 const nodeTypes = {
   viewportGuide: ViewportGuideNodeMemo,
@@ -1610,6 +1616,7 @@ export default function TopologyCanvas() {
     });
   }, [setNodes]);
 
+  
   /* ── Tank Valve ON/OFF Helper ──────────────────────── */
   const handleToggleTankValve = useCallback((id: string, valveType: 'inlet' | 'outlet', newVal: boolean) => {
     setNodes((nds) => {
@@ -2464,25 +2471,52 @@ export default function TopologyCanvas() {
       setSelectedNode({ id: node.id, ...node.data, sensors: [] });
     }
   };
+  const isValidConnection = useCallback((connection: Connection) => {
+    if (connection.source === connection.target) return false;
+    
+    const targetNode = nodes.find(n => n.id === connection.target);
+    if (targetNode) {
+       const inletConnsCount = edges.filter(e => e.target === connection.target && e.targetHandle === connection.targetHandle).length;
+       if (inletConnsCount >= 1) return false;
+    }
+
+    const sourceNode = nodes.find(n => n.id === connection.source);
+    if (sourceNode) {
+       const outletConnsCount = edges.filter(e => e.source === connection.source && e.sourceHandle === connection.sourceHandle).length;
+       let maxOutlets = 1;
+       if (sourceNode.type === 'pump') {
+           maxOutlets = sourceNode.data?.maxPumpOutlets || 2;
+       }
+       if (outletConnsCount >= maxOutlets) return false;
+    }
+    return true;
+  }, [nodes, edges]);
 
   const onConnect = useCallback(
     async (params: Connection | Edge) => {
-      setEdges((eds) => addEdge({
+      const tempId = 'id' in params ? params.id : `temp-${Date.now()}`;
+      const edgeToAdd = {
         ...params,
+        id: tempId,
         type: 'waterFlow',
         zIndex: 10,
-        data: {
-          isFlowing: true,
-        }
-      }, eds));
+        data: { isFlowing: true }
+      };
+
+      setEdges((eds) => addEdge(edgeToAdd, eds));
+
       if (params.source && params.target) {
         try {
-          await axios.post(`${BACKEND_URL}/api/edges`, {
+          const res = await axios.post(`${BACKEND_URL}/api/edges`, {
             source: params.source,
             target: params.target,
             sourceHandle: params.sourceHandle,
             targetHandle: params.targetHandle,
           });
+          
+          if (res.data && res.data.id) {
+            setEdges((eds) => eds.map(e => e.id === tempId ? { ...e, id: res.data.id.toString() } : e));
+          }
         } catch (e) { console.error('Failed to save edge', e); }
       }
     },
@@ -3048,6 +3082,7 @@ export default function TopologyCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         onEdgesDelete={onEdgesDelete}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
