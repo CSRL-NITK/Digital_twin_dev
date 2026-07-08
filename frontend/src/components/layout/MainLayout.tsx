@@ -1,5 +1,7 @@
 import { Outlet } from 'react-router-dom';
-import { useState, useMemo, memo, useEffect } from 'react';
+import { useState, useMemo, memo, useEffect, createContext, useContext } from 'react';
+const TopologyContext = createContext<{ globalTopologyId: string; setGlobalTopologyId: (id: string) => void; }>({ globalTopologyId: '1', setGlobalTopologyId: () => {} });
+export const useGlobalTopology = () => useContext(TopologyContext);
 import { Link, useLocation } from 'react-router-dom';
 import {
   ChevronDown, Bell, LogOut,
@@ -18,9 +20,10 @@ import { useAuth } from '../../hooks/useAuth';
 const Sidebar = memo(function Sidebar() {
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();
+  const { globalTopologyId } = useGlobalTopology();
 
   const nav = [
-    { label: 'Live',       to: '/topology/1',    Icon: Activity       },
+    { label: 'Live',       to: `/topology/${globalTopologyId}`,    Icon: Activity       },
     { label: 'Dashboard',  to: '/dashboard',         Icon: LayoutDashboard },
     { label: 'Simulation', to: '/analytics',         Icon: BarChart2      },
   ];
@@ -159,6 +162,7 @@ const TopBar = memo(function TopBar() {
   const { theme, setTheme } = useTheme();
   const dark = theme === 'dark';
   const isUserManagement = pathname.startsWith('/user-management');
+  const { globalTopologyId, setGlobalTopologyId } = useGlobalTopology();
 
   const [topologies, setTopologies] = useState<any[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -169,8 +173,16 @@ const TopBar = memo(function TopBar() {
       .catch(err => console.error(err));
   }, [pathname]);
 
-  const currentTopologyId = pathname.startsWith('/topology/') ? pathname.split('/')[2] : '1';
-  const currentTopology = topologies.find(t => t.id.toString() === currentTopologyId);
+  useEffect(() => {
+    if (pathname.startsWith('/topology/')) {
+      const idFromUrl = pathname.split('/')[2];
+      if (idFromUrl && idFromUrl !== globalTopologyId) {
+        setGlobalTopologyId(idFromUrl);
+      }
+    }
+  }, [pathname, globalTopologyId, setGlobalTopologyId]);
+
+  const currentTopology = topologies.find(t => t.id.toString() === globalTopologyId);
 
   const iconBtn: React.CSSProperties = {
     width: 38, height: 38, borderRadius: 10,
@@ -299,22 +311,30 @@ const TopBar = memo(function TopBar() {
                 boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
                 zIndex: 100, display: 'flex', flexDirection: 'column'
               }}>
-                {topologies.map(t => (
+                {topologies.map(t => {
+                  const isTopologyPage = pathname.startsWith('/topology/');
+                  return (
                   <Link 
                     key={t.id} 
-                    to={`/topology/${t.id}`}
-                    onClick={() => setMenuOpen(false)}
+                    to={isTopologyPage ? `/topology/${t.id}` : pathname}
+                    onClick={(e) => {
+                      if (!isTopologyPage) {
+                        e.preventDefault();
+                        setGlobalTopologyId(t.id.toString());
+                      }
+                      setMenuOpen(false);
+                    }}
                     style={{
                       padding: '12px 16px', textDecoration: 'none',
                       color: dark ? '#f0f0f2' : '#17181c',
                       fontSize: 13.5, fontWeight: 600,
                       borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
-                      background: currentTopologyId === t.id.toString() ? (dark ? 'rgba(0,255,255,0.1)' : 'rgba(0,255,255,0.15)') : 'transparent'
+                      background: globalTopologyId === t.id.toString() ? (dark ? 'rgba(0,255,255,0.1)' : 'rgba(0,255,255,0.15)') : 'transparent'
                     }}
                   >
                     {t.name}
                   </Link>
-                ))}
+                )})}
               </div>
             )}
           </div>
@@ -525,7 +545,7 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
 /* ════════════════════════════════════════════════════════════════
    ROOT LAYOUT
 ════════════════════════════════════════════════════════════════ */
-export default function MainLayout() {
+function MainLayoutContent() {
   const { pathname } = useLocation();
   const { theme } = useTheme();
   const dark = theme === 'dark';
@@ -594,5 +614,14 @@ export default function MainLayout() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MainLayout() {
+  const [globalTopologyId, setGlobalTopologyId] = useState('1');
+  return (
+    <TopologyContext.Provider value={{ globalTopologyId, setGlobalTopologyId }}>
+      <MainLayoutContent />
+    </TopologyContext.Provider>
   );
 }

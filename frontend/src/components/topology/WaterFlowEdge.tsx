@@ -1,5 +1,5 @@
 import React from 'react';
-import { BaseEdge, getSmoothStepPath, useNodes, useEdges, Position } from 'reactflow';
+import { BaseEdge, getSmoothStepPath, useNodes, useEdges, Position, EdgeLabelRenderer } from 'reactflow';
 import type { EdgeProps } from 'reactflow';
 import { getSmartEdge } from '@tisoap/react-flow-smart-edge';
 
@@ -91,6 +91,101 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
     });
     svgPathString = path;
   }
+  
+  // =========================================================================
+  // T-JUNCTION CONNECTOR LOGIC
+  // We parse our own path to find 90-degree corners. If this edge is part of
+  // a Split or Merge, and another sibling edge's target/source extends PAST
+  // this corner along the shared trunk, then it's a T-junction overlap!
+  // =========================================================================
+  const corners: {x: number, y: number}[] = [];
+  const regex = /([MLQCZA])([^MLQCZA]*)/gi;
+  let match;
+  const points: {x: number, y: number}[] = [];
+  while ((match = regex.exec(svgPathString)) !== null) {
+    const cmd = match[1].toUpperCase();
+    const params = match[2].trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+    if (cmd === 'M' || cmd === 'L') points.push({ x: params[0], y: params[1] });
+    else if (cmd === 'A') points.push({ x: params[5], y: params[6] });
+    else if (cmd === 'Q') points.push({ x: params[2], y: params[3] });
+    else if (cmd === 'C') points.push({ x: params[4], y: params[5] });
+  }
+
+  const orthoPoints = points.length > 0 ? [points[0]] : [];
+  for (let i = 1; i < points.length; i++) {
+    const prev = orthoPoints[orthoPoints.length - 1];
+    const curr = points[i];
+    if (Math.abs(curr.x - prev.x) < 1 && Math.abs(curr.y - prev.y) < 1) continue;
+    
+    if (Math.abs(curr.x - prev.x) < 1 || Math.abs(curr.y - prev.y) < 1) {
+      orthoPoints.push(curr);
+    } else {
+      const next = i + 1 < points.length ? points[i+1] : null;
+      let cornerX = curr.x;
+      let cornerY = curr.y;
+      
+      if (next) {
+        if (Math.abs(next.y - curr.y) < 1) {
+          cornerX = prev.x;
+          cornerY = curr.y;
+        } else if (Math.abs(next.x - curr.x) < 1) {
+          cornerX = curr.x;
+          cornerY = prev.y;
+        }
+      } else if (orthoPoints.length > 1) {
+        const prevPrev = orthoPoints[orthoPoints.length - 2];
+        if (Math.abs(prev.x - prevPrev.x) < 1) {
+          cornerX = prev.x;
+          cornerY = curr.y;
+        } else {
+          cornerX = curr.x;
+          cornerY = prev.y;
+        }
+      }
+      corners.push({ x: cornerX, y: cornerY });
+      orthoPoints.push({ x: cornerX, y: cornerY });
+      orthoPoints.push(curr);
+    }
+  }
+
+  const tJunctions = corners.filter(corner => {
+    if (isSplit) {
+      if (Math.abs(corner.x - modSourceX) < 2) {
+        const others = edges.filter(e => e.id !== id && e.source === source && e.sourceHandle === sourceHandleId);
+        if (sourcePosition === Position.Bottom) {
+          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.y || 0) > corner.y)) return true;
+        } else if (sourcePosition === Position.Top) {
+          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.y || 0) < corner.y)) return true;
+        }
+      } else if (Math.abs(corner.y - modSourceY) < 2) {
+        const others = edges.filter(e => e.id !== id && e.source === source && e.sourceHandle === sourceHandleId);
+        if (sourcePosition === Position.Right) {
+          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.x || 0) > corner.x)) return true;
+        } else if (sourcePosition === Position.Left) {
+          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.x || 0) < corner.x)) return true;
+        }
+      }
+    }
+    if (isMerge) {
+      if (Math.abs(corner.x - modTargetX) < 2) {
+        const others = edges.filter(e => e.id !== id && e.target === target && e.targetHandle === targetHandleId);
+        if (targetPosition === Position.Top) {
+          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.y || 0) < corner.y)) return true;
+        } else if (targetPosition === Position.Bottom) {
+          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.y || 0) > corner.y)) return true;
+        }
+      } else if (Math.abs(corner.y - modTargetY) < 2) {
+        const others = edges.filter(e => e.id !== id && e.target === target && e.targetHandle === targetHandleId);
+        if (targetPosition === Position.Left) {
+          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.x || 0) < corner.x)) return true;
+        } else if (targetPosition === Position.Right) {
+          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.x || 0) > corner.x)) return true;
+        }
+      }
+    }
+    return false;
+  });
+
   
   return (
     <>
@@ -222,36 +317,31 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
         />
       )}
 
-      {/* 7. Automatic Split/Merge Joints */}
-      {isSplit && (
-        <g transform={`translate(${modSourceX}, ${modSourceY})`} style={{ zIndex: 100 }}>
-          {/* Main joint block */}
-          <rect x={-16} y={-16} width={32} height={32} rx={6} fill="#3d4048" stroke="#1a1c23" strokeWidth={1.5} filter="drop-shadow(0 4px 6px rgba(0,0,0,0.4))" />
-          {/* Inner core */}
-          <circle cx={0} cy={0} r={9} fill="#1e293b" stroke="#1a1c23" strokeWidth={1} />
-          {isFlowing && <circle cx={0} cy={0} r={5} fill="#06B6D4" className="animate-pulse" />}
-          {/* Bolt details */}
-          <circle cx={-11} cy={-11} r={1.5} fill="#94a3b8" />
-          <circle cx={11} cy={-11} r={1.5} fill="#94a3b8" />
-          <circle cx={-11} cy={11} r={1.5} fill="#94a3b8" />
-          <circle cx={11} cy={11} r={1.5} fill="#94a3b8" />
-        </g>
-      )}
-
-      {isMerge && (
-        <g transform={`translate(${modTargetX}, ${modTargetY})`} style={{ zIndex: 100 }}>
-          {/* Main joint block */}
-          <rect x={-16} y={-16} width={32} height={32} rx={6} fill="#3d4048" stroke="#1a1c23" strokeWidth={1.5} filter="drop-shadow(0 4px 6px rgba(0,0,0,0.4))" />
-          {/* Inner core */}
-          <circle cx={0} cy={0} r={9} fill="#1e293b" stroke="#1a1c23" strokeWidth={1} />
-          {isFlowing && <circle cx={0} cy={0} r={5} fill="#06B6D4" className="animate-pulse" />}
-          {/* Bolt details */}
-          <circle cx={-11} cy={-11} r={1.5} fill="#94a3b8" />
-          <circle cx={11} cy={-11} r={1.5} fill="#94a3b8" />
-          <circle cx={-11} cy={11} r={1.5} fill="#94a3b8" />
-          <circle cx={11} cy={11} r={1.5} fill="#94a3b8" />
-        </g>
-      )}
+      {/* 7. Edge Label Renderer for UI Connectors (always on top) */}
+      <EdgeLabelRenderer>
+        {/* 8. T-Junctions for overlapped 90-degree turns */}
+        {tJunctions.map((j, idx) => (
+          <div
+            key={`t-j-${idx}`}
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${j.x}px, ${j.y}px)`,
+              zIndex: 1000,
+            }}
+            className="nodrag nopan"
+          >
+            <svg width={32} height={32} viewBox="-16 -16 32 32" style={{ overflow: 'visible' }}>
+              <rect x={-16} y={-16} width={32} height={32} rx={6} fill="#3d4048" stroke="#1a1c23" strokeWidth={1.5} filter="drop-shadow(0 4px 6px rgba(0,0,0,0.4))" />
+              <circle cx={0} cy={0} r={9} fill="#1e293b" stroke="#1a1c23" strokeWidth={1} />
+              {isFlowing && <circle cx={0} cy={0} r={5} fill="#06B6D4" className="animate-pulse" />}
+              <circle cx={-11} cy={-11} r={1.5} fill="#94a3b8" />
+              <circle cx={11} cy={-11} r={1.5} fill="#94a3b8" />
+              <circle cx={-11} cy={11} r={1.5} fill="#94a3b8" />
+              <circle cx={11} cy={11} r={1.5} fill="#94a3b8" />
+            </svg>
+          </div>
+        ))}
+      </EdgeLabelRenderer>
     </>
   );
 };
