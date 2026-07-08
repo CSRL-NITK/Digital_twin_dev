@@ -14,12 +14,16 @@ interface WaterTankProps {
   temperature: number;
   showInletPipe?: boolean;
   showInletPipe2?: boolean;
+  showInletPipe3?: boolean;
+  showInletPipe4?: boolean;
   showOutletPipe?: boolean;
   showOutletPipe2?: boolean;
   showGauge?: boolean;
   showOverflowPipe?: boolean;
   isFillingActive?: boolean;
   isFilling2Active?: boolean;
+  isFilling3Active?: boolean;
+  isFilling4Active?: boolean;
   isDrainingActive?: boolean;
   isDraining2Active?: boolean;
   waveHeightCalm?: number;
@@ -58,12 +62,16 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   temperature,
   showInletPipe = true,
   showInletPipe2 = true,
+  showInletPipe3 = true,
+  showInletPipe4 = true,
   showOutletPipe = true,
   showOutletPipe2 = true,
   showGauge = true,
   showOverflowPipe = true,
   isFillingActive = true,
   isFilling2Active = true,
+  isFilling3Active = true,
+  isFilling4Active = true,
   isDrainingActive = true,
   isDraining2Active = true,
   waveHeightCalm = 4.5,
@@ -82,6 +90,8 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   // Computed individual flow states
   const isFilling1Flowing = isFilling && isFillingActive;
   const isFilling2Flowing = isFilling && isFilling2Active;
+  const isFilling3Flowing = isFilling && isFilling3Active;
+  const isFilling4Flowing = isFilling && isFilling4Active;
   const isDraining1Flowing = isDraining && isDraining2Active; // Outlet 2 (Right side)
   const isDraining2Flowing = isDraining && isDrainingActive;  // Outlet 1 (Left side)
 
@@ -125,6 +135,14 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
   const viewBoxWidth = viewBoxMargin * 2;
   const inletPipeStartX = viewBoxX + 63;
   const inlet2PipeStartX = viewBoxX + viewBoxWidth - 63;
+
+  // Inlet 3 & 4: vertical top-entry pipes positioned between existing inlets
+  const INLET3_CENTER_X = TANK_CENTER_X - TANK_OUTER_RADIUS_X * (15 / 90);
+  const INLET4_CENTER_X = TANK_CENTER_X + TANK_OUTER_RADIUS_X * (15 / 90);
+  const inlet3PipeStartY = 0; // Top of SVG viewBox
+  const inlet4PipeStartY = 0; // Top of SVG viewBox
+  const INLET3_NOZZLE_Y = TANK_CYLINDER_Y1 + 33; // Same nozzle depth as existing inlets
+  const INLET4_NOZZLE_Y = TANK_CYLINDER_Y1 + 33;
 
   const outerLeftX = TANK_CENTER_X - TANK_OUTER_RADIUS_X;
   const outerRightX = TANK_CENTER_X + TANK_OUTER_RADIUS_X;
@@ -382,6 +400,14 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
             .sensor-rotor-active-2 {
               animation: valveRotate 0.8s linear infinite;
               transform-origin: ${INLET2_CENTER_X}px 145.5px;
+            }
+            .sensor-rotor-active-3 {
+              animation: valveRotate 0.8s linear infinite;
+              transform-origin: ${INLET3_CENTER_X}px 145.5px;
+            }
+            .sensor-rotor-active-4 {
+              animation: valveRotate 0.8s linear infinite;
+              transform-origin: ${INLET4_CENTER_X}px 145.5px;
             }
             @keyframes splashDropLeft {
               0% { transform: translate(0px, 0px) scale(0.4); opacity: 0; }
@@ -644,6 +670,32 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
             <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
           </linearGradient>
 
+          {/* Water Pour Stream Gradients 3 (Inlet 3) */}
+          <linearGradient id={`waterStreamGradient3-${idSuffix}`} x1={INLET3_CENTER_X - 4} y1="0" x2={INLET3_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
+            <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
+            <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
+          </linearGradient>
+
+          <linearGradient id={`waterStreamShimmer3-${idSuffix}`} x1={INLET3_CENTER_X - 7} y1="0" x2={INLET3_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
+          </linearGradient>
+
+          {/* Water Pour Stream Gradients 4 (Inlet 4) */}
+          <linearGradient id={`waterStreamGradient4-${idSuffix}`} x1={INLET4_CENTER_X - 4} y1="0" x2={INLET4_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
+            <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
+            <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
+          </linearGradient>
+
+          <linearGradient id={`waterStreamShimmer4-${idSuffix}`} x1={INLET4_CENTER_X - 7} y1="0" x2={INLET4_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
+          </linearGradient>
+
           {/* Gauge Dial Face Gradient */}
           <radialGradient id={`gaugeFace-${idSuffix}`} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#1E293B" />
@@ -669,7 +721,7 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
               {/* Inlet Pipe Elbow Main Casing */}
               <path
                 d={`M ${inletPipeStartX},45 L ${INLET_CENTER_X - 12},45 A 12,12 0 0,1 ${INLET_CENTER_X},57 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke={`url(#metalVerticalGradient-${idSuffix})`}
+                stroke="#CBD5E1"
                 strokeWidth="13"
                 strokeLinecap="butt"
                 fill="none"
@@ -816,7 +868,7 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
               {/* Inlet Pipe Elbow 2 Main Casing */}
               <path
                 d={`M ${inlet2PipeStartX},45 L ${INLET2_CENTER_X + 12},45 A 12,12 0 0,0 ${INLET2_CENTER_X},57 L ${INLET2_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke={`url(#metalVerticalGradient-${idSuffix})`}
+                stroke="#CBD5E1"
                 strokeWidth="13"
                 strokeLinecap="butt"
                 fill="none"
@@ -944,6 +996,302 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
                 {/* Hex division lines */}
                 <line x1={inlet2PipeStartX} y1="42" x2={inlet2PipeStartX + 4} y2="42" stroke="#475569" strokeWidth="0.5" />
                 <line x1={inlet2PipeStartX} y1="48" x2={inlet2PipeStartX + 4} y2="48" stroke="#475569" strokeWidth="0.5" />
+              </g>
+            </>
+          )}
+
+          {/* ===== INLET PIPE 3 (Vertical, from top, inner-left) ===== */}
+          {showInletPipe3 && (
+            <>
+              {/* Inlet Pipe 3 Shadow */}
+              <path
+                d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                stroke="#0F172A"
+                strokeWidth="17"
+                strokeLinecap="butt"
+                fill="none"
+                opacity="0.2"
+              />
+
+              {/* Inlet Pipe 3 Main Casing */}
+              <path
+                d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                stroke="#CBD5E1"
+                strokeWidth="13"
+                strokeLinecap="butt"
+                fill="none"
+              />
+
+              {/* Inlet Pipe 3 Inner Highlight */}
+              <path
+                d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                stroke="#FFFFFF"
+                strokeWidth="2.2"
+                strokeLinecap="butt"
+                fill="none"
+                opacity="0.3"
+              />
+
+              {/* Fluid flow inside the inlet pipe 3 */}
+              {isFilling3Flowing && (
+                <g id="inlet-flow-core-3" style={{ pointerEvents: 'none' }}>
+                  {/* Elegant Stream - Outer Shimmer Glow */}
+                  <path
+                    d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                    stroke={`url(#waterStreamShimmer3-${idSuffix})`}
+                    strokeWidth="8"
+                    strokeLinecap="butt"
+                    fill="none"
+                    opacity="0.45"
+                    className="shimmer-pulse"
+                  />
+
+                  {/* Elegant Stream - Core Fluid Flow */}
+                  <path
+                    d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                    stroke={`url(#waterStreamGradient3-${idSuffix})`}
+                    strokeWidth="6.5"
+                    strokeLinecap="butt"
+                    fill="none"
+                    opacity="0.95"
+                  />
+
+                  {/* Flowing stream current lines */}
+                  <path
+                    d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                    stroke="#22D3EE"
+                    strokeWidth="1.5"
+                    strokeDasharray="12, 16"
+                    strokeLinecap="butt"
+                    fill="none"
+                    className="fill-stream-fast"
+                    opacity="0.85"
+                  />
+
+                  <path
+                    d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                    stroke="#FFFFFF"
+                    strokeWidth="2.5"
+                    strokeDasharray="8, 12"
+                    strokeLinecap="butt"
+                    fill="none"
+                    className="fill-stream-super"
+                    opacity="0.95"
+                  />
+
+                  <path
+                    d={`M ${INLET3_CENTER_X},${inlet3PipeStartY} L ${INLET3_CENTER_X},${INLET3_NOZZLE_Y}`}
+                    stroke="#0D9488"
+                    strokeWidth="1.5"
+                    strokeDasharray="16, 20"
+                    strokeLinecap="butt"
+                    fill="none"
+                    className="fill-stream-fast"
+                    opacity="0.75"
+                  />
+                </g>
+              )}
+
+              {/* Nozzle outer metallic bezel lip ring */}
+              <ellipse
+                cx={INLET3_CENTER_X}
+                cy={173.1}
+                rx="6.4"
+                ry="2.0"
+                fill="none"
+                stroke="#94A3B8"
+                strokeWidth="0.4"
+              />
+
+              {/* Nozzle hollow orifice/opening */}
+              <ellipse
+                cx={INLET3_CENTER_X}
+                cy={173}
+                rx="6.0"
+                ry="1.8"
+                fill="#090D16"
+                stroke="#1E293B"
+                strokeWidth="0.3"
+              />
+
+              {/* Valve/Connection Design at Top of Pipe 3 */}
+              <g id={`pipe-valve-top-inlet3-${idSuffix}`}>
+                {/* 1. Pipe connecting flange (dark heavy plate) */}
+                <rect
+                  x={INLET3_CENTER_X - 12}
+                  y={inlet3PipeStartY}
+                  width="24"
+                  height="4"
+                  rx="1"
+                  fill={`url(#metalGradient-${idSuffix})`}
+                  stroke="#0F172A"
+                  strokeWidth="0.8"
+                />
+                {/* Flange Bolts */}
+                <circle cx={INLET3_CENTER_X - 8} cy={inlet3PipeStartY + 2} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+                <circle cx={INLET3_CENTER_X + 8} cy={inlet3PipeStartY + 2} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+
+                {/* 2. Steel threaded coupler/connector hex nut fitting */}
+                <rect
+                  x={INLET3_CENTER_X - 10}
+                  y={inlet3PipeStartY + 4}
+                  width="20"
+                  height="4"
+                  fill={`url(#metalGradient-${idSuffix})`}
+                  stroke="#1E293B"
+                  strokeWidth="0.5"
+                />
+                {/* Hex division lines for 3D realism */}
+                <line x1={INLET3_CENTER_X - 3} y1={inlet3PipeStartY + 4} x2={INLET3_CENTER_X - 3} y2={inlet3PipeStartY + 8} stroke="#475569" strokeWidth="0.5" />
+                <line x1={INLET3_CENTER_X + 3} y1={inlet3PipeStartY + 4} x2={INLET3_CENTER_X + 3} y2={inlet3PipeStartY + 8} stroke="#475569" strokeWidth="0.5" />
+              </g>
+            </>
+          )}
+
+          {/* ===== INLET PIPE 4 (Vertical, from top, inner-right) ===== */}
+          {showInletPipe4 && (
+            <>
+              {/* Inlet Pipe 4 Shadow */}
+              <path
+                d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                stroke="#0F172A"
+                strokeWidth="17"
+                strokeLinecap="butt"
+                fill="none"
+                opacity="0.2"
+              />
+
+              {/* Inlet Pipe 4 Main Casing */}
+              <path
+                d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                stroke="#CBD5E1"
+                strokeWidth="13"
+                strokeLinecap="butt"
+                fill="none"
+              />
+
+              {/* Inlet Pipe 4 Inner Highlight */}
+              <path
+                d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                stroke="#FFFFFF"
+                strokeWidth="2.2"
+                strokeLinecap="butt"
+                fill="none"
+                opacity="0.3"
+              />
+
+              {/* Fluid flow inside the inlet pipe 4 */}
+              {isFilling4Flowing && (
+                <g id="inlet-flow-core-4" style={{ pointerEvents: 'none' }}>
+                  {/* Elegant Stream - Outer Shimmer Glow */}
+                  <path
+                    d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                    stroke={`url(#waterStreamShimmer4-${idSuffix})`}
+                    strokeWidth="8"
+                    strokeLinecap="butt"
+                    fill="none"
+                    opacity="0.45"
+                    className="shimmer-pulse"
+                  />
+
+                  {/* Elegant Stream - Core Fluid Flow */}
+                  <path
+                    d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                    stroke={`url(#waterStreamGradient4-${idSuffix})`}
+                    strokeWidth="6.5"
+                    strokeLinecap="butt"
+                    fill="none"
+                    opacity="0.95"
+                  />
+
+                  {/* Flowing stream current lines */}
+                  <path
+                    d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                    stroke="#22D3EE"
+                    strokeWidth="1.5"
+                    strokeDasharray="12, 16"
+                    strokeLinecap="butt"
+                    fill="none"
+                    className="fill-stream-fast"
+                    opacity="0.85"
+                  />
+
+                  <path
+                    d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                    stroke="#FFFFFF"
+                    strokeWidth="2.5"
+                    strokeDasharray="8, 12"
+                    strokeLinecap="butt"
+                    fill="none"
+                    className="fill-stream-super"
+                    opacity="0.95"
+                  />
+
+                  <path
+                    d={`M ${INLET4_CENTER_X},${inlet4PipeStartY} L ${INLET4_CENTER_X},${INLET4_NOZZLE_Y}`}
+                    stroke="#0D9488"
+                    strokeWidth="1.5"
+                    strokeDasharray="16, 20"
+                    strokeLinecap="butt"
+                    fill="none"
+                    className="fill-stream-fast"
+                    opacity="0.75"
+                  />
+                </g>
+              )}
+
+              {/* Nozzle outer metallic bezel lip ring */}
+              <ellipse
+                cx={INLET4_CENTER_X}
+                cy={173.1}
+                rx="6.4"
+                ry="2.0"
+                fill="none"
+                stroke="#94A3B8"
+                strokeWidth="0.4"
+              />
+
+              {/* Nozzle hollow orifice/opening */}
+              <ellipse
+                cx={INLET4_CENTER_X}
+                cy={173}
+                rx="6.0"
+                ry="1.8"
+                fill="#090D16"
+                stroke="#1E293B"
+                strokeWidth="0.3"
+              />
+
+              {/* Valve/Connection Design at Top of Pipe 4 */}
+              <g id={`pipe-valve-top-inlet4-${idSuffix}`}>
+                {/* 1. Pipe connecting flange (dark heavy plate) */}
+                <rect
+                  x={INLET4_CENTER_X - 12}
+                  y={inlet4PipeStartY}
+                  width="24"
+                  height="4"
+                  rx="1"
+                  fill={`url(#metalGradient-${idSuffix})`}
+                  stroke="#0F172A"
+                  strokeWidth="0.8"
+                />
+                {/* Flange Bolts */}
+                <circle cx={INLET4_CENTER_X - 8} cy={inlet4PipeStartY + 2} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+                <circle cx={INLET4_CENTER_X + 8} cy={inlet4PipeStartY + 2} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+
+                {/* 2. Steel threaded coupler/connector hex nut fitting */}
+                <rect
+                  x={INLET4_CENTER_X - 10}
+                  y={inlet4PipeStartY + 4}
+                  width="20"
+                  height="4"
+                  fill={`url(#metalGradient-${idSuffix})`}
+                  stroke="#1E293B"
+                  strokeWidth="0.5"
+                />
+                {/* Hex division lines for 3D realism */}
+                <line x1={INLET4_CENTER_X - 3} y1={inlet4PipeStartY + 4} x2={INLET4_CENTER_X - 3} y2={inlet4PipeStartY + 8} stroke="#475569" strokeWidth="0.5" />
+                <line x1={INLET4_CENTER_X + 3} y1={inlet4PipeStartY + 4} x2={INLET4_CENTER_X + 3} y2={inlet4PipeStartY + 8} stroke="#475569" strokeWidth="0.5" />
               </g>
             </>
           )}
@@ -1540,6 +1888,170 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
 
             {/* Splash group on water surface */}
             <g id="inflow-splash-group-2" transform={`translate(${INLET2_CENTER_X}, ${Y_water})`} opacity="0.95">
+              <ellipse cx="0" cy="0" rx="14" ry="4.5" fill="none" stroke="#FFFFFF" strokeWidth="1.5" style={{ animation: 'ripplePulseOuter 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite' }} />
+              <ellipse cx="0" cy="0" rx="8" ry="2.5" fill="none" stroke="#22D3EE" strokeWidth="1" style={{ animation: 'ripplePulseInner 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite', animationDelay: '0.4s' }} />
+
+              <circle cx="-3" cy="0" r="2.2" fill="#E0F2FE" className="inflow-splash-l" />
+              <circle cx="3" cy="0" r="1.8" fill="#22D3EE" className="inflow-splash-r" />
+              <circle cx="0" cy="-2" r="2.0" fill="#FFFFFF" className="inflow-splash-h" />
+              
+              <circle cx="-5" cy="0" r="1.8" fill="#22D3EE" className="inflow-splash-l" style={{ animationDelay: '0.2s', animationDuration: '0.5s' }} />
+              <circle cx="5" cy="0" r="1.5" fill="#FFFFFF" className="inflow-splash-r" style={{ animationDelay: '0.3s', animationDuration: '0.55s' }} />
+              <circle cx="2" cy="-1" r="1.3" fill="#E0F2FE" className="inflow-splash-h" style={{ animationDelay: '0.15s', animationDuration: '0.45s' }} />
+            </g>
+          </g>
+        )}
+
+        {/* Inlet pour stream 3 */}
+        {isFilling3Flowing && showInletPipe3 && Y_water > INLET3_NOZZLE_Y && (
+          <g 
+            id="inlet-pour-stream-3" 
+            style={{ 
+              pointerEvents: 'none',
+              '--stream-height': `${Math.max(0, Y_water - INLET3_NOZZLE_Y)}px`
+            } as React.CSSProperties}
+          >
+            {/* Elegant Tapered Stream - Outer Shimmer Glow */}
+            <path
+              d={`M ${INLET3_CENTER_X - 6.0},${INLET3_NOZZLE_Y} 
+                  Q ${INLET3_CENTER_X - 5.0},${(INLET3_NOZZLE_Y + Y_water) / 2} ${INLET3_CENTER_X - 4.0},${Y_water}
+                  L ${INLET3_CENTER_X + 4.0},${Y_water}
+                  Q ${INLET3_CENTER_X + 5.0},${(INLET3_NOZZLE_Y + Y_water) / 2} ${INLET3_CENTER_X + 6.0},${INLET3_NOZZLE_Y} Z`}
+              fill={`url(#waterStreamShimmer3-${idSuffix})`}
+              opacity="0.45"
+              className="shimmer-pulse"
+            />
+
+            {/* Elegant Tapered Stream - Core Fluid Flow */}
+            <path
+              d={`M ${INLET3_CENTER_X - 5.0},${INLET3_NOZZLE_Y} 
+                  Q ${INLET3_CENTER_X - 4.0},${(INLET3_NOZZLE_Y + Y_water) / 2} ${INLET3_CENTER_X - 3.0},${Y_water}
+                  L ${INLET3_CENTER_X + 3.0},${Y_water}
+                  Q ${INLET3_CENTER_X + 4.0},${(INLET3_NOZZLE_Y + Y_water) / 2} ${INLET3_CENTER_X + 5.0},${INLET3_NOZZLE_Y} Z`}
+              fill={`url(#waterStreamGradient3-${idSuffix})`}
+              opacity="0.95"
+            />
+
+            {/* Left flowing stream current line (converges towards center) */}
+            <path
+              d={`M ${INLET3_CENTER_X - 3.5},${INLET3_NOZZLE_Y} 
+                  Q ${INLET3_CENTER_X - 2.5},${(INLET3_NOZZLE_Y + Y_water) / 2} ${INLET3_CENTER_X - 1.5},${Y_water}`}
+              stroke="#22D3EE"
+              strokeWidth="1.5"
+              strokeDasharray="12, 16"
+              fill="none"
+              className="fill-stream-fast"
+              opacity="0.85"
+            />
+
+            {/* Central high-velocity stream line */}
+            <path
+              d={`M ${INLET3_CENTER_X},${INLET3_NOZZLE_Y} 
+                  L ${INLET3_CENTER_X},${Y_water}`}
+              stroke="#FFFFFF"
+              strokeWidth="2.5"
+              strokeDasharray="8, 12"
+              fill="none"
+              className="fill-stream-super"
+              opacity="0.95"
+            />
+
+            {/* Right flowing stream current line (converges towards center) */}
+            <path
+              d={`M ${INLET3_CENTER_X + 3.5},${INLET3_NOZZLE_Y} 
+                  Q ${INLET3_CENTER_X + 2.5},${(INLET3_NOZZLE_Y + Y_water) / 2} ${INLET3_CENTER_X + 1.5},${Y_water}`}
+              stroke="#0D9488"
+              strokeWidth="1.5"
+              strokeDasharray="16, 20"
+              fill="none"
+              className="fill-stream-fast"
+              opacity="0.75"
+            />
+
+            {/* Splash group on water surface */}
+            <g id="inflow-splash-group-3" transform={`translate(${INLET3_CENTER_X}, ${Y_water})`} opacity="0.95">
+              <ellipse cx="0" cy="0" rx="14" ry="4.5" fill="none" stroke="#FFFFFF" strokeWidth="1.5" style={{ animation: 'ripplePulseOuter 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite' }} />
+              <ellipse cx="0" cy="0" rx="8" ry="2.5" fill="none" stroke="#22D3EE" strokeWidth="1" style={{ animation: 'ripplePulseInner 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite', animationDelay: '0.4s' }} />
+
+              <circle cx="-3" cy="0" r="2.2" fill="#E0F2FE" className="inflow-splash-l" />
+              <circle cx="3" cy="0" r="1.8" fill="#22D3EE" className="inflow-splash-r" />
+              <circle cx="0" cy="-2" r="2.0" fill="#FFFFFF" className="inflow-splash-h" />
+              
+              <circle cx="-5" cy="0" r="1.8" fill="#22D3EE" className="inflow-splash-l" style={{ animationDelay: '0.2s', animationDuration: '0.5s' }} />
+              <circle cx="5" cy="0" r="1.5" fill="#FFFFFF" className="inflow-splash-r" style={{ animationDelay: '0.3s', animationDuration: '0.55s' }} />
+              <circle cx="2" cy="-1" r="1.3" fill="#E0F2FE" className="inflow-splash-h" style={{ animationDelay: '0.15s', animationDuration: '0.45s' }} />
+            </g>
+          </g>
+        )}
+
+        {/* Inlet pour stream 4 */}
+        {isFilling4Flowing && showInletPipe4 && Y_water > INLET4_NOZZLE_Y && (
+          <g 
+            id="inlet-pour-stream-4" 
+            style={{ 
+              pointerEvents: 'none',
+              '--stream-height': `${Math.max(0, Y_water - INLET4_NOZZLE_Y)}px`
+            } as React.CSSProperties}
+          >
+            {/* Elegant Tapered Stream - Outer Shimmer Glow */}
+            <path
+              d={`M ${INLET4_CENTER_X - 6.0},${INLET4_NOZZLE_Y} 
+                  Q ${INLET4_CENTER_X - 5.0},${(INLET4_NOZZLE_Y + Y_water) / 2} ${INLET4_CENTER_X - 4.0},${Y_water}
+                  L ${INLET4_CENTER_X + 4.0},${Y_water}
+                  Q ${INLET4_CENTER_X + 5.0},${(INLET4_NOZZLE_Y + Y_water) / 2} ${INLET4_CENTER_X + 6.0},${INLET4_NOZZLE_Y} Z`}
+              fill={`url(#waterStreamShimmer4-${idSuffix})`}
+              opacity="0.45"
+              className="shimmer-pulse"
+            />
+
+            {/* Elegant Tapered Stream - Core Fluid Flow */}
+            <path
+              d={`M ${INLET4_CENTER_X - 5.0},${INLET4_NOZZLE_Y} 
+                  Q ${INLET4_CENTER_X - 4.0},${(INLET4_NOZZLE_Y + Y_water) / 2} ${INLET4_CENTER_X - 3.0},${Y_water}
+                  L ${INLET4_CENTER_X + 3.0},${Y_water}
+                  Q ${INLET4_CENTER_X + 4.0},${(INLET4_NOZZLE_Y + Y_water) / 2} ${INLET4_CENTER_X + 5.0},${INLET4_NOZZLE_Y} Z`}
+              fill={`url(#waterStreamGradient4-${idSuffix})`}
+              opacity="0.95"
+            />
+
+            {/* Left flowing stream current line (converges towards center) */}
+            <path
+              d={`M ${INLET4_CENTER_X - 3.5},${INLET4_NOZZLE_Y} 
+                  Q ${INLET4_CENTER_X - 2.5},${(INLET4_NOZZLE_Y + Y_water) / 2} ${INLET4_CENTER_X - 1.5},${Y_water}`}
+              stroke="#22D3EE"
+              strokeWidth="1.5"
+              strokeDasharray="12, 16"
+              fill="none"
+              className="fill-stream-fast"
+              opacity="0.85"
+            />
+
+            {/* Central high-velocity stream line */}
+            <path
+              d={`M ${INLET4_CENTER_X},${INLET4_NOZZLE_Y} 
+                  L ${INLET4_CENTER_X},${Y_water}`}
+              stroke="#FFFFFF"
+              strokeWidth="2.5"
+              strokeDasharray="8, 12"
+              fill="none"
+              className="fill-stream-super"
+              opacity="0.95"
+            />
+
+            {/* Right flowing stream current line (converges towards center) */}
+            <path
+              d={`M ${INLET4_CENTER_X + 3.5},${INLET4_NOZZLE_Y} 
+                  Q ${INLET4_CENTER_X + 2.5},${(INLET4_NOZZLE_Y + Y_water) / 2} ${INLET4_CENTER_X + 1.5},${Y_water}`}
+              stroke="#0D9488"
+              strokeWidth="1.5"
+              strokeDasharray="16, 20"
+              fill="none"
+              className="fill-stream-fast"
+              opacity="0.75"
+            />
+
+            {/* Splash group on water surface */}
+            <g id="inflow-splash-group-4" transform={`translate(${INLET4_CENTER_X}, ${Y_water})`} opacity="0.95">
               <ellipse cx="0" cy="0" rx="14" ry="4.5" fill="none" stroke="#FFFFFF" strokeWidth="1.5" style={{ animation: 'ripplePulseOuter 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite' }} />
               <ellipse cx="0" cy="0" rx="8" ry="2.5" fill="none" stroke="#22D3EE" strokeWidth="1" style={{ animation: 'ripplePulseInner 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite', animationDelay: '0.4s' }} />
 
