@@ -100,8 +100,63 @@ app.use('/api/auth', authRoutes);
 
 // REST APIs
 app.get('/api/topologies', async (req, res) => {
-  const topologies = await prisma.topology.findMany();
+  const topologies = await prisma.topology.findMany({
+    include: {
+      _count: {
+        select: { nodes: true, edges: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' }
+  });
   res.json(topologies);
+});
+
+app.post('/api/topologies', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    const newTopology = await prisma.topology.create({
+      data: { name, description },
+    });
+    res.status(201).json(newTopology);
+  } catch (error) {
+    console.error('Error creating topology:', error);
+    res.status(500).json({ error: 'Failed to create topology' });
+  }
+});
+
+app.patch('/api/topologies/:id', async (req, res) => {
+  try {
+    const topologyId = parseInt(req.params.id, 10);
+    if (isNaN(topologyId)) return res.status(400).json({ error: 'Invalid ID' });
+    
+    const { name, description } = req.body;
+    const updated = await prisma.topology.update({
+      where: { id: topologyId },
+      data: { name, description },
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating topology:', error);
+    res.status(500).json({ error: 'Failed to update topology' });
+  }
+});
+
+app.delete('/api/topologies/:id', async (req, res) => {
+  try {
+    const topologyId = parseInt(req.params.id, 10);
+    if (isNaN(topologyId)) return res.status(400).json({ error: 'Invalid ID' });
+    
+    await prisma.topology.delete({
+      where: { id: topologyId },
+    });
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting topology:', error);
+    res.status(500).json({ error: 'Failed to delete topology' });
+  }
 });
 
 app.get('/api/topologies/:id', async (req, res) => {
