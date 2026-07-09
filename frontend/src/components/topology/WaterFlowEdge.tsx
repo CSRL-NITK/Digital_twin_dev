@@ -1,14 +1,14 @@
 import React from 'react';
-import { BaseEdge, getSmoothStepPath, useNodes, useEdges, Position, EdgeLabelRenderer } from 'reactflow';
+import { BaseEdge, getSmoothStepPath, useNodes, Position, EdgeLabelRenderer } from 'reactflow';
 import type { EdgeProps } from 'reactflow';
 import { getSmartEdge } from '@tisoap/react-flow-smart-edge';
 
+// Global store to keep track of the exact rendered orthogonal path segments of EVERY pipe
+// This allows us to instantly detect if ANY pipe passes straight through a corner to form a T-Junction!
+export const globalEdgeSegments = new Map<string, {x: number, y: number}[]>();
+
 const WaterFlowEdge: React.FC<EdgeProps> = ({
   id,
-  source,
-  sourceHandleId,
-  target,
-  targetHandleId,
   sourceX,
   sourceY,
   targetX,
@@ -20,15 +20,9 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   markerEnd,
 }) => {
   const nodes = useNodes();
-  const edges = useEdges();
   
   // Extract flow properties from edge data
   const isFlowing = data?.isFlowing ?? true;
-
-  // Detect if this edge originates from a shared source handle (a Split)
-  const isSplit = edges.filter(e => e.source === source && e.sourceHandle === sourceHandleId).length > 1;
-  // Detect if this edge terminates at a shared target handle (a Merge)
-  const isMerge = edges.filter(e => e.target === target && e.targetHandle === targetHandleId).length > 1;
 
   // If isFlowing is false, we want it to look inactive/grayed out
   
@@ -148,38 +142,56 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
     }
   }
 
-  const tJunctions = corners.filter(corner => {
-    if (isSplit) {
-      if (Math.abs(corner.x - modSourceX) < 2) {
-        const others = edges.filter(e => e.id !== id && e.source === source && e.sourceHandle === sourceHandleId);
-        if (sourcePosition === Position.Bottom) {
-          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.y || 0) > corner.y)) return true;
-        } else if (sourcePosition === Position.Top) {
-          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.y || 0) < corner.y)) return true;
-        }
-      } else if (Math.abs(corner.y - modSourceY) < 2) {
-        const others = edges.filter(e => e.id !== id && e.source === source && e.sourceHandle === sourceHandleId);
-        if (sourcePosition === Position.Right) {
-          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.x || 0) > corner.x)) return true;
-        } else if (sourcePosition === Position.Left) {
-          if (others.some(e => (nodes.find(n => n.id === e.target)?.position.x || 0) < corner.x)) return true;
-        }
-      }
+  // Simplify collinear segments out of orthoPoints to perfectly detect straight overlaps
+  const simplifiedPoints: {x: number, y: number}[] = [];
+  if (orthoPoints.length > 0) simplifiedPoints.push(orthoPoints[0]);
+  for (let i = 1; i < orthoPoints.length - 1; i++) {
+    const prev = simplifiedPoints[simplifiedPoints.length - 1];
+    const curr = orthoPoints[i];
+    const next = orthoPoints[i+1];
+    const isCollinearX = Math.abs(prev.x - curr.x) < 1 && Math.abs(curr.x - next.x) < 1;
+    const isCollinearY = Math.abs(prev.y - curr.y) < 1 && Math.abs(curr.y - next.y) < 1;
+    if (!isCollinearX && !isCollinearY) {
+      simplifiedPoints.push(curr);
     }
-    if (isMerge) {
-      if (Math.abs(corner.x - modTargetX) < 2) {
-        const others = edges.filter(e => e.id !== id && e.target === target && e.targetHandle === targetHandleId);
-        if (targetPosition === Position.Top) {
-          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.y || 0) < corner.y)) return true;
-        } else if (targetPosition === Position.Bottom) {
-          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.y || 0) > corner.y)) return true;
-        }
-      } else if (Math.abs(corner.y - modTargetY) < 2) {
-        const others = edges.filter(e => e.id !== id && e.target === target && e.targetHandle === targetHandleId);
-        if (targetPosition === Position.Left) {
-          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.x || 0) < corner.x)) return true;
-        } else if (targetPosition === Position.Right) {
-          if (others.some(e => (nodes.find(n => n.id === e.source)?.position.x || 0) > corner.x)) return true;
+  }
+  if (orthoPoints.length > 1) simplifiedPoints.push(orthoPoints[orthoPoints.length - 1]);
+
+  // Register our exact computed orthogonal path to the global store
+  globalEdgeSegments.set(id, simplifiedPoints);
+
+  // Clean up if this edge is deleted
+  React.useEffect(() => {
+    return () => {
+      globalEdgeSegments.delete(id);
+    };
+  }, [id]);
+
+  const tJunctions = corners.filter(corner => {
+    // Check if this corner lies STRICTLY on any segment of ANY OTHER edge in the entire canvas
+    for (const [otherId, otherOrthoPoints] of globalEdgeSegments.entries()) {
+      if (otherId === id) continue;
+      
+      for (let i = 0; i < otherOrthoPoints.length - 1; i++) {
+        const p1 = otherOrthoPoints[i];
+        const p2 = otherOrthoPoints[i+1];
+        
+        // Is it a vertical segment?
+        if (Math.abs(p1.x - p2.x) < 1) {
+          if (Math.abs(corner.x - p1.x) < 2) { // Corner shares X
+            const minY = Math.min(p1.y, p2.y);
+            const maxY = Math.max(p1.y, p2.y);
+            // Strictly between (meaning the pipe goes straight past the corner)
+            if (corner.y > minY + 2 && corner.y < maxY - 2) return true;
+          }
+        } 
+        // Is it a horizontal segment?
+        else if (Math.abs(p1.y - p2.y) < 1) {
+          if (Math.abs(corner.y - p1.y) < 2) { // Corner shares Y
+            const minX = Math.min(p1.x, p2.x);
+            const maxX = Math.max(p1.x, p2.x);
+            if (corner.x > minX + 2 && corner.x < maxX - 2) return true;
+          }
         }
       }
     }
