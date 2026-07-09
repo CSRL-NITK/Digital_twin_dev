@@ -1382,7 +1382,48 @@ type HistoryAction = {
   newValue: { x: number, y: number, w?: number, h?: number };
 };
 
-/* ── MAIN COMPONENT ── */
+// Helper to recursively determine if an edge is flowing based on source node and its supply chain
+export const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): boolean => {
+  const getTargetId = (e: any) => e.target || e.targetNodeId?.toString();
+  const getSourceId = (e: any) => e.source || e.sourceNodeId?.toString();
+
+  const tgtNode = allNodes.find((n: any) => n.id === getTargetId(edge));
+  if (tgtNode) {
+    if (tgtNode.type === 'pump' && tgtNode.data?.pumpOn === false) return false;
+    if (tgtNode.type === 'tank' || tgtNode.type === 'central_tank') {
+      if (tgtNode.data?.inletValveOn === false) return false;
+      const hasOutgoingEdges = allEdges.some((e: any) => getSourceId(e) === tgtNode.id);
+      if (!hasOutgoingEdges && tgtNode.data?.outletValveOn === false) return false;
+    }
+  }
+
+  const isNodeSupplied = (nodeId: string, visited = new Set<string>()): boolean => {
+    if (visited.has(nodeId)) return false;
+    visited.add(nodeId);
+    
+    const node = allNodes.find((n: any) => n.id === nodeId);
+    if (!node) return false;
+    
+    if (node.type === 'central_tank' || node.type === 'tank') {
+       if (node.data?.outletValveOn === false) return false;
+       const wl = node.data?.waterLevel ?? 0;
+       return wl > 1;
+    }
+    
+    if (node.type === 'pump') {
+       if (node.data?.pumpOn === false) return false;
+       const incomingEdges = allEdges.filter((e: any) => getTargetId(e) === nodeId);
+       if (incomingEdges.length === 0) return true; // Assume supplied if isolated source
+       return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
+    }
+    
+    return true; 
+  };
+
+  return isNodeSupplied(getSourceId(edge));
+};
+
+/* 🚀 MAIN COMPONENT 🚀 */
 export default function TopologyCanvas() {
   const { id } = useParams();
   const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
@@ -1407,6 +1448,7 @@ export default function TopologyCanvas() {
   const [allowMoveViewport, setAllowMoveViewport] = useState(false);
   const [allowResizeViewport, setAllowResizeViewport] = useState(false); // drag + resize nodes
   const [allowMoveSwitches, setAllowMoveSwitches] = useState(false); // move & resize switches
+  const [allowEditPipes, setAllowEditPipes] = useState(false); // waypoint routing
   const [showPaletteMenu, setShowPaletteMenu] = useState(false);
   const [showNodePalette, setShowNodePalette] = useState(false);
   const [showSensorPalette, setShowSensorPalette] = useState(false);
@@ -1430,6 +1472,7 @@ export default function TopologyCanvas() {
     allowResizeNodes: false,
     allowDeleteNodes: false,
     allowMoveSwitches: false,
+    allowEditPipes: false,
     canControlPump: false,
   });
 
@@ -1730,7 +1773,7 @@ export default function TopologyCanvas() {
 
   /* ── Unified Effect: push editMode/allowMoveResize/showViewport into nodes ─ */
   useEffect(() => {
-    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes, allowMoveSwitches, canControlPump };
+    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes, allowMoveSwitches, allowEditPipes, canControlPump };
 
     if (editMode) {
       setSelectedNode(null);
@@ -1740,6 +1783,7 @@ export default function TopologyCanvas() {
       setShowViewport(false);
       setShowCrosshair(false);
       setAllowMoveResize(false);
+      setAllowEditPipes(false);
       setShowPaletteMenu(false);
       setShowNodePalette(false);
       setShowSensorPalette(false);
@@ -1808,6 +1852,11 @@ export default function TopologyCanvas() {
       });
     });
   }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveSwitches, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, canControlPump, handleTogglePump, handleToggleTankValve, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, handleHideTankSwitch, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
+
+  // Push allowEditPipes to all edges
+  useEffect(() => {
+    setEdges((eds) => eds.map((e) => ({ ...e, data: { ...e.data, allowEditPipes } })));
+  }, [allowEditPipes, setEdges]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -1999,26 +2048,7 @@ export default function TopologyCanvas() {
           };
         });
         const formattedEdges = data.edges.map((edge: any) => {
-          const srcNode = formattedNodes.find((n: any) => n.id === edge.sourceNodeId.toString());
-          const tgtNode = formattedNodes.find((n: any) => n.id === edge.targetNodeId.toString());
-
-          let isFlowing = true;
-          if (srcNode) {
-            if (srcNode.type === 'pump' && srcNode.data?.pumpOn === false) isFlowing = false;
-            if (srcNode.type === 'tank' || srcNode.type === 'central_tank') {
-              if (srcNode.data?.outletValveOn === false) isFlowing = false;
-              const wl = srcNode.data?.waterLevel ?? 0;
-              if (wl <= 1) isFlowing = false;
-            }
-          }
-          if (tgtNode) {
-            if (tgtNode.type === 'pump' && tgtNode.data?.pumpOn === false) isFlowing = false;
-            if (tgtNode.type === 'tank' || tgtNode.type === 'central_tank') {
-              if (tgtNode.data?.inletValveOn === false) isFlowing = false;
-              const hasOutgoingEdges = data.edges.some((e: any) => e.sourceNodeId === tgtNode.id);
-              if (!hasOutgoingEdges && tgtNode.data?.outletValveOn === false) isFlowing = false;
-            }
-          }
+          const isFlowing = evaluateEdgeFlow(edge, data.edges, formattedNodes);
 
           return {
             id: edge.id.toString(),
@@ -2213,40 +2243,7 @@ export default function TopologyCanvas() {
     setEdges((eds) => {
       let changed = false;
       const nextEds = eds.map((e) => {
-        const srcNode = nodes.find((n) => n.id === e.source);
-        const tgtNode = nodes.find((n) => n.id === e.target);
-
-        let isFlowing = true;
-
-        // Check source node status/switches
-        if (srcNode) {
-          if (srcNode.type === 'pump' && srcNode.data?.pumpOn === false) {
-            isFlowing = false;
-          }
-          if (srcNode.type === 'tank' || srcNode.type === 'central_tank') {
-            if (srcNode.data?.outletValveOn === false) {
-              isFlowing = false;
-            }
-            const wl = srcNode.data?.waterLevel ?? 0;
-            if (wl <= 1) {
-              isFlowing = false;
-            }
-          }
-        }
-
-        // Check target node status/switches
-        if (tgtNode) {
-          if (tgtNode.type === 'pump' && tgtNode.data?.pumpOn === false) {
-            isFlowing = false;
-          }
-          if (tgtNode.type === 'tank' || tgtNode.type === 'central_tank') {
-            if (tgtNode.data?.inletValveOn === false) isFlowing = false;
-            const hasOutgoingEdges = eds.some((edge) => edge.source === tgtNode.id);
-            if (!hasOutgoingEdges && tgtNode.data?.outletValveOn === false) isFlowing = false;
-          }
-        }
-
-        const nextIsFlowing = isFlowing;
+        const nextIsFlowing = evaluateEdgeFlow(e, eds, nodes);
 
         if ((e.data as any)?.isFlowing !== nextIsFlowing) {
           changed = true;
@@ -2929,6 +2926,12 @@ export default function TopologyCanvas() {
                         }
                       }}
                       label="Switches"
+                    />
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+                    <Switch
+                      checked={allowEditPipes}
+                      onChange={setAllowEditPipes}
+                      label="Edit Pipes"
                     />
                     {showViewport && (
                       <>
