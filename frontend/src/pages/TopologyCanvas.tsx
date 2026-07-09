@@ -1390,11 +1390,6 @@ export const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): b
   const tgtNode = allNodes.find((n: any) => n.id === getTargetId(edge));
   if (tgtNode) {
     if (tgtNode.type === 'pump' && tgtNode.data?.pumpOn === false) return false;
-    if (tgtNode.type === 'tank' || tgtNode.type === 'central_tank') {
-      if (tgtNode.data?.inletValveOn === false) return false;
-      const hasOutgoingEdges = allEdges.some((e: any) => getSourceId(e) === tgtNode.id);
-      if (!hasOutgoingEdges && tgtNode.data?.outletValveOn === false) return false;
-    }
   }
 
   const isNodeSupplied = (nodeId: string, visited = new Set<string>()): boolean => {
