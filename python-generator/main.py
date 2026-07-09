@@ -57,9 +57,9 @@ def worst_status(statuses: list) -> str:
 
 
 class StarTopologySimulator:
-    def __init__(self):
+    def __init__(self, topo_id):
         self.conn = None
-        self.topology_id = None
+        self.topology_id = topo_id
 
         # Node lists (by integer DB id)
         self.central_tanks = []
@@ -88,13 +88,13 @@ class StarTopologySimulator:
     def load_topology(self):
         cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        cur.execute("SELECT id FROM topologies WHERE name ILIKE '%star%' LIMIT 1")
+        cur.execute("SELECT id, name FROM topologies WHERE id = %s LIMIT 1", (self.topology_id,))
         row = cur.fetchone()
         if not row:
-            print("ERROR: No Star Topology found in DB. Create one in the UI first!")
+            print(f"ERROR: Topology with ID {self.topology_id} not found in DB.")
             return False
-        self.topology_id = row["id"]
-        print(f"Found Star Topology (id={self.topology_id})")
+            
+        print(f"Found Topology: {row['name']} (id={self.topology_id})")
 
         cur.execute(
             "SELECT id, node_name, node_type, status, attributes FROM nodes WHERE topology_id = %s",
@@ -401,5 +401,12 @@ class StarTopologySimulator:
             print("\nStopped.")
 
 if __name__ == "__main__":
-    sim = StarTopologySimulator()
+    topo_id_input = input("Enter the Topology ID to simulate: ")
+    try:
+        topo_id = int(topo_id_input.strip())
+    except ValueError:
+        print("Invalid Topology ID. Must be an integer.")
+        exit(1)
+
+    sim = StarTopologySimulator(topo_id)
     sim.start()
