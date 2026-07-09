@@ -62,6 +62,7 @@ model Edge {
   sourcePortId String?  @map("source_port") @db.VarChar(100)
   targetPortId String?  @map("target_port") @db.VarChar(100)
   status       String   @default("normal") @db.VarChar(30)
+  attributes   Json?
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
   sourceNode Node @relation("SourceEdges", fields: [sourceNodeId], references: [id], onDelete: Cascade)
