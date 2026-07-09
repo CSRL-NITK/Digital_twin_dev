@@ -424,6 +424,23 @@ app.post('/api/edges', async (req, res) => {
   }
 });
 
+
+app.patch('/api/edges/:id/attributes', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { attributes } = req.body;
+  try {
+    const updatedEdge = await prisma.edge.update({
+      where: { id },
+      data: { attributes }
+    });
+    io.emit('edge:attributesUpdated', { id, attributes });
+    res.json(updatedEdge);
+  } catch (error) {
+    console.error('Failed to update edge attributes:', error);
+    res.status(500).json({ error: 'Failed to update edge attributes' });
+  }
+});
+
 app.delete('/api/edges/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   try {
