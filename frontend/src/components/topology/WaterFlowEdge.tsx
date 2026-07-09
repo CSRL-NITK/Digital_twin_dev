@@ -1,7 +1,10 @@
 import React from 'react';
-import { BaseEdge, getSmoothStepPath, useNodes, Position, EdgeLabelRenderer } from 'reactflow';
+import axios from 'axios';
+import { BaseEdge, getSmoothStepPath, useNodes, Position, EdgeLabelRenderer, useReactFlow } from 'reactflow';
 import type { EdgeProps } from 'reactflow';
 import { getSmartEdge } from '@tisoap/react-flow-smart-edge';
+
+const BACKEND_URL = 'http://localhost:3001';
 
 // Global store to keep track of the exact rendered orthogonal path segments of EVERY pipe
 // This allows us to instantly detect if ANY pipe passes straight through a corner to form a T-Junction!
@@ -20,6 +23,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   markerEnd,
 }) => {
   const nodes = useNodes();
+  const rf = useReactFlow();
   
   // Extract flow properties from edge data
   const isFlowing = data?.isFlowing ?? true;
@@ -32,7 +36,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   
   // Use smart edge routing (obstacle avoidance) if nodes are available
   // Fallback to smooth step if smart routing fails
-  let svgPathString = '';
+  let finalSvgPathString = '';
   
   const LEAD_PX = 42;
   
@@ -50,41 +54,85 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   if (targetPosition === Position.Top) modTargetY -= LEAD_PX;
   if (targetPosition === Position.Bottom) modTargetY += LEAD_PX;
 
-  try {
-    const smartEdge = getSmartEdge({
-      sourcePosition,
-      targetPosition,
-      sourceX: modSourceX,
-      sourceY: modSourceY,
-      targetX: modTargetX,
-      targetY: modTargetY,
-      nodes,
-      options: {
-        nodePadding: 32, // Stronger clearance around nodes
-      }
-    });
-    
-    if (smartEdge) {
-      svgPathString = `M ${sourceX} ${sourceY} L ${modSourceX} ${modSourceY} ${smartEdge.svgPathString} L ${targetX} ${targetY}`;
+  const allowEditPipes = data?.allowEditPipes ?? false;
+
+  let pts: {x: number, y: number}[] = [];
+
+  if (data?.customPoints && data.customPoints.length > 0) {
+    const p = [...data.customPoints];
+    if (Math.abs(modSourceX - p[0].x) < Math.abs(modSourceY - p[0].y)) {
+      p[0].x = modSourceX;
+    } else {
+      p[0].y = modSourceY;
     }
-  } catch (e) {
-    // Ignore smart edge failure
+    const last = p.length - 1;
+    if (Math.abs(modTargetX - p[last].x) < Math.abs(modTargetY - p[last].y)) {
+      p[last].x = modTargetX;
+    } else {
+      p[last].y = modTargetY;
+    }
+
+    pts = [{x: modSourceX, y: modSourceY}, ...p, {x: modTargetX, y: modTargetY}];
+    
+    let path = `M ${sourceX} ${sourceY} L ${modSourceX} ${modSourceY}`;
+    for (const pt of p) {
+      path += ` L ${pt.x} ${pt.y}`;
+    }
+    path += ` L ${modTargetX} ${modTargetY} L ${targetX} ${targetY}`;
+    finalSvgPathString = path;
+  } else {
+    try {
+      const smartEdge = getSmartEdge({
+        sourcePosition,
+        targetPosition,
+        sourceX: modSourceX,
+        sourceY: modSourceY,
+        targetX: modTargetX,
+        targetY: modTargetY,
+        nodes,
+        options: {
+          nodePadding: 32, // Stronger clearance around nodes
+        }
+      });
+      
+      if (smartEdge) {
+        finalSvgPathString = `M ${sourceX} ${sourceY} L ${modSourceX} ${modSourceY} ${smartEdge.svgPathString.replace(/^M[^\s]+ [^\s]+ /, '')} L ${targetX} ${targetY}`;
+      }
+    } catch {
+      // Ignore smart edge failure
+    }
+    
+    if (!finalSvgPathString) {
+      const [path] = getSmoothStepPath({
+        sourceX,
+        sourceY,
+        sourcePosition,
+        targetX,
+        targetY,
+        targetPosition,
+        borderRadius: 12,
+        offset: LEAD_PX,
+      });
+      finalSvgPathString = path;
+    }
+
+    const regex = /[ML]\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/gi;
+    let match;
+    const extracted = [];
+    while ((match = regex.exec(finalSvgPathString)) !== null) {
+      const pt = { x: parseFloat(match[1]), y: parseFloat(match[2]) };
+      if (extracted.length === 0 || Math.abs(extracted[extracted.length-1].x - pt.x) > 1 || Math.abs(extracted[extracted.length-1].y - pt.y) > 1) {
+        extracted.push(pt);
+      }
+    }
+    if (extracted.length >= 4) {
+      pts = extracted.slice(1, extracted.length - 1);
+    } else {
+      pts = [ {x: modSourceX, y: modSourceY}, {x: modTargetX, y: modTargetY} ];
+    }
   }
   
-  if (!svgPathString) {
-    // Fallback to smooth step
-    const [path] = getSmoothStepPath({
-      sourceX,
-      sourceY,
-      sourcePosition,
-      targetX,
-      targetY,
-      targetPosition,
-      borderRadius: 12,
-      offset: LEAD_PX,
-    });
-    svgPathString = path;
-  }
+  const svgPathString = finalSvgPathString;
   
   // =========================================================================
   // T-JUNCTION CONNECTOR LOGIC
@@ -328,6 +376,106 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
           }}
         />
       )}
+
+      {/* Invisible interaction paths to drag the pipe lines */}
+      {allowEditPipes && pts.length >= 2 && pts.slice(0, -1).map((p1, i) => {
+        const p2 = pts[i+1];
+        const isHorizontal = Math.abs(p1.y - p2.y) < 1;
+        return (
+          <line
+            key={`drag-${i}`}
+            x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+            strokeWidth={32}
+            stroke="transparent"
+            cursor={isHorizontal ? 'ns-resize' : 'ew-resize'}
+            pointerEvents="all"
+            onDoubleClick={(e) => {
+               e.stopPropagation();
+               rf.setEdges(eds => eds.map(edge => {
+                     if (edge.id === id) {
+                        const newData = { ...edge.data };
+                        delete newData.customPoints;
+                        return { ...edge, data: newData };
+                     }
+                     return edge;
+               }));
+               axios.patch(`${BACKEND_URL}/api/edges/${id.replace('-base', '').replace('-core', '')}/attributes`, {
+                  attributes: {}
+               }).catch(console.error);
+            }}
+            onPointerDown={(e) => {
+               e.stopPropagation();
+               const target = e.currentTarget as unknown as HTMLElement;
+               target.setPointerCapture(e.pointerId);
+               
+               const startMouse = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+               const initialPts = [...pts];
+               let currentFinalPoints = [...initialPts.slice(1, -1)];
+
+               const onPointerMove = (evt: PointerEvent) => {
+                  const currentMouse = rf.screenToFlowPosition({ x: evt.clientX, y: evt.clientY });
+                  const dx = Math.round((currentMouse.x - startMouse.x) / 10) * 10;
+                  const dy = Math.round((currentMouse.y - startMouse.y) / 10) * 10;
+                  if (dx === 0 && dy === 0) return;
+                  
+                  let newPts = [...initialPts];
+                  
+                  if (newPts.length === 2) {
+                     if (isHorizontal) {
+                        newPts.splice(1, 0, { x: newPts[0].x, y: newPts[0].y + dy }, { x: newPts[1].x, y: newPts[1].y + dy });
+                     } else {
+                        newPts.splice(1, 0, { x: newPts[0].x + dx, y: newPts[0].y }, { x: newPts[1].x + dx, y: newPts[1].y });
+                     }
+                  } else if (i === 0) {
+                     if (isHorizontal) {
+                        newPts.splice(1, 0, { x: newPts[0].x, y: newPts[0].y + dy });
+                        newPts[2] = { ...newPts[2], y: newPts[2].y + dy };
+                     } else {
+                        newPts.splice(1, 0, { x: newPts[0].x + dx, y: newPts[0].y });
+                        newPts[2] = { ...newPts[2], x: newPts[2].x + dx };
+                     }
+                  } else if (i === newPts.length - 2) {
+                     if (isHorizontal) {
+                        newPts.splice(newPts.length - 1, 0, { x: newPts[newPts.length - 1].x, y: newPts[newPts.length - 1].y + dy });
+                        newPts[i] = { ...newPts[i], y: newPts[i].y + dy };
+                     } else {
+                        newPts.splice(newPts.length - 1, 0, { x: newPts[newPts.length - 1].x + dx, y: newPts[newPts.length - 1].y });
+                        newPts[i] = { ...newPts[i], x: newPts[i].x + dx };
+                     }
+                  } else {
+                     if (isHorizontal) {
+                        newPts[i] = { ...newPts[i], y: newPts[i].y + dy };
+                        newPts[i + 1] = { ...newPts[i + 1], y: newPts[i + 1].y + dy };
+                     } else {
+                        newPts[i] = { ...newPts[i], x: newPts[i].x + dx };
+                        newPts[i + 1] = { ...newPts[i + 1], x: newPts[i + 1].x + dx };
+                     }
+                  }
+                  
+                  currentFinalPoints = newPts.slice(1, newPts.length - 1);
+                  rf.setEdges(eds => eds.map(edge => {
+                     if (edge.id === id) {
+                        return { ...edge, data: { ...edge.data, customPoints: currentFinalPoints } };
+                     }
+                     return edge;
+                  }));
+               };
+               
+               const onPointerUp = (evt: PointerEvent) => {
+                  target.releasePointerCapture(evt.pointerId);
+                  target.removeEventListener('pointermove', onPointerMove);
+                  target.removeEventListener('pointerup', onPointerUp);
+                  axios.patch(`${BACKEND_URL}/api/edges/${id.replace('-base', '').replace('-core', '')}/attributes`, {
+                     attributes: { customPoints: currentFinalPoints }
+                  }).catch(console.error);
+               };
+               
+               target.addEventListener('pointermove', onPointerMove);
+               target.addEventListener('pointerup', onPointerUp);
+            }}
+          />
+        );
+      })}
 
       {/* 7. Edge Label Renderer for UI Connectors (always on top) */}
       <EdgeLabelRenderer>
