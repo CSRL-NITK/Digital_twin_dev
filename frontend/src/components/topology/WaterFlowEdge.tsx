@@ -4,11 +4,37 @@ import { BaseEdge, getSmoothStepPath, useNodes, Position, EdgeLabelRenderer, use
 import type { EdgeProps } from 'reactflow';
 import { getSmartEdge } from '@tisoap/react-flow-smart-edge';
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
 // Global store to keep track of the exact rendered orthogonal path segments of EVERY pipe
 // This allows us to instantly detect if ANY pipe passes straight through a corner to form a T-Junction!
 export const globalEdgeSegments = new Map<string, {x: number, y: number}[]>();
+
+function getRoundedPath(points: {x: number, y: number}[], radius: number = 12) {
+  if (points.length < 2) return '';
+  let path = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const next = points[i + 1];
+    const distPrev = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+    const distNext = Math.hypot(next.x - curr.x, next.y - curr.y);
+    const currentRadius = Math.min(radius, distPrev / 2, distNext / 2);
+    if (currentRadius <= 0) {
+      path += ` L ${curr.x} ${curr.y}`;
+      continue;
+    }
+    const b1x = curr.x + (prev.x - curr.x) * (currentRadius / distPrev);
+    const b1y = curr.y + (prev.y - curr.y) * (currentRadius / distPrev);
+    const b2x = curr.x + (next.x - curr.x) * (currentRadius / distNext);
+    const b2y = curr.y + (next.y - curr.y) * (currentRadius / distNext);
+    path += ` L ${b1x} ${b1y}`;
+    path += ` Q ${curr.x} ${curr.y} ${b2x} ${b2y}`;
+  }
+  const last = points[points.length - 1];
+  path += ` L ${last.x} ${last.y}`;
+  return path;
+}
 
 const WaterFlowEdge: React.FC<EdgeProps> = ({
   id,
@@ -57,14 +83,18 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   const allowEditPipes = data?.allowEditPipes ?? false;
 
   let pts: {x: number, y: number}[] = [];
+  let allCorners: {x: number, y: number}[] = [];
 
   if (data?.customPoints && data.customPoints.length > 0) {
-    const p = [...data.customPoints];
+    // Deep copy to prevent React state mutation which causes tracking bugs!
+    const p = data.customPoints.map((pt: any) => ({ ...pt }));
+    
     if (Math.abs(modSourceX - p[0].x) < Math.abs(modSourceY - p[0].y)) {
       p[0].x = modSourceX;
     } else {
       p[0].y = modSourceY;
     }
+    
     const last = p.length - 1;
     if (Math.abs(modTargetX - p[last].x) < Math.abs(modTargetY - p[last].y)) {
       p[last].x = modTargetX;
@@ -73,65 +103,69 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
     }
 
     pts = [{x: modSourceX, y: modSourceY}, ...p, {x: modTargetX, y: modTargetY}];
-    
-    let path = `M ${sourceX} ${sourceY} L ${modSourceX} ${modSourceY}`;
-    for (const pt of p) {
-      path += ` L ${pt.x} ${pt.y}`;
-    }
-    path += ` L ${modTargetX} ${modTargetY} L ${targetX} ${targetY}`;
-    finalSvgPathString = path;
+    allCorners = [{x: sourceX, y: sourceY}, ...pts, {x: targetX, y: targetY}];
   } else {
+    let smartEdgeSuccess = false;
+    let parsePath = '';
     try {
       const smartEdge = getSmartEdge({
-        sourcePosition,
-        targetPosition,
-        sourceX: modSourceX,
-        sourceY: modSourceY,
-        targetX: modTargetX,
-        targetY: modTargetY,
-        nodes,
-        options: {
-          nodePadding: 32, // Stronger clearance around nodes
-        }
+        sourcePosition, targetPosition, sourceX: modSourceX, sourceY: modSourceY, targetX: modTargetX, targetY: modTargetY, nodes,
+        options: { nodePadding: 32 }
       });
-      
       if (smartEdge) {
-        finalSvgPathString = `M ${sourceX} ${sourceY} L ${modSourceX} ${modSourceY} ${smartEdge.svgPathString.replace(/^M[^\s]+ [^\s]+ /, '')} L ${targetX} ${targetY}`;
+        parsePath = `M ${sourceX} ${sourceY} L ${modSourceX} ${modSourceY} ${smartEdge.svgPathString.replace(/^M[^\s]+ [^\s]+ /, '')} L ${targetX} ${targetY}`;
+        smartEdgeSuccess = true;
       }
-    } catch {
-      // Ignore smart edge failure
-    }
+    } catch { }
     
-    if (!finalSvgPathString) {
-      const [path] = getSmoothStepPath({
-        sourceX,
-        sourceY,
-        sourcePosition,
-        targetX,
-        targetY,
-        targetPosition,
-        borderRadius: 12,
-        offset: LEAD_PX,
-      });
-      finalSvgPathString = path;
+    // Safely parse the path into perfectly orthogonal points
+    if (!smartEdgeSuccess) {
+      // Force borderRadius: 0 so we don't extract arcs which cause diagonal slants!
+      const [orthoPath] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 0, offset: LEAD_PX });
+      parsePath = orthoPath;
     }
 
     const regex = /[ML]\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/gi;
     let match;
     const extracted = [];
-    while ((match = regex.exec(finalSvgPathString)) !== null) {
-      const pt = { x: parseFloat(match[1]), y: parseFloat(match[2]) };
-      if (extracted.length === 0 || Math.abs(extracted[extracted.length-1].x - pt.x) > 1 || Math.abs(extracted[extracted.length-1].y - pt.y) > 1) {
+    while ((match = regex.exec(parsePath)) !== null) {
+      const pt = { x: Math.round(parseFloat(match[1])), y: Math.round(parseFloat(match[2])) };
+      if (extracted.length === 0 || Math.abs(extracted[extracted.length-1].x - pt.x) > 0 || Math.abs(extracted[extracted.length-1].y - pt.y) > 0) {
         extracted.push(pt);
       }
     }
-    if (extracted.length >= 4) {
-      pts = extracted.slice(1, extracted.length - 1);
-    } else {
-      pts = [ {x: modSourceX, y: modSourceY}, {x: modTargetX, y: modTargetY} ];
+    
+    // Strip all collinear inline points so dragging doesn't break
+    const corners = [];
+    for (let i = 0; i < extracted.length; i++) {
+      if (i === 0 || i === extracted.length - 1) {
+        corners.push(extracted[i]);
+      } else {
+        const prev = corners[corners.length - 1];
+        const curr = extracted[i];
+        const next = extracted[i + 1];
+        const isHorizontal = Math.abs(prev.y - curr.y) < 1 && Math.abs(curr.y - next.y) < 1;
+        const isVertical = Math.abs(prev.x - curr.x) < 1 && Math.abs(curr.x - next.x) < 1;
+        if (!isHorizontal && !isVertical) {
+          corners.push(curr);
+        }
+      }
     }
+
+    allCorners = corners;
+
+    const p = corners.filter(pt => {
+       const isSrc = Math.abs(pt.x - sourceX) < 1 && Math.abs(pt.y - sourceY) < 1;
+       const isTgt = Math.abs(pt.x - targetX) < 1 && Math.abs(pt.y - targetY) < 1;
+       const isModSrc = Math.abs(pt.x - modSourceX) < 1 && Math.abs(pt.y - modSourceY) < 1;
+       const isModTgt = Math.abs(pt.x - modTargetX) < 1 && Math.abs(pt.y - modTargetY) < 1;
+       return !isSrc && !isTgt && !isModSrc && !isModTgt;
+    });
+
+    pts = [{x: modSourceX, y: modSourceY}, ...p, {x: modTargetX, y: modTargetY}];
   }
   
+  finalSvgPathString = getRoundedPath(allCorners, 12);
   const svgPathString = finalSvgPathString;
   
   // =========================================================================

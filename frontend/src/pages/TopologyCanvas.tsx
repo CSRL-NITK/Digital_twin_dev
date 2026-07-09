@@ -2060,6 +2060,7 @@ export default function TopologyCanvas() {
             zIndex: isFlowing ? 10 : 0,
             data: {
               isFlowing,
+              ...(edge.attributes || {})
             },
           };
         });
