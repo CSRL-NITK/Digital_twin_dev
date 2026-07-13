@@ -197,10 +197,10 @@ function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: strin
 }
 
 /* ─── Helper for Exact Normalized Handles ─────────────────────── */
-const PrecisionHandle = ({ 
-  id, type, x, y, basePosition, isFlipped 
-}: { 
-  id: string, type: 'source'|'target', x: number, y: number, basePosition: Position, isFlipped: boolean 
+const PrecisionHandle = ({
+  id, type, x, y, basePosition, isFlipped
+}: {
+  id: string, type: 'source' | 'target', x: number, y: number, basePosition: Position, isFlipped: boolean
 }) => {
   let finalX = isFlipped ? (1 - x) : x;
   let finalPosition = basePosition;
@@ -208,11 +208,11 @@ const PrecisionHandle = ({
     if (basePosition === Position.Left) finalPosition = Position.Right;
     else if (basePosition === Position.Right) finalPosition = Position.Left;
   }
-  
+
   return (
-    <Handle 
+    <Handle
       id={id}
-      type={type} 
+      type={type}
       position={finalPosition}
       style={{
         left: `${finalX * 100}%`,
@@ -224,7 +224,7 @@ const PrecisionHandle = ({
         opacity: 0, // change to 1 to debug
         border: 'none',
         zIndex: 50
-      }} 
+      }}
     />
   );
 };
@@ -492,7 +492,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         )}
       </div>
 
-      <PrecisionHandle id="inlet-1" type="target" x={0.1439} y={0.1167} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-1" type="target" x={0.3629} y={0.14} basePosition={Position.Top} isFlipped={isFlipped} />
       <PrecisionHandle id="outlet-1" type="source" x={0.8558} y={0.1500} basePosition={Position.Right} isFlipped={isFlipped} />
 
       {data.allowMoveResize && (
@@ -619,7 +619,7 @@ function SourceTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
-      <PrecisionHandle id="inlet-1" type="target" x={0.1739} y={0.1167} basePosition={Position.Left} isFlipped={isFlipped} />
+      <PrecisionHandle id="inlet-1" type="target" x={0.3647} y={0.155} basePosition={Position.Top} isFlipped={isFlipped} />
       <PrecisionHandle id="outlet-1" type="source" x={0.9413} y={0.7583} basePosition={Position.Right} isFlipped={isFlipped} />
       {data.allowMoveResize && (
         <NodeResizer
@@ -1148,7 +1148,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
     outline: 'none',
   });
 
-  const hoverIn  = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = '#f3f3f3'; e.currentTarget.style.color = '#17181c'; };
+  const hoverIn = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = '#f3f3f3'; e.currentTarget.style.color = '#17181c'; };
   const hoverOut = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#5a5f6b'; };
 
   return (
@@ -1183,7 +1183,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
         <>
           <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
           <button
-            style={{...btn(), opacity: canUndo ? 1 : 0.4, cursor: canUndo ? 'pointer' : 'not-allowed'}} title="Undo"
+            style={{ ...btn(), opacity: canUndo ? 1 : 0.4, cursor: canUndo ? 'pointer' : 'not-allowed' }} title="Undo"
             onMouseEnter={canUndo ? hoverIn : undefined} onMouseLeave={hoverOut}
             onClick={onUndo}
             disabled={!canUndo}
@@ -1198,7 +1198,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
         <>
           <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
           <button
-            style={{...btn(), opacity: canRedo ? 1 : 0.4, cursor: canRedo ? 'pointer' : 'not-allowed'}} title="Redo"
+            style={{ ...btn(), opacity: canRedo ? 1 : 0.4, cursor: canRedo ? 'pointer' : 'not-allowed' }} title="Redo"
             onMouseEnter={canRedo ? hoverIn : undefined} onMouseLeave={hoverOut}
             onClick={onRedo}
             disabled={!canRedo}
@@ -1411,24 +1411,24 @@ export const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): b
   const isNodeSupplied = (nodeId: string, visited = new Set<string>()): boolean => {
     if (visited.has(nodeId)) return false;
     visited.add(nodeId);
-    
+
     const node = allNodes.find((n: any) => n.id === nodeId);
     if (!node) return false;
-    
+
     if (node.type === 'central_tank' || node.type === 'tank') {
-       if (node.data?.outletValveOn === false) return false;
-       const wl = node.data?.waterLevel ?? 0;
-       return wl > 1;
+      if (node.data?.outletValveOn === false) return false;
+      const wl = node.data?.waterLevel ?? 0;
+      return wl > 1;
     }
-    
+
     if (node.type === 'pump') {
-       if (node.data?.pumpOn === false) return false;
-       const incomingEdges = allEdges.filter((e: any) => getTargetId(e) === nodeId);
-       if (incomingEdges.length === 0) return true; // Assume supplied if isolated source
-       return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
+      if (node.data?.pumpOn === false) return false;
+      const incomingEdges = allEdges.filter((e: any) => getTargetId(e) === nodeId);
+      if (incomingEdges.length === 0) return true; // Assume supplied if isolated source
+      return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
     }
-    
-    return true; 
+
+    return true;
   };
 
   return isNodeSupplied(getSourceId(edge));
@@ -1451,8 +1451,8 @@ export default function TopologyCanvas() {
   const resizeStartDim = useRef<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Three independent sub-toggles — only active while editMode is ON
-  const [showViewport, setShowViewport]       = useState(false); // dashboard viewport box
-  const [showCrosshair, setShowCrosshair]     = useState(false); // X/Y axis guides
+  const [showViewport, setShowViewport] = useState(false); // dashboard viewport box
+  const [showCrosshair, setShowCrosshair] = useState(false); // X/Y axis guides
   const [allowMoveResize, setAllowMoveResize] = useState(false);
   const [allowMoveNodes, setAllowMoveNodes] = useState(false);
   const [allowResizeNodes, setAllowResizeNodes] = useState(false);
@@ -1472,7 +1472,7 @@ export default function TopologyCanvas() {
   const [showConnectMenu, setShowConnectMenu] = useState(false);
   const [activeConnectNodeId, setActiveConnectNodeId] = useState<string | null>(null);
   const [showCustomizeMenu, setShowCustomizeMenu] = useState(false);
-  
+
   const { isAdmin, role } = useAuth();
   const canControlPump = isAdmin || role === 'operator';
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1549,7 +1549,7 @@ export default function TopologyCanvas() {
         await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
           x: newX, y: newY, w: newW, h: newH,
         });
-      } catch (e) {}
+      } catch (e) { }
       return;
     }
 
@@ -1570,8 +1570,8 @@ export default function TopologyCanvas() {
         return n;
       });
 
-      axios.patch(`${BACKEND_URL}/api/nodes/${targetId}`, { 
-        attributes: { customWidth: newW, customHeight: newH } 
+      axios.patch(`${BACKEND_URL}/api/nodes/${targetId}`, {
+        attributes: { customWidth: newW, customHeight: newH }
       }).catch(console.error);
       return updatedNodes;
     });
@@ -1677,7 +1677,7 @@ export default function TopologyCanvas() {
     });
   }, [setNodes]);
 
-  
+
   /* ── Tank Valve ON/OFF Helper ──────────────────────── */
   const handleToggleTankValve = useCallback((id: string, valveType: 'inlet' | 'outlet', newVal: boolean) => {
     setNodes((nds) => {
@@ -1687,7 +1687,7 @@ export default function TopologyCanvas() {
             ...n.data,
             [valveType === 'inlet' ? 'inletValveOn' : 'outletValveOn']: newVal,
           };
-          
+
           // Send to node's attributes column
           axios.patch(`${BACKEND_URL}/api/nodes/${id}`, {
             attributes: {
@@ -1767,8 +1767,8 @@ export default function TopologyCanvas() {
         return n;
       });
 
-      axios.patch(`${BACKEND_URL}/api/nodes/${id}`, { 
-        attributes: { [valveType === 'inlet' ? 'inletHideSwitch' : 'outletHideSwitch']: true } 
+      axios.patch(`${BACKEND_URL}/api/nodes/${id}`, {
+        attributes: { [valveType === 'inlet' ? 'inletHideSwitch' : 'outletHideSwitch']: true }
       }).catch(console.error);
       return updatedNodes;
     });
@@ -1820,7 +1820,7 @@ export default function TopologyCanvas() {
             axios.patch(`${BACKEND_URL}/api/nodes/${n.id}/position`, {
               positionX: Math.round(n.position?.x ?? 0),
               positionY: Math.round(n.position?.y ?? 0),
-            }).catch(() => {});
+            }).catch(() => { });
           }
         });
         // Attributes are saved individually, no need to bulk save customConfigs here
@@ -1888,7 +1888,7 @@ export default function TopologyCanvas() {
     const size = { w: Math.round(r.width), h: Math.round(r.height) };
     if (size.w > 0 && size.h > 0) {
       dashboardSizeRef.current = size;
-      
+
     }
   }, []);
 
@@ -1979,11 +1979,11 @@ export default function TopologyCanvas() {
     if (rfInstance && initialViewportConfig) {
       // Delay slightly just to ensure DOM is fully painted
       setTimeout(() => {
-        rfInstance.fitBounds({ 
-          x: initialViewportConfig.x, 
-          y: initialViewportConfig.y, 
-          width: initialViewportConfig.w, 
-          height: initialViewportConfig.h 
+        rfInstance.fitBounds({
+          x: initialViewportConfig.x,
+          y: initialViewportConfig.y,
+          width: initialViewportConfig.w,
+          height: initialViewportConfig.h
         }, { duration: 0, padding: 0 });
         requestAnimationFrame(() => setIsViewportReady(true));
       }, 50);
@@ -2005,70 +2005,70 @@ export default function TopologyCanvas() {
             const parsed = JSON.parse(data.description);
             if (parsed.viewport && parsed.viewport.w) vpConfig = parsed.viewport;
             if (parsed.customConfigs) customConfigs = parsed.customConfigs;
-          } catch (e) {}
+          } catch (e) { }
         }
 
         const formattedNodes = data.nodes
           .filter((node: any) => node.nodeType !== 'switch')
           .map((node: any) => {
-          const cfg = { ...(customConfigs[node.id] || {}), ...(node.attributes || {}) };
-          const parentNode = cfg.parentAssetId ? data.nodes.find((n: any) => n.id === cfg.parentAssetId) : null;
-          const defDims = getDefaultNodeDimensions(node.nodeType);
-          const w = cfg.customWidth || (node.width && node.height ? node.width : defDims.width);
-          const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
-          return {
-            id: node.id.toString(),
-            type: node.nodeType,
-            position: { x: node.positionX, y: node.positionY },
-            draggable: false, // locked by default; edit mode enables
-            style: { width: w, height: h },
-            data: {
-              nodeName: node.nodeName,
-              status: node.status,
-              nodeType: node.nodeType,
-              waterLevel: 0, ph: 0, tds: 0, temperature: 0,
-              editMode: false,
-              flipHorizontal: cfg.flipHorizontal,
-              maxCapacity: cfg.maxCapacity,
-              maxPumpOutlets: cfg.maxPumpOutlets,
-              parentAssetId: cfg.parentAssetId,
-              parentAssetName: parentNode ? parentNode.nodeName : undefined,
-              customWidth: w,
-              customHeight: h,
-              switchOffsetX: cfg.switchOffsetX,
-              switchOffsetY: cfg.switchOffsetY,
-              switchScale: cfg.switchScale,
-              inletSwitchOffsetX: cfg.inletSwitchOffsetX,
-              inletSwitchOffsetY: cfg.inletSwitchOffsetY,
-              inletSwitchScale: cfg.inletSwitchScale,
-              outletSwitchOffsetX: cfg.outletSwitchOffsetX,
-              outletSwitchOffsetY: cfg.outletSwitchOffsetY,
-              outletSwitchScale: cfg.outletSwitchScale,
-              inletValveOn: cfg.inletValveOn ?? true,
-              outletValveOn: cfg.outletValveOn ?? true,
-              hideSwitch: cfg.hideSwitch,
-              inletHideSwitch: cfg.inletHideSwitch,
-              outletHideSwitch: cfg.outletHideSwitch,
-              pumpOn: cfg.pumpOn ?? true,
-              waveHeightCalm: cfg.waveHeightCalm,
-              waveHeightNormal: cfg.waveHeightNormal,
-              waveHeightActive: cfg.waveHeightActive,
-              tempThreshold: cfg.tempThreshold,
-              tempMaxThreshold: cfg.tempMaxThreshold,
-              inlet1On: cfg.inlet1On,
-              inlet2On: cfg.inlet2On,
-              inlet3On: cfg.inlet3On,
-              inlet4On: cfg.inlet4On,
-              canControlPump: interactivityRef.current.canControlPump,
-              onTogglePump: handleTogglePump,
-              onToggleTankValve: handleToggleTankValve,
-              onConnectSwitchToPump: handleConnectSwitchToPump,
-              onHidePumpSwitch: handleHidePumpSwitch,
-              onHideTankSwitch: handleHideTankSwitch,
-              onDeleteNode: handleDeleteNode,
-            },
-          };
-        });
+            const cfg = { ...(customConfigs[node.id] || {}), ...(node.attributes || {}) };
+            const parentNode = cfg.parentAssetId ? data.nodes.find((n: any) => n.id === cfg.parentAssetId) : null;
+            const defDims = getDefaultNodeDimensions(node.nodeType);
+            const w = cfg.customWidth || (node.width && node.height ? node.width : defDims.width);
+            const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
+            return {
+              id: node.id.toString(),
+              type: node.nodeType,
+              position: { x: node.positionX, y: node.positionY },
+              draggable: false, // locked by default; edit mode enables
+              style: { width: w, height: h },
+              data: {
+                nodeName: node.nodeName,
+                status: node.status,
+                nodeType: node.nodeType,
+                waterLevel: 0, ph: 0, tds: 0, temperature: 0,
+                editMode: false,
+                flipHorizontal: cfg.flipHorizontal,
+                maxCapacity: cfg.maxCapacity,
+                maxPumpOutlets: cfg.maxPumpOutlets,
+                parentAssetId: cfg.parentAssetId,
+                parentAssetName: parentNode ? parentNode.nodeName : undefined,
+                customWidth: w,
+                customHeight: h,
+                switchOffsetX: cfg.switchOffsetX,
+                switchOffsetY: cfg.switchOffsetY,
+                switchScale: cfg.switchScale,
+                inletSwitchOffsetX: cfg.inletSwitchOffsetX,
+                inletSwitchOffsetY: cfg.inletSwitchOffsetY,
+                inletSwitchScale: cfg.inletSwitchScale,
+                outletSwitchOffsetX: cfg.outletSwitchOffsetX,
+                outletSwitchOffsetY: cfg.outletSwitchOffsetY,
+                outletSwitchScale: cfg.outletSwitchScale,
+                inletValveOn: cfg.inletValveOn ?? true,
+                outletValveOn: cfg.outletValveOn ?? true,
+                hideSwitch: cfg.hideSwitch,
+                inletHideSwitch: cfg.inletHideSwitch,
+                outletHideSwitch: cfg.outletHideSwitch,
+                pumpOn: cfg.pumpOn ?? true,
+                waveHeightCalm: cfg.waveHeightCalm,
+                waveHeightNormal: cfg.waveHeightNormal,
+                waveHeightActive: cfg.waveHeightActive,
+                tempThreshold: cfg.tempThreshold,
+                tempMaxThreshold: cfg.tempMaxThreshold,
+                inlet1On: cfg.inlet1On,
+                inlet2On: cfg.inlet2On,
+                inlet3On: cfg.inlet3On,
+                inlet4On: cfg.inlet4On,
+                canControlPump: interactivityRef.current.canControlPump,
+                onTogglePump: handleTogglePump,
+                onToggleTankValve: handleToggleTankValve,
+                onConnectSwitchToPump: handleConnectSwitchToPump,
+                onHidePumpSwitch: handleHidePumpSwitch,
+                onHideTankSwitch: handleHideTankSwitch,
+                onDeleteNode: handleDeleteNode,
+              },
+            };
+          });
         const formattedEdges = data.edges.map((edge: any) => {
           const isFlowing = evaluateEdgeFlow(edge, data.edges, formattedNodes);
 
@@ -2086,7 +2086,7 @@ export default function TopologyCanvas() {
             },
           };
         });
-        
+
         const viewportNode = {
           id: 'viewport-box',
           type: 'viewportGuide',
@@ -2138,7 +2138,7 @@ export default function TopologyCanvas() {
         };
 
         setNodes([...formattedNodes, viewportNode]);
-        
+
         setEdges(formattedEdges);
         setLoading(false);
         setInitialViewportConfig(vpConfig);
@@ -2156,9 +2156,9 @@ export default function TopologyCanvas() {
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id !== String(data.nodeId)) return node;
-          const wl   = data.sensors.find((s: any) => s.sensorType === 'water_level')?.value;
-          const ph   = data.sensors.find((s: any) => s.sensorType === 'ph')?.value;
-          const tds  = data.sensors.find((s: any) => s.sensorType === 'tds')?.value;
+          const wl = data.sensors.find((s: any) => s.sensorType === 'water_level')?.value;
+          const ph = data.sensors.find((s: any) => s.sensorType === 'ph')?.value;
+          const tds = data.sensors.find((s: any) => s.sensorType === 'tds')?.value;
           const temp = data.sensors.find((s: any) => s.sensorType === 'temperature')?.value;
 
           setSelectedNode((prev: any) => {
@@ -2206,9 +2206,9 @@ export default function TopologyCanvas() {
       setNodes((nds) => {
         if (nds.some((n) => n.id === newNode.id)) return nds;
         const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(newNode.nodeType);
-        const wl   = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
-        const ph   = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
-        const tds  = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
+        const wl = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
+        const ph = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
+        const tds = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
         const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 24;
 
         const cleanNds = nds.filter((n) => !(n.id.startsWith('temp-') && n.data?.nodeName === newNode.nodeName));
@@ -2286,7 +2286,7 @@ export default function TopologyCanvas() {
     });
   }, [nodes, setEdges]);
 
-  
+
   const handleUndo = async () => {
     if (undoStack.length === 0) return;
     const action = undoStack[undoStack.length - 1];
@@ -2312,13 +2312,13 @@ export default function TopologyCanvas() {
           x: action.oldValue.x, y: action.oldValue.y,
           w: action.oldValue.w || 1000, h: action.oldValue.h || 500
         });
-      } catch (e) {}
+      } catch (e) { }
     } else {
       try {
         await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
           positionX: action.oldValue.x, positionY: action.oldValue.y,
         });
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -2347,13 +2347,13 @@ export default function TopologyCanvas() {
           x: action.newValue.x, y: action.newValue.y,
           w: action.newValue.w || 1000, h: action.newValue.h || 500
         });
-      } catch (e) {}
+      } catch (e) { }
     } else {
       try {
         await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
           positionX: action.newValue.x, positionY: action.newValue.y,
         });
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -2394,10 +2394,10 @@ export default function TopologyCanvas() {
         await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
           x: newX, y: newY, w: newW, h: newH
         });
-      } catch (e) {}
+      } catch (e) { }
       return;
     }
-    
+
     try {
       await axios.patch(`${BACKEND_URL}/api/nodes/${node.id}/position`, {
         positionX: newX, positionY: newY,
@@ -2491,7 +2491,7 @@ export default function TopologyCanvas() {
     }
     try {
       const nodeRes = await axios.get(`${BACKEND_URL}/api/nodes`);
-      const target  = nodeRes.data.find((n: any) => n.id === node.id);
+      const target = nodeRes.data.find((n: any) => n.id === node.id);
       setNodeHistory([]);
       setSelectedNode({ id: node.id, ...node.data, sensors: target?.sensors || [] });
     } catch {
@@ -2501,34 +2501,34 @@ export default function TopologyCanvas() {
   };
   const isValidConnection = useCallback((connection: Connection) => {
     if (connection.source === connection.target) return false;
-    
+
     const targetNode = nodes.find(n => n.id === connection.target);
     if (targetNode) {
-       const inletConnsCount = edges.filter(e => e.target === connection.target && e.targetHandle === connection.targetHandle).length;
-       
-       let maxInlets = 1;
-       if (targetNode.type === 'central_tank') {
-           const in1 = targetNode.data?.inlet1On ?? true;
-           const in2 = targetNode.data?.inlet2On ?? true;
-           const in3 = targetNode.data?.inlet3On ?? true;
-           const in4 = targetNode.data?.inlet4On ?? true;
-           const numInletsOn = [in1, in2, in3, in4].filter(Boolean).length;
-           if (numInletsOn === 1) {
-               maxInlets = 10; // allow many connections if only 1 inlet is on
-           }
-       }
+      const inletConnsCount = edges.filter(e => e.target === connection.target && e.targetHandle === connection.targetHandle).length;
 
-       if (inletConnsCount >= maxInlets) return false;
+      let maxInlets = 1;
+      if (targetNode.type === 'central_tank') {
+        const in1 = targetNode.data?.inlet1On ?? true;
+        const in2 = targetNode.data?.inlet2On ?? true;
+        const in3 = targetNode.data?.inlet3On ?? true;
+        const in4 = targetNode.data?.inlet4On ?? true;
+        const numInletsOn = [in1, in2, in3, in4].filter(Boolean).length;
+        if (numInletsOn === 1) {
+          maxInlets = 10; // allow many connections if only 1 inlet is on
+        }
+      }
+
+      if (inletConnsCount >= maxInlets) return false;
     }
 
     const sourceNode = nodes.find(n => n.id === connection.source);
     if (sourceNode) {
-       const outletConnsCount = edges.filter(e => e.source === connection.source && e.sourceHandle === connection.sourceHandle).length;
-       let maxOutlets = 1;
-       if (sourceNode.type === 'pump') {
-           maxOutlets = sourceNode.data?.maxPumpOutlets || 2;
-       }
-       if (outletConnsCount >= maxOutlets) return false;
+      const outletConnsCount = edges.filter(e => e.source === connection.source && e.sourceHandle === connection.sourceHandle).length;
+      let maxOutlets = 1;
+      if (sourceNode.type === 'pump') {
+        maxOutlets = sourceNode.data?.maxPumpOutlets || 2;
+      }
+      if (outletConnsCount >= maxOutlets) return false;
     }
     return true;
   }, [nodes, edges]);
@@ -2555,7 +2555,7 @@ export default function TopologyCanvas() {
             sourceHandle: params.sourceHandle,
             targetHandle: params.targetHandle,
           });
-          
+
           if (res.data && res.data.id) {
             setEdges((eds) => eds.map(e => e.id === tempId ? { ...e, id: res.data.id.toString() } : e));
           }
@@ -2568,7 +2568,7 @@ export default function TopologyCanvas() {
   const onEdgesDelete = useCallback(
     (deletedEdges: Edge[]) => {
       deletedEdges.forEach((edge) => {
-        axios.delete(`${BACKEND_URL}/api/edges/${edge.id}`).catch(() => {});
+        axios.delete(`${BACKEND_URL}/api/edges/${edge.id}`).catch(() => { });
       });
     },
     []
@@ -2593,7 +2593,7 @@ export default function TopologyCanvas() {
         const parsed = JSON.parse(event.dataTransfer.getData('text/plain'));
         type = parsed.nodeType;
         label = parsed.nodeName;
-      } catch (e) {}
+      } catch (e) { }
     }
     if (!type || !rfInstance) return;
 
@@ -2662,9 +2662,9 @@ export default function TopologyCanvas() {
       });
 
       const newNode = res.data;
-      const wl   = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
-      const ph   = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
-      const tds  = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
+      const wl = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
+      const ph = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
+      const tds = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
       const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 24;
 
       setNodes((nds) => {
@@ -2736,7 +2736,7 @@ export default function TopologyCanvas() {
               transition: 'all 0.15s ease',
             }} />
           </button>
-          
+
           <button
             id="btn-guide"
             onClick={() => setShowCrosshair(v => !v)}
@@ -2952,10 +2952,10 @@ export default function TopologyCanvas() {
                   }}>
                     <Switch
                       checked={allowMoveNodes || allowResizeNodes}
-                      onChange={(val) => { 
-                        setAllowMoveNodes(val); 
-                        setAllowResizeNodes(val); 
-                        if (val) setAllowMoveSwitches(false); 
+                      onChange={(val) => {
+                        setAllowMoveNodes(val);
+                        setAllowResizeNodes(val);
+                        if (val) setAllowMoveSwitches(false);
                       }}
                       label="Nodes"
                     />
@@ -3042,7 +3042,7 @@ export default function TopologyCanvas() {
               transition: 'all 0.15s ease',
             }} />
           </button>
-          
+
           {showCustomizeMenu && (
             <div style={{ position: 'relative', width: '100%' }}>
               <div style={{
@@ -3053,8 +3053,8 @@ export default function TopologyCanvas() {
               }}>
                 <Switch
                   checked={allowCustomizeNodes}
-                  onChange={(val) => { 
-                    setAllowCustomizeNodes(val); 
+                  onChange={(val) => {
+                    setAllowCustomizeNodes(val);
                     if (val) setShowConnectMenu(false);
                     if (!val) setActiveCustomizeNodeId(null);
                   }}
@@ -3062,14 +3062,14 @@ export default function TopologyCanvas() {
                 />
                 <Switch
                   checked={showConnectMenu}
-                  onChange={(val) => { 
-                    setShowConnectMenu(val); 
-                    if (val) setAllowCustomizeNodes(false); 
+                  onChange={(val) => {
+                    setShowConnectMenu(val);
+                    if (val) setAllowCustomizeNodes(false);
                   }}
                   label="Update Flow Connections"
                 />
               </div>
-              
+
               {showConnectMenu && (
                 <div style={{ position: 'absolute', top: 120, right: 0 }}>
                   <FlowConnectionsMenu
@@ -3147,8 +3147,8 @@ export default function TopologyCanvas() {
         minZoom={0.15}
         maxZoom={3.5}
         onInit={(instance) => {
-  setRfInstance(instance);
-}}
+          setRfInstance(instance);
+        }}
         className="bg-white"
         style={{ width: '100%', height: '100%', background: '#ffffff', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
       >
@@ -3158,7 +3158,7 @@ export default function TopologyCanvas() {
         {/* Canvas crosshair — tracks real world (0,0), pans with canvas */}
         <CanvasCrosshair show={editMode && showCrosshair} />
 
-        
+
 
         {/* MiniMap — only in fullscreen, bottom-right, dark themed */}
         {isFullscreen && (
@@ -3167,8 +3167,8 @@ export default function TopologyCanvas() {
             nodeColor={(node) => {
               const status = node.data?.status;
               if (status === 'Critical') return '#ef4444';
-              if (status === 'Warning')  return '#f59e0b';
-              if (status === 'Offline')  return '#6b7280';
+              if (status === 'Warning') return '#f59e0b';
+              if (status === 'Offline') return '#6b7280';
               return '#22c55e';
             }}
             nodeStrokeWidth={0}
