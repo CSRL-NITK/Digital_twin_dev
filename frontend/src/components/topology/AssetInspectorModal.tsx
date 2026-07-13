@@ -18,6 +18,10 @@ export interface AssetInspectorModalProps {
     waveHeightActive?: number;
     tempThreshold?: number;
     tempMaxThreshold?: number;
+    inlet1On?: boolean;
+    inlet2On?: boolean;
+    inlet3On?: boolean;
+    inlet4On?: boolean;
   }) => Promise<void>;
 }
 
@@ -53,6 +57,10 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
   const [waveHeightActive, setWaveHeightActive] = useState<number>(node.data?.waveHeightActive ?? 17);
   const [tempThreshold, setTempThreshold] = useState<number>(node.data?.tempThreshold ?? 55.0);
   const [tempMaxThreshold, setTempMaxThreshold] = useState<number>(node.data?.tempMaxThreshold ?? 75.0);
+  const [inlet1On, setInlet1On] = useState<boolean>(node.data?.inlet1On ?? true);
+  const [inlet2On, setInlet2On] = useState<boolean>(node.data?.inlet2On ?? true);
+  const [inlet3On, setInlet3On] = useState<boolean>(node.data?.inlet3On ?? true);
+  const [inlet4On, setInlet4On] = useState<boolean>(node.data?.inlet4On ?? true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const currentLiveSpeed = node.data?.status === 'Critical' ? 2450 : 2900;
@@ -78,6 +86,10 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
         waveHeightActive: Number(waveHeightActive) || 17,
         tempThreshold: Number(tempThreshold) || 55.0,
         tempMaxThreshold: Number(tempMaxThreshold) || 75.0,
+        inlet1On,
+        inlet2On,
+        inlet3On,
+        inlet4On,
       });
       onClose();
     } catch (err) {
@@ -287,6 +299,43 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
                     onFocus={(e) => e.target.style.borderColor = '#00ffff'}
                     onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                   />
+                </div>
+              )}
+
+              {/* Central Tank Inlets */}
+              {node.type === 'central_tank' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4, background: 'rgba(255,255,255,0.02)', padding: '14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#00ffff', letterSpacing: '0.04em' }}>
+                    CENTRAL TANK INLETS
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {[{ id: 1, label: 'Inlet 1 (Left)', val: inlet1On, set: setInlet1On },
+                      { id: 2, label: 'Inlet 2 (Top-L)', val: inlet2On, set: setInlet2On },
+                      { id: 3, label: 'Inlet 3 (Top-R)', val: inlet3On, set: setInlet3On },
+                      { id: 4, label: 'Inlet 4 (Right)', val: inlet4On, set: setInlet4On }
+                    ].map(inlet => (
+                      <div key={inlet.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#ffffff' }}>{inlet.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => inlet.set(!inlet.val)}
+                          style={{
+                            width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+                            background: inlet.val ? '#00ffff' : 'rgba(255,255,255,0.15)',
+                            border: 'none', position: 'relative', transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <div style={{
+                            width: 14, height: 14, borderRadius: '50%',
+                            background: inlet.val ? '#17181c' : '#ffffff',
+                            position: 'absolute', top: 3,
+                            left: inlet.val ? 19 : 3,
+                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                          }} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
