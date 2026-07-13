@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { useState, useMemo, memo, useEffect, createContext, useContext } from 'react';
-const TopologyContext = createContext<{ globalTopologyId: string; setGlobalTopologyId: (id: string) => void; }>({ globalTopologyId: '1', setGlobalTopologyId: () => {} });
+const TopologyContext = createContext<{ globalTopologyId: string; setGlobalTopologyId: (id: string) => void; }>({ globalTopologyId: '1', setGlobalTopologyId: () => { } });
 export const useGlobalTopology = () => useContext(TopologyContext);
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -23,9 +23,9 @@ const Sidebar = memo(function Sidebar() {
   const { globalTopologyId } = useGlobalTopology();
 
   const nav = [
-    { label: 'Live',       to: `/topology/${globalTopologyId}`,    Icon: Activity       },
-    { label: 'Dashboard',  to: '/dashboard',         Icon: LayoutDashboard },
-    { label: 'Simulation', to: '/analytics',         Icon: BarChart2      },
+    { label: 'Live', to: `/topology/${globalTopologyId}`, Icon: Activity },
+    { label: 'Dashboard', to: '/dashboard', Icon: LayoutDashboard },
+    { label: 'Simulation', to: '/analytics', Icon: BarChart2 },
   ];
 
   const adminNav = [
@@ -68,9 +68,9 @@ const Sidebar = memo(function Sidebar() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 borderRadius: 12, textDecoration: 'none',
                 position: 'relative',
-                color:      active ? '#00ffff'                   : 'rgba(255,255,255,0.28)',
-                background: active ? 'rgba(0,255,255,0.12)'     : 'transparent',
-                border:     active ? '1px solid rgba(0,255,255,0.18)' : '1px solid transparent',
+                color: active ? '#00ffff' : 'rgba(255,255,255,0.28)',
+                background: active ? 'rgba(0,255,255,0.12)' : 'transparent',
+                border: active ? '1px solid rgba(0,255,255,0.18)' : '1px solid transparent',
                 transition: 'all 0.16s ease',
               }}
             >
@@ -101,9 +101,9 @@ const Sidebar = memo(function Sidebar() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 12, textDecoration: 'none',
                     position: 'relative',
-                    color:      active ? '#00ffff'                        : 'rgba(255,255,255,0.28)',
-                    background: active ? 'rgba(0,255,255,0.12)'          : 'transparent',
-                    border:     active ? '1px solid rgba(0,255,255,0.18)' : '1px solid transparent',
+                    color: active ? '#00ffff' : 'rgba(255,255,255,0.28)',
+                    background: active ? 'rgba(0,255,255,0.12)' : 'transparent',
+                    border: active ? '1px solid rgba(0,255,255,0.18)' : '1px solid transparent',
                     transition: 'all 0.16s ease',
                   }}
                 >
@@ -269,75 +269,76 @@ const TopBar = memo(function TopBar() {
         {!isUserManagement && (
           <>
             <div style={{ position: 'relative' }}>
-            <div
-              id="topology-selector"
-              onClick={() => {
-                if (!menuOpen) {
-                  axios.get('http://localhost:3001/api/topologies')
-                    .then(res => setTopologies(res.data))
-                    .catch(err => console.error(err));
-                }
-                setMenuOpen(!menuOpen);
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
-                border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
-                background: dark ? '#2a2b34' : '#e8e8e8',
-                transition: 'background 0.15s',
-              }}
-            >
-              <span style={{
-                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                background: '#00ffff',
-                boxShadow: '0 0 7px rgba(0,255,255,0.6)',
-              }} />
-              <span style={{
-                fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
-                color: dark ? '#f0f0f2' : '#17181c',
-                fontFamily: 'var(--font)',
-              }}>
-                {currentTopology ? currentTopology.name : 'Loading...'}
-              </span>
-              <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#6b7280'} />
-            </div>
-            
-            {menuOpen && (
-              <div style={{
-                position: 'absolute', top: '100%', right: 0, marginTop: 8,
-                width: 200, borderRadius: 12, overflow: 'hidden',
-                background: dark ? '#2a2b34' : '#ffffff',
-                border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                zIndex: 100, display: 'flex', flexDirection: 'column'
-              }}>
-                {topologies.map(t => {
-                  const isTopologyPage = pathname.startsWith('/topology/');
-                  return (
-                  <Link 
-                    key={t.id} 
-                    to={isTopologyPage ? `/topology/${t.id}` : pathname}
-                    onClick={(e) => {
-                      if (!isTopologyPage) {
-                        e.preventDefault();
-                        setGlobalTopologyId(t.id.toString());
-                      }
-                      setMenuOpen(false);
-                    }}
-                    style={{
-                      padding: '12px 16px', textDecoration: 'none',
-                      color: dark ? '#f0f0f2' : '#17181c',
-                      fontSize: 13.5, fontWeight: 600,
-                      borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
-                      background: globalTopologyId === t.id.toString() ? (dark ? 'rgba(0,255,255,0.1)' : 'rgba(0,255,255,0.15)') : 'transparent'
-                    }}
-                  >
-                    {t.name}
-                  </Link>
-                )})}
+              <div
+                id="topology-selector"
+                onClick={() => {
+                  if (!menuOpen) {
+                    axios.get('http://localhost:3001/api/topologies')
+                      .then(res => setTopologies(res.data))
+                      .catch(err => console.error(err));
+                  }
+                  setMenuOpen(!menuOpen);
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
+                  border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
+                  background: dark ? '#2a2b34' : '#e8e8e8',
+                  transition: 'background 0.15s',
+                }}
+              >
+                <span style={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  background: '#00ffff',
+                  boxShadow: '0 0 7px rgba(0,255,255,0.6)',
+                }} />
+                <span style={{
+                  fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
+                  color: dark ? '#f0f0f2' : '#17181c',
+                  fontFamily: 'var(--font)',
+                }}>
+                  {currentTopology ? currentTopology.name : 'Loading...'}
+                </span>
+                <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#6b7280'} />
               </div>
-            )}
-          </div>
+
+              {menuOpen && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 8,
+                  width: 200, borderRadius: 12, overflow: 'hidden',
+                  background: dark ? '#2a2b34' : '#ffffff',
+                  border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                  zIndex: 100, display: 'flex', flexDirection: 'column'
+                }}>
+                  {topologies.map(t => {
+                    const isTopologyPage = pathname.startsWith('/topology/');
+                    return (
+                      <Link
+                        key={t.id}
+                        to={isTopologyPage ? `/topology/${t.id}` : pathname}
+                        onClick={(e) => {
+                          if (!isTopologyPage) {
+                            e.preventDefault();
+                            setGlobalTopologyId(t.id.toString());
+                          }
+                          setMenuOpen(false);
+                        }}
+                        style={{
+                          padding: '12px 16px', textDecoration: 'none',
+                          color: dark ? '#f0f0f2' : '#17181c',
+                          fontSize: 13.5, fontWeight: 600,
+                          borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                          background: globalTopologyId === t.id.toString() ? (dark ? 'rgba(0,255,255,0.1)' : 'rgba(0,255,255,0.15)') : 'transparent'
+                        }}
+                      >
+                        {t.name}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Divider */}
             <div style={{
@@ -403,7 +404,7 @@ const BlankPanel = memo(function BlankPanel({ id }: { id: string }) {
         writingMode: 'vertical-rl', transform: 'rotate(180deg)',
         userSelect: 'none', fontFamily: 'var(--font)',
       }}>
-        blank yet to integrate grafana 
+        blank yet to integrate grafana
       </span>
     </div>
   );
@@ -447,8 +448,8 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           {[
-            { time: '14:02', msg: 'T2 pH warning (6.4)',  dot: '#f59e0b' },
-            { time: '13:45', msg: 'P1 flow fluctuation',  dot: '#9ca3af' },
+            { time: '14:02', msg: 'T2 pH warning (6.4)', dot: '#f59e0b' },
+            { time: '13:45', msg: 'P1 flow fluctuation', dot: '#9ca3af' },
           ].map(r => (
             <div key={r.time} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.dot, flexShrink: 0 }} />
@@ -486,9 +487,9 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
           </span>
         </div>
         {[
-          { label: 'Connection',   value: 'Connected', color: '#22c55e', dot: true  },
-          { label: 'Message rate', value: '12 msg/s',  color: '#17181c', dot: false },
-          { label: 'Topics',       value: '3 active',  color: '#17181c', dot: false },
+          { label: 'Connection', value: 'Connected', color: '#22c55e', dot: true },
+          { label: 'Message rate', value: '12 msg/s', color: '#17181c', dot: false },
+          { label: 'Topics', value: '3 active', color: '#17181c', dot: false },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
@@ -525,9 +526,9 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
           </span>
         </div>
         {[
-          { label: 'PostgreSQL',  value: 'Healthy', color: '#22c55e' },
+          { label: 'PostgreSQL', value: 'Healthy', color: '#22c55e' },
           { label: 'Backend API', value: 'Healthy', color: '#22c55e' },
-          { label: 'Node uptime', value: '99.9%',   color: '#17181c' },
+          { label: 'Node uptime', value: '99.9%', color: '#17181c' },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
@@ -578,7 +579,7 @@ function MainLayoutContent() {
 
         {/* Left blank panel — hide on full width pages */}
         {!isFullWidthPage && (
-          <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
+          <div style={{ width: 270, flexShrink: 0, display: 'flex' }}>
             <BlankPanel id="left-panel" />
           </div>
         )}
@@ -608,7 +609,7 @@ function MainLayoutContent() {
 
         {/* Right blank panel — hide on full width pages */}
         {!isFullWidthPage && (
-          <div style={{ width: 200, flexShrink: 0, display: 'flex' }}>
+          <div style={{ width: 270, flexShrink: 0, display: 'flex' }}>
             <BlankPanel id="right-panel" />
           </div>
         )}
