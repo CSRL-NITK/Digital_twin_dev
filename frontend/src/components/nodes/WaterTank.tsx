@@ -102,9 +102,7 @@ export const WaterTank: React.FC<WaterTankProps> = ({
   const innerLeftX = TANK_CENTER_X - TANK_INNER_RADIUS_X;
   const innerRightX = TANK_CENTER_X + TANK_INNER_RADIUS_X;
 
-  const LEFT_PIPE_GAP_PX = 18;
   const RIGHT_PIPE_GAP_PX = 18;
-  const inletPipeStartX = outerLeftX - LEFT_PIPE_GAP_PX;
   const outletPipeEndX = outerRightX + RIGHT_PIPE_GAP_PX;
 
   // Water volume height limits:

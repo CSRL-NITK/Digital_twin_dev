@@ -1654,22 +1654,7 @@ export default function TopologyCanvas() {
       if (updatedNode) {
         axios.patch(`${BACKEND_URL}/api/nodes/${id}`, {
           attributes: {
-            inletSwitchOffsetX: updatedNode.data.inletSwitchOffsetX,
-            inletSwitchOffsetY: updatedNode.data.inletSwitchOffsetY,
-            inletSwitchScale: updatedNode.data.inletSwitchScale,
-            tempThreshold: cfg.tempThreshold,
-            tempMaxThreshold: cfg.tempMaxThreshold,
-            inlet1On: cfg.inlet1On,
-            inlet2On: cfg.inlet2On,
-            inlet3On: cfg.inlet3On,
-            inlet4On: cfg.inlet4On,
-            allowDeleteNodes: initialViewportConfig.allowDeleteNodes,
-            outletSwitchOffsetX: updatedNode.data.outletSwitchOffsetX,
-            outletSwitchOffsetY: updatedNode.data.outletSwitchOffsetY,
-            outletSwitchScale: updatedNode.data.outletSwitchScale,
-            switchOffsetX: updatedNode.data.switchOffsetX,
-            switchOffsetY: updatedNode.data.switchOffsetY,
-            switchScale: updatedNode.data.switchScale,
+            ...updatedNode.data
           }
         }).catch(console.error);
       }
