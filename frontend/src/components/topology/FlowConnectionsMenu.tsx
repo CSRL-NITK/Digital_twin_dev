@@ -42,6 +42,19 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
     return node ? node.data?.nodeName || id : id;
   };
 
+  let activeNodeInlets = [...nodePorts.inlets];
+  if (nodeType === 'central_tank') {
+    const in1 = activeNode.data?.inlet1On ?? true;
+    const in2 = activeNode.data?.inlet2On ?? true;
+    const in3 = activeNode.data?.inlet3On ?? true;
+    const in4 = activeNode.data?.inlet4On ?? true;
+    activeNodeInlets = [];
+    if (in1) activeNodeInlets.push('inlet-1');
+    if (in2) activeNodeInlets.push('inlet-2');
+    if (in3) activeNodeInlets.push('inlet-3');
+    if (in4) activeNodeInlets.push('inlet-4');
+  }
+
   const handleConnect = () => {
     if (!candidatePort || !selectedCandidate) return;
     const [targetNodeId, targetPortId] = selectedCandidate.split(':');
@@ -88,9 +101,28 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
       
       if (portType === 'outlet') {
         // Find free inlets on other nodes
-        ports.inlets.forEach(inlet => {
+        let targetInlets = [...ports.inlets];
+        let isSingleActiveInlet = false;
+        
+        if (node.type === 'central_tank') {
+           const in1 = node.data?.inlet1On ?? true;
+           const in2 = node.data?.inlet2On ?? true;
+           const in3 = node.data?.inlet3On ?? true;
+           const in4 = node.data?.inlet4On ?? true;
+           targetInlets = [];
+           if (in1) targetInlets.push('inlet-1');
+           if (in2) targetInlets.push('inlet-2');
+           if (in3) targetInlets.push('inlet-3');
+           if (in4) targetInlets.push('inlet-4');
+           
+           if (targetInlets.length === 1) {
+              isSingleActiveInlet = true;
+           }
+        }
+
+        targetInlets.forEach(inlet => {
           const inletConnsCount = edges.filter(e => e.target === node.id && (!e.targetHandle || e.targetHandle === inlet)).length;
-          let maxInletConns = 1;
+          let maxInletConns = isSingleActiveInlet ? 10 : 1;
           
           if (inletConnsCount < maxInletConns) {
             candidates.push({ nodeId: node.id, nodeName: node.data?.nodeName || node.id, portId: inlet });
@@ -210,11 +242,11 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
         {/* Inlets Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h4 style={{ margin: 0, fontSize: 12, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>Inlets</h4>
-          {nodePorts.inlets.length === 0 ? (
+          {activeNodeInlets.length === 0 ? (
              <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>No inlets available.</div>
-          ) : nodePorts.inlets.map(portId => {
+          ) : activeNodeInlets.map(portId => {
             const conns = getPortConnections('inlet', portId);
-            let maxConns = 1;
+            let maxConns = (nodeType === 'central_tank' && activeNodeInlets.length === 1) ? 10 : 1;
             const isFull = conns.length >= maxConns;
             const isConnecting = candidatePort?.portId === portId && candidatePort.portType === 'inlet';
             return (
