@@ -604,45 +604,42 @@ export const WaterTank: React.FC<WaterTankProps> = ({
         <g id="background-piping">
           {showInletPipe && (
             <>
-              {/* Inlet Pipe Elbow */}
-              <path
-                d={`M ${inletPipeStartX},70 L ${INLET_CENTER_X - 12},70 A 12,12 0 0,1 ${INLET_CENTER_X},82 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-                stroke={`url(#metalVerticalGradient-${idSuffix})`}
-                strokeWidth="13"
-                strokeLinecap="butt"
-                fill="none"
+              {/* Inlet Pipe Vertical (Solenoid to Nozzle) */}
+              <rect
+                x={INLET_CENTER_X - 6.5}
+                y={118}
+                width="13"
+                height={INLET_NOZZLE_Y - 118}
+                fill={`url(#metalGradient-${idSuffix})`}
               />
 
-              {/* Valve/Connection Design at End of Pipe (Left side) */}
+              {/* Valve/Connection Design at End of Pipe (Top side) */}
               <g id={`pipe-valve-inlet-${idSuffix}`}>
                 {/* 1. Pipe connecting flange (dark heavy plate) */}
                 <rect
-                  x={inletPipeStartX - 8}
-                  y={70 - 12}
-                  width="4"
-                  height="24"
+                  x={INLET_CENTER_X - 12}
+                  y={80}
+                  width="24"
+                  height="4"
                   rx="1"
                   fill={`url(#metalGradient-${idSuffix})`}
                   stroke="#0F172A"
                   strokeWidth="0.8"
                 />
                 {/* Flange Bolts */}
-                <circle cx={inletPipeStartX - 6} cy={70 - 8} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
-                <circle cx={inletPipeStartX - 6} cy={70 + 8} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+                <circle cx={INLET_CENTER_X - 8} cy={82} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
+                <circle cx={INLET_CENTER_X + 8} cy={82} r="1" fill="#E2E8F0" stroke="#334155" strokeWidth="0.3" />
                 
                 {/* 2. Steel threaded coupler/connector hex nut fitting */}
                 <rect
-                  x={inletPipeStartX - 4}
-                  y={70 - 10}
-                  width="4"
-                  height="20"
+                  x={INLET_CENTER_X - 10}
+                  y={84}
+                  width="20"
+                  height="2"
                   fill={`url(#metalGradient-${idSuffix})`}
                   stroke="#1E293B"
                   strokeWidth="0.5"
                 />
-                {/* Hex division lines */}
-                <line x1={inletPipeStartX - 4} y1={70 - 3} x2={inletPipeStartX} y2={70 - 3} stroke="#475569" strokeWidth="0.5" />
-                <line x1={inletPipeStartX - 4} y1={70 + 3} x2={inletPipeStartX} y2={70 + 3} stroke="#475569" strokeWidth="0.5" />
               </g>
 
               {/* Industrial Solenoid Valve & Flow Rate Sensor assembly on top filling pipe */}

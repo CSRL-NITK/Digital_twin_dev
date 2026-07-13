@@ -587,13 +587,13 @@ export const WaterTank: React.FC<WaterTankProps> = ({
 
         {/* Piping system (connected behind the tank) */}
         <g id="background-piping">
-          {/* Inlet Pipe Elbow */}
-          <path
-            d={`M ${inletPipeStartX},70 L ${INLET_CENTER_X - 12},70 A 12,12 0 0,1 ${INLET_CENTER_X},82 L ${INLET_CENTER_X},${INLET_NOZZLE_Y}`}
-            stroke={`url(#metalVerticalGradient-${idSuffix})`}
-            strokeWidth="13"
-            strokeLinecap="round"
-            fill="none"
+          {/* Inlet Pipe Vertical */}
+          <rect
+            x={INLET_CENTER_X - 6.5}
+            y={8}
+            width="13"
+            height={INLET_NOZZLE_Y - 8}
+            fill={`url(#metalGradient-${idSuffix})`}
           />
           {/* Flange plate & bolts */}
           <rect x={INLET_CENTER_X - 15} y={INLET_NOZZLE_Y - 7} width="30" height="7" rx="2" fill="#94A3B8" stroke="#334155" strokeWidth="0.75" />
