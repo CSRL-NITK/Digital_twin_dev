@@ -77,6 +77,10 @@ type LiveNodeData = {
   waveHeightActive?: number;
   tempThreshold?: number;
   tempMaxThreshold?: number;
+  inlet1On?: boolean;
+  inlet2On?: boolean;
+  inlet3On?: boolean;
+  inlet4On?: boolean;
   onTogglePump?: (id: string, currentIsOn: boolean) => void;
   onToggleTankValve?: (id: string, valveType: 'inlet' | 'outlet', newVal: boolean) => void;
   onSwitchTransformEnd?: (id: string, x: number, y: number, scale: number, switchType?: 'inlet' | 'outlet') => void;
@@ -533,24 +537,40 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const updateNodeInternals = useUpdateNodeInternals();
   React.useEffect(() => {
     updateNodeInternals(id);
-  }, [id, data?.customWidth, data?.flipHorizontal, updateNodeInternals]);
+  }, [id, data?.customWidth, data?.flipHorizontal, data?.inlet1On, data?.inlet2On, data?.inlet3On, data?.inlet4On, updateNodeInternals]);
+
+  const in1 = data?.inlet1On ?? true;
+  const in2 = data?.inlet2On ?? true;
+  const in3 = data?.inlet3On ?? true;
+  const in4 = data?.inlet4On ?? true;
+
+  const isFlowing1 = edges.some(e => e.target === id && (!e.targetHandle || e.targetHandle === 'inlet-1') && (e.data as any)?.isFlowing);
+  const isFlowing2 = edges.some(e => e.target === id && e.targetHandle === 'inlet-4' && (e.data as any)?.isFlowing);
+  const isFlowing3 = edges.some(e => e.target === id && e.targetHandle === 'inlet-2' && (e.data as any)?.isFlowing);
+  const isFlowing4 = edges.some(e => e.target === id && e.targetHandle === 'inlet-3' && (e.data as any)?.isFlowing);
+
+  const out1Flowing = edges.some(e => e.source === id && (!e.sourceHandle || e.sourceHandle === 'outlet-1') && (e.data as any)?.isFlowing);
+  const out2Flowing = edges.some(e => e.source === id && e.sourceHandle === 'outlet-2' && (e.data as any)?.isFlowing);
 
   return (
     <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 200, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
 
-      {/* SVG fills container directly — no flex wrapper so handles align 1:1 with SVG */}
-      <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
+      <div style={{ width: '100%', height: '100%', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease', position: 'relative' }}>
         <CentralWaterTank
           fillPercentage={tankState.fillPercentage}
           isFilling={tankState.isFilling}
           isDraining={tankState.isDraining}
-          isFillingActive={edges.some(e => e.target === id && (!e.targetHandle || e.targetHandle === 'inlet-1') && (e.data as any)?.isFlowing)}
-          isFilling2Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-4' && (e.data as any)?.isFlowing)}
-          isFilling3Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-2' && (e.data as any)?.isFlowing)}
-          isFilling4Active={edges.some(e => e.target === id && e.targetHandle === 'inlet-3' && (e.data as any)?.isFlowing)}
-          isDrainingActive={edges.some(e => e.source === id && (!e.sourceHandle || e.sourceHandle === 'outlet-1') && (e.data as any)?.isFlowing)}
-          isDraining2Active={edges.some(e => e.source === id && e.sourceHandle === 'outlet-2' && (e.data as any)?.isFlowing)}
+          isFillingActive={isFlowing1}
+          isFilling2Active={isFlowing2}
+          isFilling3Active={isFlowing3}
+          isFilling4Active={isFlowing4}
+          isDrainingActive={out1Flowing}
+          isDraining2Active={out2Flowing}
+          showInletPipe={in1}
+          showInletPipe2={in4}
+          showInletPipe3={in2}
+          showInletPipe4={in3}
           waveSpeed={tankState.waveSpeed}
           waveHeight={tankState.waveHeight}
           temperature={tankState.temperature}
@@ -562,10 +582,6 @@ function CentralTankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         />
       </div>
 
-      {/* Handles: x=0.1105 = pipe mouth at SVG x=-22 → (-22-(-85))/570=63/570=0.1105
-                  x=0.8895 = symmetric right side
-                  y=0.0750 = inlet centerline y=45/600
-                  y=0.1833 = outlet centerline y=110/600 */}
       <PrecisionHandle id="inlet-1" type="target" x={0.1195} y={0.1482} basePosition={Position.Left} isFlipped={isFlipped} />
       <PrecisionHandle id="inlet-2" type="target" x={0.4430} y={0.0930} basePosition={Position.Top} isFlipped={isFlipped} />
       <PrecisionHandle id="inlet-3" type="target" x={0.5580} y={0.0930} basePosition={Position.Top} isFlipped={isFlipped} />
@@ -1641,6 +1657,13 @@ export default function TopologyCanvas() {
             inletSwitchOffsetX: updatedNode.data.inletSwitchOffsetX,
             inletSwitchOffsetY: updatedNode.data.inletSwitchOffsetY,
             inletSwitchScale: updatedNode.data.inletSwitchScale,
+            tempThreshold: cfg.tempThreshold,
+            tempMaxThreshold: cfg.tempMaxThreshold,
+            inlet1On: cfg.inlet1On,
+            inlet2On: cfg.inlet2On,
+            inlet3On: cfg.inlet3On,
+            inlet4On: cfg.inlet4On,
+            allowDeleteNodes: initialViewportConfig.allowDeleteNodes,
             outletSwitchOffsetX: updatedNode.data.outletSwitchOffsetX,
             outletSwitchOffsetY: updatedNode.data.outletSwitchOffsetY,
             outletSwitchScale: updatedNode.data.outletSwitchScale,
@@ -2032,6 +2055,10 @@ export default function TopologyCanvas() {
               waveHeightActive: cfg.waveHeightActive,
               tempThreshold: cfg.tempThreshold,
               tempMaxThreshold: cfg.tempMaxThreshold,
+              inlet1On: cfg.inlet1On,
+              inlet2On: cfg.inlet2On,
+              inlet3On: cfg.inlet3On,
+              inlet4On: cfg.inlet4On,
               canControlPump: interactivityRef.current.canControlPump,
               onTogglePump: handleTogglePump,
               onToggleTankValve: handleToggleTankValve,
@@ -2414,6 +2441,10 @@ export default function TopologyCanvas() {
                 waveHeightActive: updatedProps.waveHeightActive,
                 tempThreshold: updatedProps.tempThreshold,
                 tempMaxThreshold: updatedProps.tempMaxThreshold,
+                inlet1On: updatedProps.inlet1On,
+                inlet2On: updatedProps.inlet2On,
+                inlet3On: updatedProps.inlet3On,
+                inlet4On: updatedProps.inlet4On,
               }
             };
           }
@@ -2434,6 +2465,10 @@ export default function TopologyCanvas() {
             waveHeightActive: updatedNode.data.waveHeightActive,
             tempThreshold: updatedNode.data.tempThreshold,
             tempMaxThreshold: updatedNode.data.tempMaxThreshold,
+            inlet1On: updatedNode.data.inlet1On,
+            inlet2On: updatedNode.data.inlet2On,
+            inlet3On: updatedNode.data.inlet3On,
+            inlet4On: updatedNode.data.inlet4On,
           };
           axios.patch(`${BACKEND_URL}/api/nodes/${nodeId}`, { attributes }).catch(console.error);
         }
@@ -2470,7 +2505,20 @@ export default function TopologyCanvas() {
     const targetNode = nodes.find(n => n.id === connection.target);
     if (targetNode) {
        const inletConnsCount = edges.filter(e => e.target === connection.target && e.targetHandle === connection.targetHandle).length;
-       if (inletConnsCount >= 1) return false;
+       
+       let maxInlets = 1;
+       if (targetNode.type === 'central_tank') {
+           const in1 = targetNode.data?.inlet1On ?? true;
+           const in2 = targetNode.data?.inlet2On ?? true;
+           const in3 = targetNode.data?.inlet3On ?? true;
+           const in4 = targetNode.data?.inlet4On ?? true;
+           const numInletsOn = [in1, in2, in3, in4].filter(Boolean).length;
+           if (numInletsOn === 1) {
+               maxInlets = 10; // allow many connections if only 1 inlet is on
+           }
+       }
+
+       if (inletConnsCount >= maxInlets) return false;
     }
 
     const sourceNode = nodes.find(n => n.id === connection.source);

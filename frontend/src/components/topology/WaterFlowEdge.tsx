@@ -168,76 +168,20 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   finalSvgPathString = getRoundedPath(allCorners, 12);
   const svgPathString = finalSvgPathString;
   
-  // =========================================================================
-  // T-JUNCTION CONNECTOR LOGIC
-  // We parse our own path to find 90-degree corners. If this edge is part of
-  // a Split or Merge, and another sibling edge's target/source extends PAST
-  // this corner along the shared trunk, then it's a T-junction overlap!
-  // =========================================================================
-  const corners: {x: number, y: number}[] = [];
-  const regex = /([MLQCZA])([^MLQCZA]*)/gi;
-  let match;
-  const points: {x: number, y: number}[] = [];
-  while ((match = regex.exec(svgPathString)) !== null) {
-    const cmd = match[1].toUpperCase();
-    const params = match[2].trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
-    if (cmd === 'M' || cmd === 'L') points.push({ x: params[0], y: params[1] });
-    else if (cmd === 'A') points.push({ x: params[5], y: params[6] });
-    else if (cmd === 'Q') points.push({ x: params[2], y: params[3] });
-    else if (cmd === 'C') points.push({ x: params[4], y: params[5] });
-  }
-
-  const orthoPoints = points.length > 0 ? [points[0]] : [];
-  for (let i = 1; i < points.length; i++) {
-    const prev = orthoPoints[orthoPoints.length - 1];
-    const curr = points[i];
-    if (Math.abs(curr.x - prev.x) < 1 && Math.abs(curr.y - prev.y) < 1) continue;
-    
-    if (Math.abs(curr.x - prev.x) < 1 || Math.abs(curr.y - prev.y) < 1) {
-      orthoPoints.push(curr);
-    } else {
-      const next = i + 1 < points.length ? points[i+1] : null;
-      let cornerX = curr.x;
-      let cornerY = curr.y;
-      
-      if (next) {
-        if (Math.abs(next.y - curr.y) < 1) {
-          cornerX = prev.x;
-          cornerY = curr.y;
-        } else if (Math.abs(next.x - curr.x) < 1) {
-          cornerX = curr.x;
-          cornerY = prev.y;
-        }
-      } else if (orthoPoints.length > 1) {
-        const prevPrev = orthoPoints[orthoPoints.length - 2];
-        if (Math.abs(prev.x - prevPrev.x) < 1) {
-          cornerX = prev.x;
-          cornerY = curr.y;
-        } else {
-          cornerX = curr.x;
-          cornerY = prev.y;
-        }
-      }
-      corners.push({ x: cornerX, y: cornerY });
-      orthoPoints.push({ x: cornerX, y: cornerY });
-      orthoPoints.push(curr);
-    }
-  }
-
-  // Simplify collinear segments out of orthoPoints to perfectly detect straight overlaps
+  // Simplify collinear segments out of allCorners to perfectly detect straight overlaps
   const simplifiedPoints: {x: number, y: number}[] = [];
-  if (orthoPoints.length > 0) simplifiedPoints.push(orthoPoints[0]);
-  for (let i = 1; i < orthoPoints.length - 1; i++) {
+  if (allCorners.length > 0) simplifiedPoints.push(allCorners[0]);
+  for (let i = 1; i < allCorners.length - 1; i++) {
     const prev = simplifiedPoints[simplifiedPoints.length - 1];
-    const curr = orthoPoints[i];
-    const next = orthoPoints[i+1];
-    const isCollinearX = Math.abs(prev.x - curr.x) < 1 && Math.abs(curr.x - next.x) < 1;
-    const isCollinearY = Math.abs(prev.y - curr.y) < 1 && Math.abs(curr.y - next.y) < 1;
+    const curr = allCorners[i];
+    const next = allCorners[i+1];
+    const isCollinearX = Math.abs(prev.x - curr.x) < 5 && Math.abs(curr.x - next.x) < 5;
+    const isCollinearY = Math.abs(prev.y - curr.y) < 5 && Math.abs(curr.y - next.y) < 5;
     if (!isCollinearX && !isCollinearY) {
       simplifiedPoints.push(curr);
     }
   }
-  if (orthoPoints.length > 1) simplifiedPoints.push(orthoPoints[orthoPoints.length - 1]);
+  if (allCorners.length > 1) simplifiedPoints.push(allCorners[allCorners.length - 1]);
 
   // Register our exact computed orthogonal path to the global store
   globalEdgeSegments.set(id, simplifiedPoints);
@@ -249,7 +193,10 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
     };
   }, [id]);
 
-  const tJunctions = corners.filter(corner => {
+  const tJunctions = simplifiedPoints.filter((corner, idx) => {
+    // Ignore start and end points
+    if (idx === 0 || idx === simplifiedPoints.length - 1) return false;
+    
     // Check if this corner lies STRICTLY on any segment of ANY OTHER edge in the entire canvas
     for (const [otherId, otherOrthoPoints] of globalEdgeSegments.entries()) {
       if (otherId === id) continue;
@@ -259,8 +206,8 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
         const p2 = otherOrthoPoints[i+1];
         
         // Is it a vertical segment?
-        if (Math.abs(p1.x - p2.x) < 1) {
-          if (Math.abs(corner.x - p1.x) < 2) { // Corner shares X
+        if (Math.abs(p1.x - p2.x) < 5) {
+          if (Math.abs(corner.x - p1.x) < 10) { // Corner shares X
             const minY = Math.min(p1.y, p2.y);
             const maxY = Math.max(p1.y, p2.y);
             // Strictly between (meaning the pipe goes straight past the corner)
@@ -268,8 +215,8 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
           }
         } 
         // Is it a horizontal segment?
-        else if (Math.abs(p1.y - p2.y) < 1) {
-          if (Math.abs(corner.y - p1.y) < 2) { // Corner shares Y
+        else if (Math.abs(p1.y - p2.y) < 5) {
+          if (Math.abs(corner.y - p1.y) < 10) { // Corner shares Y
             const minX = Math.min(p1.x, p2.x);
             const maxX = Math.max(p1.x, p2.x);
             if (corner.x > minX + 2 && corner.x < maxX - 2) return true;
