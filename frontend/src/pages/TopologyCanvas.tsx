@@ -33,6 +33,7 @@ import { Pump3DSwitch } from '../components/nodes/Pump3DSwitch';
 import { FloatingNodePalette } from '../components/topology/FloatingNodePalette';
 import { AssetInspectorModal } from '../components/topology/AssetInspectorModal';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../components/ThemeProvider';
 
 /* ─── types ──────────────────────────────────────────────────────── */
 type LiveNodeData = {
@@ -978,6 +979,8 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
 
 
 function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
   const type = data?.nodeType || 'water_level';
   const name = data?.nodeName || 'Telemetry Sensor';
 
@@ -1005,11 +1008,11 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
       )}
       <div style={{
         width: '100%', height: '100%',
-        background: '#ffffff',
-        border: selected ? '2px solid #00ffff' : '1px solid rgba(0,0,0,0.08)',
+        background: dark ? '#23242a' : '#ffffff',
+        border: selected ? '2px solid #00ffff' : `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
         borderRadius: 14,
         padding: '12px 14px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+        boxShadow: dark ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.06)',
         display: 'flex', alignItems: 'center', gap: 12,
         fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif"
       }}>
@@ -1021,14 +1024,14 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           {cfg.icon}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#5a5f6b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
             {name}
           </span>
-          <span style={{ fontSize: 16, fontWeight: 800, color: '#17181c', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', fontVariantNumeric: 'tabular-nums' }}>
             {cfg.val}
           </span>
           {data?.parentAssetName && (
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#059669', background: '#d1fae5', padding: '1px 5px', borderRadius: 4, marginTop: 2, display: 'inline-block', width: 'fit-content' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#059669', background: dark ? 'rgba(16,185,129,0.15)' : '#d1fae5', padding: '1px 5px', borderRadius: 4, marginTop: 2, display: 'inline-block', width: 'fit-content' }}>
               🔗 {data.parentAssetName}
             </span>
           )}
@@ -1107,6 +1110,8 @@ const FONT = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
 ─────────────────────────────────────────────────────────────────── */
 function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { containerRef: React.RefObject<HTMLDivElement | null>, onUndo?: () => void, onRedo?: () => void, canUndo?: boolean, canRedo?: boolean }) {
   const { setCenter, fitBounds, getNodes } = useReactFlow();
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [resetFlash, setResetFlash] = useState(false);
 
@@ -1137,29 +1142,33 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
   };
 
   const btnSize = isFullscreen ? 36 : 28;
+  const btnBg = dark ? '#2a2b34' : '#ffffff';
+  const btnBgActive = dark ? '#3a3b44' : '#f3f3f3';
+  const btnColor = dark ? '#9ca3af' : '#5a5f6b';
+  const btnColorActive = dark ? '#f0f0f2' : '#17181c';
   const btn = (active?: boolean): React.CSSProperties => ({
     width: btnSize, height: btnSize,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: active ? '#f3f3f3' : '#ffffff',
+    background: active ? btnBgActive : btnBg,
     border: 'none',
     cursor: 'pointer',
-    color: active ? '#17181c' : '#5a5f6b',
+    color: active ? btnColorActive : btnColor,
     transition: 'background 0.12s, color 0.12s',
     outline: 'none',
   });
 
-  const hoverIn = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = '#f3f3f3'; e.currentTarget.style.color = '#17181c'; };
-  const hoverOut = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#5a5f6b'; };
+  const hoverIn = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = btnBgActive; e.currentTarget.style.color = btnColorActive; };
+  const hoverOut = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; };
 
   return (
     <div
       style={{
         position: 'absolute', bottom: 24, left: 16, zIndex: 20,
         display: 'flex', flexDirection: 'column',
-        background: '#ffffff',
-        border: '1px solid rgba(0,0,0,0.09)',
+        background: dark ? '#2a2b34' : '#ffffff',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'}`,
         borderRadius: 12,
-        boxShadow: '0 2px 10px rgba(0,0,0,0.09)',
+        boxShadow: dark ? '0 2px 10px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.09)',
         overflow: 'hidden',
       }}
     >
@@ -1181,7 +1190,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
       {/* Undo */}
       {isFullscreen && onUndo && (
         <>
-          <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
+          <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
           <button
             style={{ ...btn(), opacity: canUndo ? 1 : 0.4, cursor: canUndo ? 'pointer' : 'not-allowed' }} title="Undo"
             onMouseEnter={canUndo ? hoverIn : undefined} onMouseLeave={hoverOut}
@@ -1196,7 +1205,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
       {/* Redo */}
       {isFullscreen && onRedo && (
         <>
-          <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
+          <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
           <button
             style={{ ...btn(), opacity: canRedo ? 1 : 0.4, cursor: canRedo ? 'pointer' : 'not-allowed' }} title="Redo"
             onMouseEnter={canRedo ? hoverIn : undefined} onMouseLeave={hoverOut}
@@ -1209,7 +1218,7 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
       )}
 
       {/* divider */}
-      <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
+      <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)', margin: '0 6px' }} />
 
       {/* Fullscreen */}
       <button
@@ -1227,6 +1236,8 @@ function CustomControls({ containerRef, onUndo, onRedo, canUndo, canRedo }: { co
 
 /* ─── EDIT MODE BUTTON ───────────────────────────────────────────── */
 function EditModeButton({ editMode, onToggle, isFullscreen = true }: { editMode: boolean; onToggle: () => void; isFullscreen?: boolean }) {
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
   const isSmall = isFullscreen === false;
   return (
     <button
@@ -1238,11 +1249,11 @@ function EditModeButton({ editMode, onToggle, isFullscreen = true }: { editMode:
         padding: isSmall ? '6px 12px' : '9px 16px', borderRadius: isSmall ? 8 : 12, cursor: 'pointer',
         border: editMode
           ? '1.5px solid rgba(0,255,255,0.55)'
-          : '1.5px solid rgba(0,0,0,0.10)',
-        background: editMode ? '#17181c' : '#ffffff',
+          : `1.5px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
+        background: editMode ? '#17181c' : (dark ? '#2a2b34' : '#ffffff'),
         boxShadow: editMode
           ? '0 0 18px rgba(0,255,255,0.20), 0 2px 8px rgba(0,0,0,0.14)'
-          : '0 2px 8px rgba(0,0,0,0.08)',
+          : dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
         transition: 'all 0.18s ease',
         fontFamily: FONT,
       }}
@@ -1262,7 +1273,7 @@ function EditModeButton({ editMode, onToggle, isFullscreen = true }: { editMode:
 
       <span style={{
         fontSize: isSmall ? 11 : 13, fontWeight: 700, letterSpacing: '-0.2px',
-        color: editMode ? '#00ffff' : '#5a5f6b',
+        color: editMode ? '#00ffff' : (dark ? '#9ca3af' : '#5a5f6b'),
         transition: 'color 0.18s',
       }}>
         {editMode ? 'Edit Mode ON' : 'Edit Mode'}
@@ -1474,6 +1485,8 @@ export default function TopologyCanvas() {
   const [showCustomizeMenu, setShowCustomizeMenu] = useState(false);
 
   const { isAdmin, role } = useAuth();
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
   const canControlPump = isAdmin || role === 'operator';
   const containerRef = useRef<HTMLDivElement>(null);
   const interactivityRef = useRef({
@@ -2682,7 +2695,7 @@ export default function TopologyCanvas() {
 
   /* ─────────────────────────────────────────────────────────── */
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden rounded-[24px]" style={{ background: '#ffffff' }}>
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden rounded-[24px]" style={{ background: dark ? '#1c1d22' : '#ffffff' }}>
 
       {/* Top-left admin buttons (Viewport, Guide) */}
       {isAdmin && editMode && (
@@ -2699,8 +2712,8 @@ export default function TopologyCanvas() {
               padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
               border: showViewport
                 ? '1.5px solid rgba(0,255,255,0.50)'
-                : '1.5px solid rgba(0,0,0,0.09)',
-              background: showViewport ? '#17181c' : '#ffffff',
+                : `1.5px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'}`,
+              background: showViewport ? '#17181c' : (dark ? '#2a2b34' : '#ffffff'),
               boxShadow: showViewport
                 ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                 : '0 2px 6px rgba(0,0,0,0.07)',
@@ -2710,7 +2723,7 @@ export default function TopologyCanvas() {
             <Frame size={13} strokeWidth={2.2} color={showViewport ? '#00ffff' : '#9ca3af'} />
             <span style={{
               fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-              color: showViewport ? '#00ffff' : '#5a5f6b',
+              color: showViewport ? '#00ffff' : (dark ? '#9ca3af' : '#5a5f6b'),
             }}>
               Viewport
             </span>
@@ -2731,8 +2744,8 @@ export default function TopologyCanvas() {
               padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
               border: showCrosshair
                 ? '1.5px solid rgba(0,255,255,0.50)'
-                : '1.5px solid rgba(0,0,0,0.09)',
-              background: showCrosshair ? '#17181c' : '#ffffff',
+                : `1.5px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'}`,
+              background: showCrosshair ? '#17181c' : (dark ? '#2a2b34' : '#ffffff'),
               boxShadow: showCrosshair
                 ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                 : '0 2px 6px rgba(0,0,0,0.07)',
@@ -2742,7 +2755,7 @@ export default function TopologyCanvas() {
             <Crosshair size={13} strokeWidth={2.2} color={showCrosshair ? '#00ffff' : '#9ca3af'} />
             <span style={{
               fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-              color: showCrosshair ? '#00ffff' : '#5a5f6b',
+              color: showCrosshair ? '#00ffff' : (dark ? '#9ca3af' : '#5a5f6b'),
             }}>
               Guide
             </span>
@@ -2775,8 +2788,8 @@ export default function TopologyCanvas() {
                 padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
                 border: showPaletteMenu
                   ? '1.5px solid rgba(0,255,255,0.50)'
-                  : '1.5px solid rgba(0,0,0,0.09)',
-                background: showPaletteMenu ? '#17181c' : '#ffffff',
+                  : `1.5px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'}`,
+                background: showPaletteMenu ? '#17181c' : (dark ? '#2a2b34' : '#ffffff'),
                 boxShadow: showPaletteMenu
                   ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                   : '0 2px 6px rgba(0,0,0,0.07)',
@@ -2786,7 +2799,7 @@ export default function TopologyCanvas() {
               <Layers size={13} strokeWidth={2.2} color={showPaletteMenu ? '#00ffff' : '#9ca3af'} />
               <span style={{
                 fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                color: showPaletteMenu ? '#00ffff' : '#5a5f6b',
+                color: showPaletteMenu ? '#00ffff' : (dark ? '#9ca3af' : '#5a5f6b'),
               }}>
                 Asset Palette
               </span>
@@ -2824,7 +2837,7 @@ export default function TopologyCanvas() {
           {editMode && (
             <>
               {/* Divider */}
-              <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
+              <div style={{ width: 1, height: 28, background: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
 
 
 
@@ -2848,8 +2861,8 @@ export default function TopologyCanvas() {
                     padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
                     border: showDeleteMenu
                       ? '1.5px solid rgba(0,255,255,0.50)'
-                      : '1.5px solid rgba(0,0,0,0.09)',
-                    background: showDeleteMenu ? '#17181c' : '#ffffff',
+                      : `1.5px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'}`,
+                    background: showDeleteMenu ? '#17181c' : (dark ? '#2a2b34' : '#ffffff'),
                     boxShadow: showDeleteMenu
                       ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                       : '0 2px 6px rgba(0,0,0,0.07)',
@@ -2859,7 +2872,7 @@ export default function TopologyCanvas() {
                   <Trash2 size={13} strokeWidth={2.2} color={showDeleteMenu ? '#00ffff' : '#9ca3af'} />
                   <span style={{
                     fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                    color: showDeleteMenu ? '#00ffff' : '#5a5f6b',
+                    color: showDeleteMenu ? '#00ffff' : (dark ? '#9ca3af' : '#5a5f6b'),
                   }}>
                     Delete Assets
                   </span>
@@ -2905,8 +2918,8 @@ export default function TopologyCanvas() {
                     padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
                     border: allowMoveResize
                       ? '1.5px solid rgba(0,255,255,0.50)'
-                      : '1.5px solid rgba(0,0,0,0.09)',
-                    background: allowMoveResize ? '#17181c' : '#ffffff',
+                      : `1.5px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'}`,
+                    background: allowMoveResize ? '#17181c' : (dark ? '#2a2b34' : '#ffffff'),
                     boxShadow: allowMoveResize
                       ? '0 0 12px rgba(0,255,255,0.12), 0 2px 6px rgba(0,0,0,0.10)'
                       : '0 2px 6px rgba(0,0,0,0.07)',
@@ -2916,7 +2929,7 @@ export default function TopologyCanvas() {
                   <Move size={13} strokeWidth={2.2} color={allowMoveResize ? '#00ffff' : '#9ca3af'} />
                   <span style={{
                     fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-                    color: allowMoveResize ? '#00ffff' : '#5a5f6b',
+                    color: allowMoveResize ? '#00ffff' : (dark ? '#9ca3af' : '#5a5f6b'),
                   }}>
                     Move & Resize
                   </span>
@@ -2973,7 +2986,7 @@ export default function TopologyCanvas() {
                 )}
               </div>
               {/* Divider */}
-              <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
+              <div style={{ width: 1, height: 28, background: dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)', margin: '0 2px' }} />
             </>
           )}
 
@@ -3005,8 +3018,8 @@ export default function TopologyCanvas() {
               padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
               border: showCustomizeMenu
                 ? '1.5px solid rgba(0,255,255,0.55)'
-                : '1.5px solid rgba(0,0,0,0.09)',
-              background: showCustomizeMenu ? '#17181c' : '#ffffff',
+                : `1.5px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'}`,
+              background: showCustomizeMenu ? '#17181c' : (dark ? '#2a2b34' : '#ffffff'),
               boxShadow: showCustomizeMenu
                 ? '0 0 16px rgba(0,255,255,0.2), 0 4px 12px rgba(0,0,0,0.15)'
                 : '0 2px 8px rgba(0,0,0,0.08)',
@@ -3016,7 +3029,7 @@ export default function TopologyCanvas() {
             <Sliders size={14} strokeWidth={2.2} color={showCustomizeMenu ? '#00ffff' : '#9ca3af'} />
             <span style={{
               fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
-              color: showCustomizeMenu ? '#00ffff' : '#5a5f6b',
+              color: showCustomizeMenu ? '#00ffff' : (dark ? '#9ca3af' : '#5a5f6b'),
             }}>
               Customize Assets
             </span>
@@ -3134,10 +3147,10 @@ export default function TopologyCanvas() {
         onInit={(instance) => {
           setRfInstance(instance);
         }}
-        className="bg-white"
-        style={{ width: '100%', height: '100%', background: '#ffffff', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
+        className={dark ? '' : 'bg-white'}
+        style={{ width: '100%', height: '100%', background: dark ? '#1c1d22' : '#ffffff', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
       >
-        <Background gap={isFullscreen ? 36 : 28} size={1.2} color="#e0e0e0" style={{ opacity: 0.8 }} />
+        <Background gap={isFullscreen ? 36 : 28} size={1.2} color={dark ? '#3a3b44' : '#e0e0e0'} style={{ opacity: 0.8 }} />
         <CustomControls containerRef={containerRef} onUndo={handleUndo} onRedo={handleRedo} canUndo={undoStack.length > 0} canRedo={redoStack.length > 0} />
 
         {/* Canvas crosshair — tracks real world (0,0), pans with canvas */}
