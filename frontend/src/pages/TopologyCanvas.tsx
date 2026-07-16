@@ -3144,6 +3144,7 @@ export default function TopologyCanvas() {
         onlyRenderVisibleElements={true}
         minZoom={0.15}
         maxZoom={3.5}
+        proOptions={{ hideAttribution: true }}
         onInit={(instance) => {
           setRfInstance(instance);
         }}
