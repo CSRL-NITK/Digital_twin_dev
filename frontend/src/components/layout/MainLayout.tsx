@@ -379,15 +379,17 @@ const TopBar = memo(function TopBar() {
    bg: #e9eeea  |  border: rgba(0,0,0,0.06)
 ════════════════════════════════════════════════════════════════ */
 const BlankPanel = memo(function BlankPanel({ id }: { id: string }) {
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
   return (
     <div
       id={id}
       style={{
         width: '100%', height: '100%',
-        background: '#ffffff',
-        border: '1px solid rgba(0,0,0,0.07)',
+        background: dark ? '#1c1d22' : '#ffffff',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)'}`,
         borderRadius: 18,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.05)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden', position: 'relative',
       }}
@@ -395,12 +397,12 @@ const BlankPanel = memo(function BlankPanel({ id }: { id: string }) {
       {/* Inner dashed inset */}
       <div style={{
         position: 'absolute', inset: 10, borderRadius: 12,
-        border: '1.5px dashed rgba(0,0,0,0.10)',
+        border: `1.5px dashed ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
         pointerEvents: 'none',
       }} />
       <span style={{
         fontSize: 10, fontWeight: 600, letterSpacing: '0.16em',
-        textTransform: 'uppercase', color: 'rgba(0,0,0,0.22)',
+        textTransform: 'uppercase', color: dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.22)',
         writingMode: 'vertical-rl', transform: 'rotate(180deg)',
         userSelect: 'none', fontFamily: 'var(--font)',
       }}>
@@ -416,16 +418,18 @@ const BlankPanel = memo(function BlankPanel({ id }: { id: string }) {
    col icons: tinted pill bg (amber/lime/green)
 ════════════════════════════════════════════════════════════════ */
 const AnalyticsStrip = memo(function AnalyticsStrip() {
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
   return (
     <div
       id="analytics-strip"
       style={{
         height: 200, flexShrink: 0,
         display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
-        background: '#ffffff',
-        border: '1px solid rgba(0,0,0,0.07)',
+        background: dark ? '#1c1d22' : '#ffffff',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)'}`,
         borderRadius: 18, overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.05)',
       }}
     >
       {/* ── Col 1: Alerts ── */}
@@ -453,20 +457,20 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
           ].map(r => (
             <div key={r.time} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.dot, flexShrink: 0 }} />
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#17181c', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.1px' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? '#f0f0f2' : '#17181c', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.1px' }}>
                 {r.time}
               </span>
-              <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.msg}</span>
+              <span style={{ fontSize: 12, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{r.msg}</span>
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 9.5, color: '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <p style={{ fontSize: 9.5, color: dark ? '#4b5563' : '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           blank · will update later
         </p>
       </div>
 
       {/* Divider */}
-      <div style={{ background: 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
+      <div style={{ background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
 
       {/* ── Col 2: MQTT ── */}
       <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
@@ -488,24 +492,24 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
         </div>
         {[
           { label: 'Connection', value: 'Connected', color: '#22c55e', dot: true },
-          { label: 'Message rate', value: '12 msg/s', color: '#17181c', dot: false },
-          { label: 'Topics', value: '3 active', color: '#17181c', dot: false },
+          { label: 'Message rate', value: '12 msg/s', color: dark ? '#f0f0f2' : '#17181c', dot: false },
+          { label: 'Topics', value: '3 active', color: dark ? '#f0f0f2' : '#17181c', dot: false },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
+            <span style={{ fontSize: 12, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: r.color }}>
               {r.dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />}
               {r.value}
             </span>
           </div>
         ))}
-        <p style={{ fontSize: 9.5, color: '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <p style={{ fontSize: 9.5, color: dark ? '#4b5563' : '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           blank · will update later
         </p>
       </div>
 
       {/* Divider */}
-      <div style={{ background: 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
+      <div style={{ background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
 
       {/* ── Col 3: System ── */}
       <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
@@ -528,14 +532,14 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
         {[
           { label: 'PostgreSQL', value: 'Healthy', color: '#22c55e' },
           { label: 'Backend API', value: 'Healthy', color: '#22c55e' },
-          { label: 'Node uptime', value: '99.9%', color: '#17181c' },
+          { label: 'Node uptime', value: '99.9%', color: dark ? '#f0f0f2' : '#17181c' },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
+            <span style={{ fontSize: 12, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: r.color }}>{r.value}</span>
           </div>
         ))}
-        <p style={{ fontSize: 9.5, color: '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <p style={{ fontSize: 9.5, color: dark ? '#4b5563' : '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           blank · will update later
         </p>
       </div>
