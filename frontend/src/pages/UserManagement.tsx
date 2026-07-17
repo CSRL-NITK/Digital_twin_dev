@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import {
   Users, Trash2, Shield, ChevronDown, RefreshCw, AlertCircle,
-  CheckCircle2, Crown, Wrench, Eye, Search, X, UserCheck, MoreHorizontal
+  CheckCircle2, Crown, Wrench, Eye, Search, X, UserCheck
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/hooks/useAuth';
@@ -188,85 +188,6 @@ function RoleDropdown({ userId, currentRole, onChanged, dark }: { userId: string
   );
 }
 
-/* ── Actions More Menu ─────────────────────────────────────────── */
-function ActionsMenu({ user, onDelete, isDeleting, dark }: { user: User; onDelete: (u: User) => void; isDeleting: boolean; dark: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number; openUp: boolean }>({ top: 0, left: 0, openUp: false });
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  const MENU_HEIGHT = 42; // single item menu height
-
-  const handleOpen = () => {
-    if (open) { setOpen(false); return; }
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const openUp = spaceBelow < MENU_HEIGHT + 12;
-      setPos({
-        top: openUp ? rect.top : rect.bottom + 4,
-        left: rect.right - 160,
-        openUp,
-      });
-    }
-    setOpen(true);
-  };
-
-  return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        ref={btnRef}
-        onClick={handleOpen}
-        style={{
-          width: 34, height: 34, borderRadius: 8, border: 'none',
-          background: open ? (dark ? 'rgba(255,255,255,0.10)' : '#e5e7eb') : 'transparent',
-          color: dark ? '#9ca3af' : '#6b7280',
-          cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.14s',
-        }}
-        onMouseEnter={e => { (e.currentTarget as any).style.background = dark ? 'rgba(255,255,255,0.08)' : '#f3f4f6'; }}
-        onMouseLeave={e => { if (!open) (e.currentTarget as any).style.background = 'transparent'; }}
-      >
-        <MoreHorizontal size={16} />
-      </button>
-      {open && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setOpen(false)} />
-          <div style={{
-            position: 'fixed',
-            left: pos.left,
-            ...(pos.openUp ? { bottom: window.innerHeight - pos.top + 4 } : { top: pos.top }),
-            zIndex: 9999,
-            background: dark ? '#1c1d22' : '#ffffff',
-            border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : '#e5e7eb'}`,
-            borderRadius: 10, overflow: 'hidden',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            minWidth: 160,
-          }}>
-            <button
-              onClick={() => { setOpen(false); onDelete(user); }}
-              disabled={isDeleting}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 14px', border: 'none',
-                cursor: isDeleting ? 'not-allowed' : 'pointer', textAlign: 'left',
-                color: '#ef4444',
-                fontFamily: FONT, fontSize: 13, fontWeight: 600,
-                background: 'transparent',
-                transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => { (e.currentTarget as any).style.background = dark ? 'rgba(239,68,68,0.10)' : '#fef2f2'; }}
-              onMouseLeave={e => { (e.currentTarget as any).style.background = 'transparent'; }}
-            >
-              {isDeleting ? <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> : <Trash2 size={14} />}
-              Delete user
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════
    MAIN PAGE
@@ -401,13 +322,13 @@ export default function UserManagement() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name, email, role or @handle…"
+              placeholder="Search name, email, role, @handle…"
               style={{
                 height: 42, paddingLeft: 38, paddingRight: search ? 34 : 16, borderRadius: 12,
                 border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : '#cbd5e1'}`,
                 background: dark ? 'rgba(255,255,255,0.04)' : '#ffffff',
                 fontSize: 13.5, fontWeight: 500, color: textTitle,
-                outline: 'none', fontFamily: FONT, width: 290,
+                outline: 'none', fontFamily: FONT, width: 320,
                 boxShadow: 'none',
                 transition: 'border-color 0.14s, box-shadow 0.14s',
               }}

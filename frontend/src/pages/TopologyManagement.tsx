@@ -34,6 +34,7 @@ interface SensorCatalogItem {
   unit: string;
   accuracy: string;
   color: string;
+  svgContent?: string;
 }
 
 const DEFAULT_SENSOR_CATALOG: SensorCatalogItem[] = [
@@ -117,10 +118,14 @@ export default function TopologyManagement() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSensorEditModalOpen, setIsSensorEditModalOpen] = useState(false);
+  const [isCreatingSensor, setIsCreatingSensor] = useState(false);
+  const [sensorColor, setSensorColor] = useState('#38bdf8');
+  const [sensorTelemetryType, setSensorTelemetryType] = useState('flow_rate');
 
   // Form State
   const [activeTopology, setActiveTopology] = useState<Topology | null>(null);
   const [activeSensor, setActiveSensor] = useState<SensorCatalogItem | null>(null);
+  const [previewSvg, setPreviewSvg] = useState<SensorCatalogItem | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [sensorFormData, setSensorFormData] = useState({ name: '', description: '', svgName: '', unit: '', accuracy: '', svgContent: '' });
   const [dragOver, setDragOver] = useState(false);
@@ -205,25 +210,66 @@ export default function TopologyManagement() {
     }
   };
 
-  const handleSensorEdit = (e: React.FormEvent) => {
+  const handleSensorEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeSensor) return;
-    const updated = sensors.map(s => {
-      if (s.id === activeSensor.id) {
-        return {
-          ...s,
-          name: sensorFormData.name,
-          description: sensorFormData.description,
+
+    if (sensorFormData.svgContent) {
+      try {
+        await axios.post(`${BACKEND_URL}/api/sensors/upload`, {
           svgName: sensorFormData.svgName,
-          unit: sensorFormData.unit,
-          accuracy: sensorFormData.accuracy,
-          svgContent: sensorFormData.svgContent || undefined,
-        };
+          svgContent: sensorFormData.svgContent,
+        });
+      } catch (error) {
+        console.error('Failed to upload custom SVG file:', error);
+        alert('Failed to save the custom SVG file on the server, but it will still be used locally.');
       }
-      return s;
-    });
-    setSensors(updated);
-    localStorage.setItem('dt-sensor-catalog', JSON.stringify(updated));
+    }
+
+    if (isCreatingSensor) {
+      if (!sensorTelemetryType) {
+        alert('Telemetry Type Key is required.');
+        return;
+      }
+      const newSensor: SensorCatalogItem = {
+        id: sensorTelemetryType,
+        name: sensorFormData.name,
+        type: sensorTelemetryType,
+        svgName: sensorFormData.svgName,
+        description: sensorFormData.description,
+        unit: sensorFormData.unit,
+        accuracy: sensorFormData.accuracy,
+        color: sensorColor,
+        svgContent: sensorFormData.svgContent || undefined,
+      };
+
+      if (sensors.some(s => s.id === newSensor.id)) {
+        alert('A sensor template with this Telemetry Type Key already exists.');
+        return;
+      }
+
+      const updated = [...sensors, newSensor];
+      setSensors(updated);
+      localStorage.setItem('dt-sensor-catalog', JSON.stringify(updated));
+    } else {
+      if (!activeSensor) return;
+      const updated = sensors.map(s => {
+        if (s.id === activeSensor.id) {
+          return {
+            ...s,
+            name: sensorFormData.name,
+            description: sensorFormData.description,
+            svgName: sensorFormData.svgName,
+            unit: sensorFormData.unit,
+            accuracy: sensorFormData.accuracy,
+            color: sensorColor,
+            svgContent: sensorFormData.svgContent || undefined,
+          };
+        }
+        return s;
+      });
+      setSensors(updated);
+      localStorage.setItem('dt-sensor-catalog', JSON.stringify(updated));
+    }
     setIsSensorEditModalOpen(false);
   };
 
@@ -271,7 +317,10 @@ export default function TopologyManagement() {
   };
 
   const openSensorEdit = (sensor: SensorCatalogItem) => {
+    setIsCreatingSensor(false);
     setActiveSensor(sensor);
+    setSensorColor(sensor.color);
+    setSensorTelemetryType(sensor.type);
     setSensorFormData({
       name: sensor.name,
       description: sensor.description,
@@ -279,6 +328,22 @@ export default function TopologyManagement() {
       unit: sensor.unit,
       accuracy: sensor.accuracy,
       svgContent: sensor.svgContent || '',
+    });
+    setIsSensorEditModalOpen(true);
+  };
+
+  const openSensorCreate = () => {
+    setIsCreatingSensor(true);
+    setActiveSensor(null);
+    setSensorColor('#38bdf8');
+    setSensorTelemetryType('');
+    setSensorFormData({
+      name: '',
+      description: '',
+      svgName: '',
+      unit: '',
+      accuracy: '',
+      svgContent: '',
     });
     setIsSensorEditModalOpen(true);
   };
@@ -382,6 +447,15 @@ export default function TopologyManagement() {
               >
                 <Plus size={18} strokeWidth={2.5} />
                 New Topology
+              </PushableButton>
+            )}
+
+            {activeTab === 'sensors' && (
+              <PushableButton
+                onClick={openSensorCreate}
+              >
+                <Plus size={18} strokeWidth={2.5} />
+                New Sensor
               </PushableButton>
             )}
           </div>
@@ -529,12 +603,28 @@ export default function TopologyManagement() {
                 <div style={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{
-                        width: 50, height: 50, borderRadius: 12,
-                        background: dark ? '#22232a' : '#f3f4f6',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        border: `1.5px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'}`
-                      }}>
+                      <div 
+                        onClick={() => setPreviewSvg(sensor)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.08)';
+                          e.currentTarget.style.borderColor = '#00ffff';
+                          e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 255, 255, 0.3)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.borderColor = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                        style={{
+                          width: 50, height: 50, borderRadius: 12,
+                          background: dark ? '#22232a' : '#f3f4f6',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: `1.5px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'}`,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                        title="Click to view full screen vector"
+                      >
                         {sensor.svgContent ? (
                           <div 
                             style={{ width: '80%', height: '80%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -733,8 +823,8 @@ export default function TopologyManagement() {
           </div>
         )}
 
-        {/* Edit Sensor Modal */}
-        {isSensorEditModalOpen && activeSensor && (
+        {/* Edit/Create Sensor Modal */}
+        {isSensorEditModalOpen && (isCreatingSensor || activeSensor) && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: dark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
@@ -751,7 +841,7 @@ export default function TopologyManagement() {
             }}>
               <div style={{ padding: '20px 32px', borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-                  Customize Sensor Metadata
+                  {isCreatingSensor ? 'Create New Sensor Template' : 'Customize Sensor Metadata'}
                 </h2>
                 <button 
                   onClick={() => setIsSensorEditModalOpen(false)}
@@ -775,6 +865,66 @@ export default function TopologyManagement() {
                       placeholder="e.g. Ultrasonic Level Transmitter"
                       style={inputStyle}
                     />
+                  </div>
+
+                  {!isCreatingSensor && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: dark ? '#d1d5db' : '#4b5563' }}>
+                        Telemetry Type Key (Read-Only)
+                      </label>
+                      <input
+                        disabled
+                        value={sensorTelemetryType}
+                        style={{ ...inputStyle, background: dark ? 'rgba(255,255,255,0.03)' : '#f1f5f9', color: dark ? '#6b7280' : '#94a3b8', cursor: 'not-allowed' }}
+                      />
+                    </div>
+                  )}
+
+                  {isCreatingSensor && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: dark ? '#d1d5db' : '#4b5563' }}>
+                        Telemetry Type Key <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        required
+                        value={sensorTelemetryType}
+                        onChange={e => setSensorTelemetryType(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                        placeholder="e.g. flow_rate, pressure, vibration"
+                        style={inputStyle}
+                      />
+                      <span style={{ fontSize: 11, color: dark ? '#6b7280' : '#9ca3af', marginTop: 4, display: 'block' }}>
+                        Lowercase alphanumeric and underscores only.
+                      </span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: dark ? '#d1d5db' : '#4b5563' }}>
+                      Theme Accent Color
+                    </label>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      {[
+                        { value: '#38bdf8', label: 'Sky Blue' },
+                        { value: '#10b981', label: 'Emerald Green' },
+                        { value: '#f59e0b', label: 'Amber Orange' },
+                        { value: '#ec4899', label: 'Rose Pink' },
+                        { value: '#8b5cf6', label: 'Violet Purple' },
+                        { value: '#ef4444', label: 'Crimson Red' },
+                      ].map(c => (
+                        <button
+                          key={c.value}
+                          type="button"
+                          onClick={() => setSensorColor(c.value)}
+                          style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: c.value, border: sensorColor === c.value ? `2.5px solid ${dark ? '#fff' : '#000'}` : '2.5px solid transparent',
+                            cursor: 'pointer', transition: 'all 0.15s ease',
+                            boxShadow: sensorColor === c.value ? `0 0 10px ${c.value}` : 'none'
+                          }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: dark ? '#d1d5db' : '#4b5563' }}>
@@ -914,6 +1064,27 @@ export default function TopologyManagement() {
 
                 {/* Fixed Footer */}
                 <div style={{ padding: '20px 32px', borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, display: 'flex', gap: 12, flexShrink: 0 }}>
+                  {!isCreatingSensor && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to delete the sensor template "${activeSensor?.name}"?`)) {
+                          const updated = sensors.filter(s => s.id !== activeSensor?.id);
+                          setSensors(updated);
+                          localStorage.setItem('dt-sensor-catalog', JSON.stringify(updated));
+                          setIsSensorEditModalOpen(false);
+                        }
+                      }}
+                      style={{
+                        padding: '0 16px', height: 44, borderRadius: 10, border: 'none',
+                        background: '#ef4444', color: '#ffffff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                        transition: 'background 0.15s ease'
+                      }}
+                      title="Delete this template from the catalog"
+                    >
+                      Delete
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setIsSensorEditModalOpen(false)}
@@ -932,10 +1103,74 @@ export default function TopologyManagement() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                     }}
                   >
-                    Save Configuration
+                    {isCreatingSensor ? 'Create Template' : 'Save Configuration'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Lightbox Preview Modal */}
+        {previewSvg && (
+          <div style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(10,11,15,0.92)', backdropFilter: 'blur(10px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 2000
+          }} onClick={() => setPreviewSvg(null)}>
+            {/* Modern Circular Close Button at top-right */}
+            <button
+              onClick={() => setPreviewSvg(null)}
+              style={{
+                position: 'absolute', top: 32, right: 32,
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#ffffff', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <X size={20} strokeWidth={2.5} />
+            </button>
+
+            {/* Lightbox Content Container */}
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '90%', maxWidth: 500, height: '90%', maxHeight: 500,
+                background: dark ? '#1c1d22' : '#ffffff',
+                borderRadius: 32,
+                border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 40, boxSizing: 'border-box'
+              }}
+            >
+              {previewSvg.svgContent ? (
+                <div 
+                  style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  dangerouslySetInnerHTML={{ __html: previewSvg.svgContent }} 
+                />
+              ) : (
+                <img 
+                  src={`/assets/sensors/${previewSvg.svgName}.svg`} 
+                  alt={previewSvg.name} 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              )}
             </div>
           </div>
         )}

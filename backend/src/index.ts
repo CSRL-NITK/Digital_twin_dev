@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { prisma } from './lib/prisma';
+import fs from 'fs';
+import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
@@ -99,6 +101,34 @@ app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRoutes);
 
 // REST APIs
+app.post('/api/sensors/upload', async (req, res) => {
+  const { svgName, svgContent } = req.body;
+  if (!svgName || !svgContent) {
+    return res.status(400).json({ error: 'svgName and svgContent are required' });
+  }
+
+  const safeName = svgName.replace(/[^a-zA-Z0-9_\-]/g, '');
+  if (!safeName) {
+    return res.status(400).json({ error: 'Invalid svgName' });
+  }
+
+  try {
+    const destDir = path.join(__dirname, '../../frontend/public/assets/sensors');
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    const destPath = path.join(destDir, `${safeName}.svg`);
+    fs.writeFileSync(destPath, svgContent, 'utf8');
+
+    console.log(`[SVG Upload] Saved custom SVG: ${safeName}.svg`);
+    res.json({ success: true, fileName: `${safeName}.svg` });
+  } catch (error) {
+    console.error('[SVG Upload] Failed to write SVG file:', error);
+    res.status(500).json({ error: 'Failed to write SVG file' });
+  }
+});
+
 app.get('/api/topologies', async (req, res) => {
   const topologies = await prisma.topology.findMany({
     include: {

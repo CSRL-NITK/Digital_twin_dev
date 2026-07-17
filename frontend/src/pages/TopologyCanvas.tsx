@@ -979,8 +979,6 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
 
 
 function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
-  const { theme } = useTheme();
-  const dark = theme === 'dark';
   const type = data?.nodeType || 'water_level';
   const name = data?.nodeName || 'Telemetry Sensor';
 
@@ -1416,10 +1414,17 @@ function CanvasCrosshair({ show }: { show: boolean }) {
 }
 
 type HistoryAction = {
-  type: 'move' | 'resize';
-  nodeId: string;
-  oldValue: { x: number, y: number, w?: number, h?: number };
-  newValue: { x: number, y: number, w?: number, h?: number };
+  type: 'move' | 'resize' | 'move_group' | 'add_edge' | 'delete_edges';
+  nodeId?: string;
+  oldValue?: { x: number, y: number, w?: number, h?: number };
+  newValue?: { x: number, y: number, w?: number, h?: number };
+  moves?: {
+    nodeId: string;
+    oldValue: { x: number; y: number; w?: number; h?: number };
+    newValue: { x: number; y: number; w?: number; h?: number };
+  }[];
+  edge?: any;
+  edges?: any[];
 };
 
 // Helper to recursively determine if an edge is flowing based on source node and its supply chain
@@ -2307,32 +2312,91 @@ export default function TopologyCanvas() {
     setUndoStack(prev => prev.slice(0, -1));
     setRedoStack(prev => [...prev, action]);
 
-    // Apply visually
-    setNodes(nds => nds.map(n => {
-      if (n.id === action.nodeId) {
-        const updated = { ...n, position: { x: action.oldValue.x, y: action.oldValue.y } };
-        if (action.oldValue.w) {
-          updated.style = { ...updated.style, width: action.oldValue.w, height: action.oldValue.h };
+    if (action.type === 'move_group' && action.moves) {
+      // Revert all nodes visually
+      setNodes(nds => nds.map(n => {
+        const move = action.moves?.find(m => m.nodeId === n.id);
+        if (move) {
+          const updated = { ...n, position: { x: move.oldValue.x, y: move.oldValue.y } };
+          if (move.oldValue.w) {
+            updated.style = { ...updated.style, width: move.oldValue.w, height: move.oldValue.h };
+          }
+          return updated;
         }
-        return updated;
-      }
-      return n;
-    }));
+        return n;
+      }));
 
-    // Apply to DB
-    if (action.nodeId === 'viewport-box') {
+      // Revert in DB
+      for (const move of (action.moves || [])) {
+        if (move.nodeId === 'viewport-box') {
+          try {
+            await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
+              x: move.oldValue.x, y: move.oldValue.y,
+              w: move.oldValue.w || 1000, h: move.oldValue.h || 500
+            });
+          } catch (e) {}
+        } else {
+          try {
+            await axios.patch(`${BACKEND_URL}/api/nodes/${move.nodeId}/position`, {
+              positionX: move.oldValue.x, positionY: move.oldValue.y,
+            });
+          } catch (e) {}
+        }
+      }
+    } else if (action.type === 'add_edge' && action.edge) {
+      // Remove edge visually
+      setEdges(eds => eds.filter(e => e.id !== action.edge.id));
+      // Remove edge from DB
       try {
-        await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
-          x: action.oldValue.x, y: action.oldValue.y,
-          w: action.oldValue.w || 1000, h: action.oldValue.h || 500
-        });
-      } catch (e) { }
+        await axios.delete(`${BACKEND_URL}/api/edges/${action.edge.id}`);
+      } catch (e) {}
+    } else if (action.type === 'delete_edges' && action.edges) {
+      // Restore edges visually
+      setEdges(eds => [...eds, ...(action.edges || [])]);
+      // Restore edges in DB
+      for (const edge of (action.edges || [])) {
+        try {
+          const res = await axios.post(`${BACKEND_URL}/api/edges`, {
+            topologyId: id,
+            source: edge.source,
+            target: edge.target,
+            sourceHandle: edge.sourceHandle,
+            targetHandle: edge.targetHandle,
+          });
+          if (res.data && res.data.id) {
+            setEdges(eds => eds.map(e => e.id === edge.id ? { ...e, id: res.data.id.toString() } : e));
+            edge.id = res.data.id.toString();
+          }
+        } catch (e) {}
+      }
     } else {
-      try {
-        await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
-          positionX: action.oldValue.x, positionY: action.oldValue.y,
-        });
-      } catch (e) { }
+      // Apply visually
+      setNodes(nds => nds.map(n => {
+        if (n.id === action.nodeId) {
+          const updated = { ...n, position: { x: action.oldValue!.x, y: action.oldValue!.y } };
+          if (action.oldValue!.w) {
+            updated.style = { ...updated.style, width: action.oldValue!.w, height: action.oldValue!.h };
+          }
+          return updated;
+        }
+        return n;
+      }));
+
+      // Apply to DB
+      if (action.nodeId === 'viewport-box') {
+        try {
+          await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
+            x: action.oldValue!.x, y: action.oldValue!.y,
+            w: action.oldValue!.w || 1000, h: action.oldValue!.h || 500
+          });
+        } catch (e) { }
+      } else {
+        try {
+          await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
+            positionX: action.oldValue!.x, positionY: action.oldValue!.y,
+          });
+        } catch (e) { }
+      }
     }
   };
 
@@ -2342,34 +2406,133 @@ export default function TopologyCanvas() {
     setRedoStack(prev => prev.slice(0, -1));
     setUndoStack(prev => [...prev, action]);
 
-    // Apply visually
-    setNodes(nds => nds.map(n => {
-      if (n.id === action.nodeId) {
-        const updated = { ...n, position: { x: action.newValue.x, y: action.newValue.y } };
-        if (action.newValue.w) {
-          updated.style = { ...updated.style, width: action.newValue.w, height: action.newValue.h };
+    if (action.type === 'move_group' && action.moves) {
+      // Reapply all nodes visually
+      setNodes(nds => nds.map(n => {
+        const move = action.moves?.find(m => m.nodeId === n.id);
+        if (move) {
+          const updated = { ...n, position: { x: move.newValue.x, y: move.newValue.y } };
+          if (move.newValue.w) {
+            updated.style = { ...updated.style, width: move.newValue.w, height: move.newValue.h };
+          }
+          return updated;
         }
-        return updated;
-      }
-      return n;
-    }));
+        return n;
+      }));
 
-    // Apply to DB
-    if (action.nodeId === 'viewport-box') {
+      // Reapply in DB
+      for (const move of (action.moves || [])) {
+        if (move.nodeId === 'viewport-box') {
+          try {
+            await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
+              x: move.newValue.x, y: move.newValue.y,
+              w: move.newValue.w || 1000, h: move.newValue.h || 500
+            });
+          } catch (e) {}
+        } else {
+          try {
+            await axios.patch(`${BACKEND_URL}/api/nodes/${move.nodeId}/position`, {
+              positionX: move.newValue.x, positionY: move.newValue.y,
+            });
+          } catch (e) {}
+        }
+      }
+    } else if (action.type === 'add_edge' && action.edge) {
+      // Restore edge visually
+      setEdges(eds => [...eds, action.edge]);
+      // Restore edge in DB
       try {
-        await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
-          x: action.newValue.x, y: action.newValue.y,
-          w: action.newValue.w || 1000, h: action.newValue.h || 500
+        const res = await axios.post(`${BACKEND_URL}/api/edges`, {
+          topologyId: id,
+          source: action.edge.source,
+          target: action.edge.target,
+          sourceHandle: action.edge.sourceHandle,
+          targetHandle: action.edge.targetHandle,
         });
-      } catch (e) { }
+        if (res.data && res.data.id) {
+          setEdges(eds => eds.map(e => e.id === action.edge.id ? { ...e, id: res.data.id.toString() } : e));
+          action.edge.id = res.data.id.toString();
+        }
+      } catch (e) {}
+    } else if (action.type === 'delete_edges' && action.edges) {
+      // Delete edges visually
+      const idsToDelete = action.edges.map(e => e.id);
+      setEdges(eds => eds.filter(e => !idsToDelete.includes(e.id)));
+      // Delete edges from DB
+      for (const edge of (action.edges || [])) {
+        try {
+          await axios.delete(`${BACKEND_URL}/api/edges/${edge.id}`);
+        } catch (e) {}
+      }
     } else {
-      try {
-        await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
-          positionX: action.newValue.x, positionY: action.newValue.y,
-        });
-      } catch (e) { }
+      // Apply visually
+      setNodes(nds => nds.map(n => {
+        if (n.id === action.nodeId) {
+          const updated = { ...n, position: { x: action.newValue!.x, y: action.newValue!.y } };
+          if (action.newValue!.w) {
+            updated.style = { ...updated.style, width: action.newValue!.w, height: action.newValue!.h };
+          }
+          return updated;
+        }
+        return n;
+      }));
+
+      // Apply to DB
+      if (action.nodeId === 'viewport-box') {
+        try {
+          await axios.patch(`${BACKEND_URL}/api/topologies/${id}/viewport`, {
+            x: action.newValue!.x, y: action.newValue!.y,
+            w: action.newValue!.w || 1000, h: action.newValue!.h || 500
+          });
+        } catch (e) { }
+      } else {
+        try {
+          await axios.patch(`${BACKEND_URL}/api/nodes/${action.nodeId}/position`, {
+            positionX: action.newValue!.x, positionY: action.newValue!.y,
+          });
+        } catch (e) { }
+      }
     }
   };
+
+  const handleUndoRef = useRef(handleUndo);
+  const handleRedoRef = useRef(handleRedo);
+
+  useEffect(() => {
+    handleUndoRef.current = handleUndo;
+    handleRedoRef.current = handleRedo;
+  }, [handleUndo, handleRedo]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCtrl = e.ctrlKey || e.metaKey;
+      if (!isCtrl) return;
+
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedoRef.current();
+        } else {
+          e.preventDefault();
+          handleUndoRef.current();
+        }
+      } else if (key === 'y') {
+        e.preventDefault();
+        handleRedoRef.current();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   /* ── save position on drag stop ── */
   const onNodeDragStart = (_: React.MouseEvent, node: any) => {
@@ -2424,14 +2587,31 @@ export default function TopologyCanvas() {
     const childSensors = nodes.filter(n => n.data?.parentAssetId === node.id);
 
     if (dragStartPos.current) {
-      const dx = Math.abs(newX - dragStartPos.current.x);
-      const dy = Math.abs(newY - dragStartPos.current.y);
-      if (dx >= 1 || dy >= 1) {
+      const dx = newX - dragStartPos.current.x;
+      const dy = newY - dragStartPos.current.y;
+      if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) {
+        const moves = [
+          {
+            nodeId: node.id,
+            oldValue: { ...dragStartPos.current },
+            newValue: { x: newX, y: newY, w: newW, h: newH }
+          }
+        ];
+
+        childSensors.forEach(child => {
+          const startPos = dragStartPositions.current[child.id];
+          if (startPos) {
+            moves.push({
+              nodeId: child.id,
+              oldValue: { x: Math.round(startPos.x), y: Math.round(startPos.y), w: undefined, h: undefined },
+              newValue: { x: Math.round(startPos.x + dx), y: Math.round(startPos.y + dy), w: undefined, h: undefined }
+            });
+          }
+        });
+
         const action: HistoryAction = {
-          type: 'move',
-          nodeId: node.id,
-          oldValue: { ...dragStartPos.current },
-          newValue: { x: newX, y: newY, w: newW, h: newH }
+          type: 'move_group',
+          moves
         };
         setUndoStack(prev => [...prev, action]);
         setRedoStack([]);
@@ -2603,10 +2783,15 @@ export default function TopologyCanvas() {
 
   const onConnect = useCallback(
     async (params: Connection | Edge) => {
+      if (!params.source || !params.target) return;
+
       const tempId = 'id' in params ? params.id : `temp-${Date.now()}`;
-      const edgeToAdd = {
-        ...params,
+      const edgeToAdd: Edge = {
         id: tempId,
+        source: params.source,
+        target: params.target,
+        sourceHandle: params.sourceHandle,
+        targetHandle: params.targetHandle,
         type: 'waterFlow',
         zIndex: 10,
         data: { isFlowing: true }
@@ -2614,32 +2799,45 @@ export default function TopologyCanvas() {
 
       setEdges((eds) => addEdge(edgeToAdd, eds));
 
-      if (params.source && params.target) {
-        try {
-          const res = await axios.post(`${BACKEND_URL}/api/edges`, {
-            topologyId: id,
-            source: params.source,
-            target: params.target,
-            sourceHandle: params.sourceHandle,
-            targetHandle: params.targetHandle,
-          });
+      try {
+        const res = await axios.post(`${BACKEND_URL}/api/edges`, {
+          topologyId: id,
+          source: params.source,
+          target: params.target,
+          sourceHandle: params.sourceHandle,
+          targetHandle: params.targetHandle,
+        });
 
-          if (res.data && res.data.id) {
-            setEdges((eds) => eds.map(e => e.id === tempId ? { ...e, id: res.data.id.toString() } : e));
-          }
-        } catch (e) { console.error('Failed to save edge', e); }
-      }
+        if (res.data && res.data.id) {
+          const savedEdge: Edge = { ...edgeToAdd, id: res.data.id.toString() };
+          setEdges((eds) => eds.map(e => e.id === tempId ? savedEdge : e));
+
+          // Record action in undo stack
+          setUndoStack(prev => [...prev, {
+            type: 'add_edge',
+            edge: savedEdge
+          }]);
+          setRedoStack([]);
+        }
+      } catch (e) { console.error('Failed to save edge', e); }
     },
-    [setEdges, id]
+    [setEdges, id, setUndoStack, setRedoStack]
   );
 
   const onEdgesDelete = useCallback(
     (deletedEdges: Edge[]) => {
+      // Record action in undo stack
+      setUndoStack(prev => [...prev, {
+        type: 'delete_edges',
+        edges: deletedEdges
+      }]);
+      setRedoStack([]);
+
       deletedEdges.forEach((edge) => {
         axios.delete(`${BACKEND_URL}/api/edges/${edge.id}`).catch(() => { });
       });
     },
-    []
+    [setUndoStack, setRedoStack]
   );
   const onPaneClick = () => {
     setSelectedNode(null);
