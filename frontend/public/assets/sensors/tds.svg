@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94a3b8" />
+      <stop offset="50%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#475569" />
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="50%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <radialGradient id="electricArc" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="60%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#78350f" />
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Connection wire -->
+  <path d="M 45 4 L 55 4 L 52 18 L 48 18 Z" fill="#334155" stroke="#1e293b" />
+
+  <!-- Probe Cap / Connector -->
+  <path d="M 38 18 L 62 18 L 58 30 L 42 30 Z" fill="#475569" stroke="#334155" />
+
+  <!-- Main Sheath Body -->
+  <rect x="42" y="30" width="16" height="42" rx="2" fill="url(#bodyGrad)" stroke="#475569" />
+
+  <!-- Lower Electrode Collar -->
+  <rect x="40" y="60" width="20" height="4" fill="#64748b" />
+
+  <!-- Prongs/Electrodes (Dual conductiviy pins at bottom) -->
+  <rect x="45" y="72" width="3" height="15" fill="url(#metalGrad)" stroke="#475569" stroke-width="0.5" />
+  <rect x="52" y="72" width="3" height="15" fill="url(#metalGrad)" stroke="#475569" stroke-width="0.5" />
+
+  <!-- Electrical potential arc / conductivity field representing measurement -->
+  <ellipse cx="50" cy="85" rx="10" ry="5" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" filter="url(#glow)" />
+  <circle cx="50" cy="85" r="2.5" fill="url(#electricArc)" />
+</svg>

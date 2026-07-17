@@ -112,7 +112,7 @@ const deriveTankState = (data: LiveNodeData) => {
 
 const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
   if (isSensor || ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(type)) {
-    return { width: 170, height: 85 };
+    return { width: 90, height: 90 };
   }
   if (type === 'switch') {
     return { width: 140, height: 180 };
@@ -984,21 +984,36 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const type = data?.nodeType || 'water_level';
   const name = data?.nodeName || 'Telemetry Sensor';
 
-  const configs: Record<string, { icon: any; color: string; val: string }> = {
-    water_level: { icon: <Gauge size={18} />, color: '#38bdf8', val: `${data?.waterLevel ?? 65}%` },
-    ph: { icon: <Activity size={18} />, color: '#10b981', val: `${data?.ph ?? 7.12} pH` },
-    tds: { icon: <Zap size={18} />, color: '#f59e0b', val: `${data?.tds ?? 210} ppm` },
-    temperature: { icon: <Thermometer size={18} />, color: '#ef4444', val: `${data?.temperature ?? 24.5}°C` },
+  // Load custom catalog config from localStorage to support uploaded SVGs
+  const catalogItem = (() => {
+    try {
+      const saved = localStorage.getItem('dt-sensor-catalog');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.find((x: any) => x.type === type);
+      }
+    } catch (e) {}
+    return null;
+  })();
+
+  const configs: Record<string, { icon: any; color: string; val: string; svgName: string }> = {
+    water_level: { icon: <Gauge size={14} />, color: '#38bdf8', val: `${data?.waterLevel ?? 65}%`, svgName: 'ultrasonic' },
+    ph: { icon: <Activity size={14} />, color: '#10b981', val: `${data?.ph ?? 7.12} pH`, svgName: 'ph' },
+    tds: { icon: <Zap size={14} />, color: '#f59e0b', val: `${data?.tds ?? 210} ppm`, svgName: 'tds' },
+    temperature: { icon: <Thermometer size={14} />, color: '#ef4444', val: `${data?.temperature ?? 24.5}°C`, svgName: 'temperature' },
   };
   const cfg = configs[type] || configs.water_level;
 
+  const displaySvgName = catalogItem?.svgName || cfg.svgName;
+  const customSvgContent = catalogItem?.svgContent;
+
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 170, minHeight: 85, position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', minWidth: 30, minHeight: 30, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
           keepAspectRatio={false}
-          minWidth={170} minHeight={85}
+          minWidth={30} minHeight={30}
           isVisible={selected}
           onResizeStart={(_evt, params) => data.onResizeStart && data.onResizeStart(params, id)}
           onResizeEnd={(_evt, params) => data.onResizeEnd && data.onResizeEnd(params, id)}
@@ -1008,32 +1023,30 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
       )}
       <div style={{
         width: '100%', height: '100%',
-        background: dark ? '#23242a' : '#ffffff',
-        border: selected ? '2px solid #00ffff' : `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
-        borderRadius: 14,
-        padding: '12px 14px',
-        boxShadow: dark ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.06)',
-        display: 'flex', alignItems: 'center', gap: 12,
-        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif"
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '8px',
+        border: 'none',
+        borderRadius: 16,
+        transition: 'all 0.16s ease',
       }}>
+        {/* SVG Sensor Graphic */}
         <div style={{
-          width: 38, height: 38, borderRadius: 10,
-          background: `${cfg.color}18`, border: `1px solid ${cfg.color}40`,
-          color: cfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          width: '75%', height: '75%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          filter: 'none',
+          transition: 'all 0.16s ease',
         }}>
-          {cfg.icon}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-            {name}
-          </span>
-          <span style={{ fontSize: 16, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', fontVariantNumeric: 'tabular-nums' }}>
-            {cfg.val}
-          </span>
-          {data?.parentAssetName && (
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#059669', background: dark ? 'rgba(16,185,129,0.15)' : '#d1fae5', padding: '1px 5px', borderRadius: 4, marginTop: 2, display: 'inline-block', width: 'fit-content' }}>
-              🔗 {data.parentAssetName}
-            </span>
+          {customSvgContent ? (
+            <div 
+              style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              dangerouslySetInnerHTML={{ __html: customSvgContent }}
+            />
+          ) : (
+            <img 
+              src={`/assets/sensors/${displaySvgName}.svg`} 
+              alt={name}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+            />
           )}
         </div>
       </div>
@@ -1458,6 +1471,7 @@ export default function TopologyCanvas() {
   const [undoStack, setUndoStack] = useState<HistoryAction[]>([]);
   const [redoStack, setRedoStack] = useState<HistoryAction[]>([]);
   const dragStartPos = useRef<any>(null);
+  const dragStartPositions = useRef<Record<string, { x: number; y: number }>>({});
   const isInteractingRef = useRef(false);
   const resizeStartDim = useRef<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -2014,12 +2028,14 @@ export default function TopologyCanvas() {
             const defDims = getDefaultNodeDimensions(node.nodeType);
             const w = cfg.customWidth || (node.width && node.height ? node.width : defDims.width);
             const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
+            const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(node.nodeType);
+            const zIndexVal = isSensor ? 20 : 5;
             return {
               id: node.id.toString(),
               type: node.nodeType,
               position: { x: node.positionX, y: node.positionY },
               draggable: false, // locked by default; edit mode enables
-              style: { width: w, height: h },
+              style: { width: w, height: h, zIndex: zIndexVal },
               data: {
                 nodeName: node.nodeName,
                 status: node.status,
@@ -2363,7 +2379,39 @@ export default function TopologyCanvas() {
       dragStartPos.current.w = parseFloat(node.style?.width as string) || 1000;
       dragStartPos.current.h = parseFloat(node.style?.height as string) || 500;
     }
+
+    // Store the starting positions of all nodes in the workspace
+    const positions: Record<string, { x: number; y: number }> = {};
+    nodes.forEach(n => {
+      positions[n.id] = { x: n.position.x, y: n.position.y };
+    });
+    dragStartPositions.current = positions;
   };
+
+  const onNodeDrag = useCallback((_: React.MouseEvent, node: any) => {
+    if (!dragStartPos.current || !dragStartPositions.current[node.id]) return;
+
+    const dx = node.position.x - dragStartPos.current.x;
+    const dy = node.position.y - dragStartPos.current.y;
+
+    if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.data?.parentAssetId === node.id && dragStartPositions.current[n.id]) {
+            const startPos = dragStartPositions.current[n.id];
+            return {
+              ...n,
+              position: {
+                x: startPos.x + dx,
+                y: startPos.y + dy,
+              },
+            };
+          }
+          return n;
+        })
+      );
+    }
+  }, [setNodes]);
 
   const onNodeDragStop = async (_: React.MouseEvent, node: any) => {
     isInteractingRef.current = false;
@@ -2371,6 +2419,9 @@ export default function TopologyCanvas() {
     const newY = Math.round(node.position?.y ?? 0);
     const newW = node.id === 'viewport-box' ? (parseFloat(node.style?.width as string) || 1000) : undefined;
     const newH = node.id === 'viewport-box' ? (parseFloat(node.style?.height as string) || 500) : undefined;
+
+    // Identify child sensors that moved along with this parent
+    const childSensors = nodes.filter(n => n.data?.parentAssetId === node.id);
 
     if (dragStartPos.current) {
       const dx = Math.abs(newX - dragStartPos.current.x);
@@ -2401,6 +2452,25 @@ export default function TopologyCanvas() {
         positionX: newX, positionY: newY,
       });
     } catch (e) { console.error('Failed to save position', e); }
+
+    // Save all child sensors' positions
+    if (childSensors.length > 0 && dragStartPos.current) {
+      const dx = newX - dragStartPos.current.x;
+      const dy = newY - dragStartPos.current.y;
+
+      for (const child of childSensors) {
+        const startPos = dragStartPositions.current[child.id];
+        if (startPos) {
+          const childX = Math.round(startPos.x + dx);
+          const childY = Math.round(startPos.y + dy);
+          try {
+            await axios.patch(`${BACKEND_URL}/api/nodes/${child.id}/position`, {
+              positionX: childX, positionY: childY,
+            });
+          } catch (e) { console.error('Failed to save child sensor position', e); }
+        }
+      }
+    }
   };
 
 
@@ -2616,7 +2686,7 @@ export default function TopologyCanvas() {
       type,
       position: { x: posX, y: posY },
       draggable: canDragDrop,
-      style: { width: nodeW, height: nodeH },
+      style: { width: nodeW, height: nodeH, zIndex: isSensor ? 20 : 5 },
       data: {
         nodeName: targetName,
         status: 'healthy',
@@ -3132,6 +3202,7 @@ export default function TopologyCanvas() {
         isValidConnection={isValidConnection}
         onEdgesDelete={onEdgesDelete}
         onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}

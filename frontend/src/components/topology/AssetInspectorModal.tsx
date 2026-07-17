@@ -38,7 +38,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
   const defaultCapacity = isPump ? 3000 : node.type === 'source_tank' ? 15000 : node.type === 'central_tank' ? 10000 : 5000;
   const defaultDims = isPump ? { width: 200, height: 125 }
     : node.type?.includes('central') || node.type?.includes('source') || node.type === 'source' ? { width: 220, height: 259 }
-    : isSensor ? { width: 170, height: 85 }
+    : isSensor ? { width: 90, height: 90 }
     : { width: 200, height: 255 };
 
   const [nodeName, setNodeName] = useState<string>(node.data?.nodeName || '');

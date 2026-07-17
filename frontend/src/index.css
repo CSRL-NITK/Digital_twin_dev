@@ -183,4 +183,20 @@ h3 { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: -0.2px
 /* ── SELECTION ──────────────────────────────────────────────────── */
 ::selection { background: rgba(0,255,255,0.30); }
 
+/* ── REACT FLOW Z-INDEX LAYERING ───────────────────────────────── */
+.react-flow__nodes {
+  z-index: auto !important;
+  pointer-events: none;
+}
+.react-flow__node {
+  pointer-events: auto;
+}
+.react-flow__edges {
+  z-index: 10 !important;
+  pointer-events: none;
+}
+.react-flow__edge {
+  pointer-events: auto;
+}
+
 @keyframes dash-flow { to { stroke-dashoffset: -40; } }

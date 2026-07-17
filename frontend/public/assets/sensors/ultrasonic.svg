@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bracketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="transGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8" />
+      <stop offset="50%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <radialGradient id="meshGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Mounting Bracket -->
+  <rect x="20" y="35" width="60" height="12" rx="3" fill="url(#bracketGrad)" stroke="#64748b" stroke-width="1.5" />
+  <circle cx="28" cy="41" r="2.5" fill="#0f172a" />
+  <circle cx="72" cy="41" r="2.5" fill="#0f172a" />
+
+  <!-- Transceiver 1 (Left Barrel) -->
+  <rect x="30" y="47" width="16" height="26" rx="2" fill="url(#transGrad)" stroke="#475569" stroke-width="1" />
+  <!-- Lens/Face -->
+  <ellipse cx="38" cy="73" rx="8" ry="4" fill="url(#meshGrad)" stroke="#38bdf8" stroke-width="1.5" />
+  
+  <!-- Transceiver 2 (Right Barrel) -->
+  <rect x="54" y="47" width="16" height="26" rx="2" fill="url(#transGrad)" stroke="#475569" stroke-width="1" />
+  <!-- Lens/Face -->
+  <ellipse cx="62" cy="73" rx="8" ry="4" fill="url(#meshGrad)" stroke="#38bdf8" stroke-width="1.5" />
+
+  <!-- Back Sensor Housing -->
+  <rect x="35" y="15" width="30" height="20" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+  <rect x="42" y="8" width="16" height="7" rx="1.5" fill="#1e293b" stroke="#475569" />
+
+  <!-- Status Indicator LED -->
+  <circle cx="50" cy="25" r="3" fill="#38bdf8" filter="url(#glow)" />
+  
+  <!-- Active Acoustic Waves (Light overlay representing sound) -->
+  <path d="M 38 82 A 12 6 0 0 1 38 90" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" opacity="0.6" stroke-dasharray="2 2" />
+  <path d="M 62 82 A 12 6 0 0 1 62 90" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" opacity="0.6" stroke-dasharray="2 2" />
+</svg>
