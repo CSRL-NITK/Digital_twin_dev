@@ -1,50 +1,329 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+<svg
+  id="ph-sensor-svg"
+  viewBox="0 0 300 800"
+  width="100%"
+  height="100%"
+  xmlns="http://www.w3.org/2000/svg"
+  preserveAspectRatio="xMidYMid meet"
+>
   <defs>
-    <!-- Gradients -->
-    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#1e293b" />
-      <stop offset="50%" stop-color="#334155" />
-      <stop offset="100%" stop-color="#0f172a" />
-    </linearGradient>
-    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="rgba(16, 185, 129, 0.4)" />
-      <stop offset="40%" stop-color="rgba(16, 185, 129, 0.2)" />
-      <stop offset="100%" stop-color="rgba(16, 185, 129, 0.6)" />
-    </linearGradient>
-    <radialGradient id="bulbGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#34d399" />
-      <stop offset="70%" stop-color="#059669" />
-      <stop offset="100%" stop-color="#064e3b" />
-    </radialGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <!-- Drop Shadow Filter for Realistic 3D Depth -->
+    <filter id="probeShadow" x="-20%" y="-10%" width="140%" height="120%">
+      <feDropShadow dx="4" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.35" />
     </filter>
+
+    <!-- Glass Glow Filter for the Electrode Bulb -->
+    <filter id="glassGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Inner Shadow Filter for Plastic Depth -->
+    <filter id="innerShadow">
+      <feOffset dx="1" dy="2" />
+      <feGaussianBlur stdDeviation="2" result="offset-blur" />
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+      <feFlood flood-color="black" flood-opacity="0.6" result="color" />
+      <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+      <feComposite operator="over" in="shadow" in2="SourceGraphic" />
+    </filter>
+
+    <!-- Cylinder Gradients (Vertical light sources for 3D simulation) -->
+    
+    <!-- White Plastic Collar Gradient -->
+    <linearGradient id="whitePlasticGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9ca3af" />
+      <stop offset="15%" stop-color="#e4e4e7" />
+      <stop offset="45%" stop-color="#ffffff" />
+      <stop offset="75%" stop-color="#f4f4f5" />
+      <stop offset="90%" stop-color="#d4d4d8" />
+      <stop offset="100%" stop-color="#a1a1aa" />
+    </linearGradient>
+
+    <!-- Black Rubber / Plastic Gradient -->
+    <linearGradient id="blackPlasticGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#09090b" />
+      <stop offset="15%" stop-color="#18181b" />
+      <stop offset="40%" stop-color="#3f3f46" />
+      <stop offset="65%" stop-color="#27272a" />
+      <stop offset="85%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+
+    <!-- Black Tapered Strain Relief Gradient -->
+    <linearGradient id="blackTaperGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#09090b" />
+      <stop offset="20%" stop-color="#27272a" />
+      <stop offset="50%" stop-color="#4b5563" />
+      <stop offset="80%" stop-color="#1f2937" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+
+    <!-- Translucent Blue Liquid/Glass Shaft Gradient -->
+    <linearGradient id="blueGlassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0369a1" stop-opacity="0.9" />
+      <stop offset="15%" stop-color="#0284c7" stop-opacity="0.85" />
+      <stop offset="35%" stop-color="#0ea5e9" stop-opacity="0.75" />
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.6" />
+      <stop offset="65%" stop-color="#0ea5e9" stop-opacity="0.75" />
+      <stop offset="85%" stop-color="#0284c7" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Vibrant Inner Core Blue Rod Gradient -->
+    <linearGradient id="innerBlueRodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#075985" />
+      <stop offset="25%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="75%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+
+    <!-- Shroud Clear Glass Gradient (Horizontal) -->
+    <linearGradient id="shroudGlassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
+      <stop offset="10%" stop-color="#ffffff" stop-opacity="0.15" />
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.03" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.0" />
+      <stop offset="70%" stop-color="#ffffff" stop-opacity="0.03" />
+      <stop offset="90%" stop-color="#ffffff" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.45" />
+    </linearGradient>
+
+    <!-- Highlight Reflection Gradient (Vertical overlay) -->
+    <linearGradient id="verticalSpecular" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
+      <stop offset="20%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="80%" stop-color="#ffffff" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.3" />
+    </linearGradient>
+
+    <!-- Metallic Knurled Collar Base Gradient -->
+    <linearGradient id="metalBaseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="12%" stop-color="#94a3b8" />
+      <stop offset="35%" stop-color="#cbd5e1" />
+      <stop offset="50%" stop-color="#f1f5f9" />
+      <stop offset="65%" stop-color="#cbd5e1" />
+      <stop offset="85%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+
+    <!-- Knurled Ridge Rib Highlight/Shadow Gradient -->
+    <linearGradient id="ridgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.7" />
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.5" />
+      <stop offset="70%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.8" />
+    </linearGradient>
+    
+    <!-- Fluid Bubble Radial Shading -->
+    <radialGradient id="bubbleGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8" />
+      <stop offset="40%" stop-color="#38bdf8" stop-opacity="0.4" />
+      <stop offset="80%" stop-color="#0284c7" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.0" />
+    </radialGradient>
   </defs>
 
-  <!-- Cable / Connector Boot -->
-  <path d="M 45 5 L 55 5 L 53 22 L 47 22 Z" fill="#475569" stroke="#334155" stroke-width="1" />
-  
-  <!-- Probe Main Body (Protective sheath) -->
-  <rect x="42" y="22" width="16" height="50" rx="2" fill="url(#bodyGrad)" stroke="#475569" stroke-width="1" />
-  
-  <!-- Metallic collars / Rings -->
-  <rect x="40" y="32" width="20" height="4" fill="#64748b" />
-  <rect x="40" y="60" width="20" height="4" fill="#64748b" />
+  <!-- BACKGROUND GRID & AMBIENT SHADOW FOR CONTRAST -->
+  <g opacity="0.1">
+    <rect width="300" height="800" fill="none" />
+    <path d="M 0 100 L 300 100 M 0 200 L 300 200 M 0 300 L 300 300 M 0 400 L 300 400 M 0 500 L 300 500 M 0 600 L 300 600 M 0 700 L 300 700" stroke="#38bdf8" stroke-width="0.5" stroke-dasharray="4 8" />
+    <path d="M 50 0 L 50 800 M 100 0 L 100 800 M 150 0 L 150 800 M 200 0 L 200 800 M 250 0 L 250 800" stroke="#38bdf8" stroke-width="0.5" stroke-dasharray="4 8" />
+  </g>
 
-  <!-- Glass Bulb Shield (Transparent cage) -->
-  <path d="M 43 72 L 57 72 L 55 86 C 53 90, 47 90, 45 86 Z" fill="url(#glassGrad)" stroke="#10b981" stroke-width="1.5" />
-  
-  <!-- Inner Reference Electrode (thin line) -->
-  <line x1="50" y1="28" x2="50" y2="80" stroke="#00ffff" stroke-width="1" opacity="0.8" />
-  
-  <!-- Glowing pH Bulb -->
-  <circle cx="50" cy="82" r="5" fill="url(#bulbGlow)" filter="url(#glow)" />
-  
-  <!-- Protective cage slots (Horizontal slits) -->
-  <line x1="45" y1="76" x2="55" y2="76" stroke="#064e3b" stroke-width="1.5" />
-  <line x1="45" y1="82" x2="55" y2="82" stroke="#064e3b" stroke-width="1.5" />
+  <!-- MAIN SENSOR DEVICE ASSEMBLY (VERTIALLY ALIGNED AND ASPECT-LOCKED) -->
+  <g filter="url(#probeShadow)">
+
+    <!-- ================= PART 1: LOWER CAP, WHITE COLLAR & STRAIN RELIEF ================= -->
+    
+    <!-- Bottom rubber strain relief (Tapered) -->
+    <path 
+      d="M 132 660 
+         L 168 660 
+         Q 163 710 156 745 
+         Q 154 755 150 755
+         Q 146 755 144 745
+         Q 137 710 132 660 Z" 
+      fill="url(#blackTaperGrad)" 
+      stroke="#0f172a" 
+      stroke-width="0.5" 
+    />
+    
+    <!-- Horizontal rib lines on rubber strain relief to add rich texture -->
+    <path d="M 133 675 Q 150 677 167 675" stroke="#1e293b" stroke-width="1.5" fill="none" opacity="0.8" />
+    <path d="M 135 692 Q 150 694 165 692" stroke="#1e293b" stroke-width="1.5" fill="none" opacity="0.8" />
+    <path d="M 137 710 Q 150 712 163 710" stroke="#1e293b" stroke-width="1.5" fill="none" opacity="0.8" />
+    <path d="M 140 728 Q 150 730 160 728" stroke="#1e293b" stroke-width="1.5" fill="none" opacity="0.8" />
+
+    <!-- Bright White Textured Collar -->
+    <!-- Base block of White Collar -->
+    <rect x="122" y="600" width="56" height="60" rx="3" fill="url(#whitePlasticGrad)" stroke="#94a3b8" stroke-width="0.5" />
+    
+    <!-- 3D rounded caps for white collar to look cylindrical -->
+    <ellipse cx="150" cy="600" rx="28" ry="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.5" />
+    <ellipse cx="150" cy="660" rx="28" ry="4" fill="#94a3b8" stroke="#64748b" stroke-width="0.5" />
+
+    <!-- Horizontal micro-texture / split line on white collar -->
+    <line x1="122" y1="630" x2="178" y2="630" stroke="#cbd5e1" stroke-width="1" />
+    <path d="M 122 630 Q 150 632 178 630" fill="none" stroke="#64748b" stroke-width="0.5" opacity="0.6" />
+
+    <!-- Deep Black Transition Sleeve -->
+    <rect x="119" y="550" width="62" height="50" rx="4" fill="url(#blackPlasticGrad)" stroke="#111827" stroke-width="0.5" />
+    
+    <!-- 3D cylindrical caps for black transition sleeve -->
+    <ellipse cx="150" cy="550" rx="31" ry="5" fill="#3f3f46" stroke="#18181b" stroke-width="0.5" />
+    <ellipse cx="150" cy="600" rx="31" ry="5" fill="#18181b" stroke="#09090b" stroke-width="0.5" />
+
+    <!-- Inner bezel ring inside black sleeve where blue tube emerges -->
+    <ellipse cx="150" cy="550" rx="24" ry="4" fill="#09090b" />
+
+
+    <!-- ================= PART 2: MAIN TRANSLUCENT BLUE GLASS SHAFT ================= -->
+
+    <!-- Outer Translucent Glass Tube Body -->
+    <rect x="127" y="300" width="46" height="250" rx="2" fill="url(#blueGlassGrad)" stroke="#0284c7" stroke-width="0.75" />
+    
+    <!-- Top and bottom caps of glass shaft for 3D illusion -->
+    <ellipse cx="150" cy="300" rx="23" ry="3.5" fill="#0ea5e9" stroke="#0284c7" stroke-width="0.5" opacity="0.8" />
+    <ellipse cx="150" cy="550" rx="23" ry="3.5" fill="#0369a1" stroke="#0284c7" stroke-width="0.5" opacity="0.8" />
+
+    <!-- Core Inner reference electrode tube (Runs concentrically inside blue shaft) -->
+    <rect x="145" y="300" width="10" height="250" fill="url(#innerBlueRodGrad)" opacity="0.85" />
+    <!-- Fine wire inside inner core -->
+    <line x1="150" y1="300" x2="150" y2="550" stroke="#f1f5f9" stroke-width="0.75" opacity="0.85" />
+    
+    <!-- Vertical specular high-gloss reflections on left and right sides of outer blue tube -->
+    <rect x="130" y="303" width="4" height="244" fill="url(#verticalSpecular)" opacity="0.8" />
+    <rect x="166" y="303" width="2" height="244" fill="url(#verticalSpecular)" opacity="0.4" />
+    <rect x="136" y="303" width="1.5" height="244" fill="#ffffff" opacity="0.25" />
+
+    <!-- Fluid meniscus curved line at bottom and top of fluid column inside tube -->
+    <path d="M 127 315 Q 150 318 173 315" fill="none" stroke="#e0f2fe" stroke-width="1.2" opacity="0.6" />
+    <path d="M 127 535 Q 150 538 173 535" fill="none" stroke="#0ea5e9" stroke-width="1" opacity="0.5" />
+
+
+    <!-- ================= PART 3: UPPER RING, KNURLED COLLAR & SENSING BULB ================= -->
+
+    <!-- Black Gasket/Mounting ring on top of blue shaft -->
+    <rect x="124" y="285" width="52" height="15" rx="2" fill="url(#blackPlasticGrad)" stroke="#09090b" stroke-width="0.5" />
+    <ellipse cx="150" cy="285" rx="26" ry="3" fill="#3f3f46" stroke="#18181b" stroke-width="0.5" />
+    <ellipse cx="150" cy="300" rx="26" ry="3" fill="#18181b" stroke="#09090b" stroke-width="0.5" />
+
+    <!-- Ridged/Knurled Silver Metallic-Glass Collar (Threaded screw coupling) -->
+    <!-- Base solid metallic cylinder -->
+    <rect x="113" y="215" width="74" height="70" rx="5" fill="url(#metalBaseGrad)" stroke="#475569" stroke-width="0.75" />
+    <ellipse cx="150" cy="215" rx="37" ry="6" fill="#cbd5e1" stroke="#64748b" stroke-width="0.5" />
+    <ellipse cx="150" cy="285" rx="37" ry="6" fill="#64748b" stroke="#334155" stroke-width="0.5" />
+
+    <!-- Draw the exact vertical knurled grooves / ridged textures -->
+    <!-- Left-to-Right repeating vertical metallic rib prisms -->
+    <g>
+      <!-- Rib 1 -->
+      <rect x="116" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 2 -->
+      <rect x="122" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 3 -->
+      <rect x="128" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 4 -->
+      <rect x="134" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 5 -->
+      <rect x="140" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 6 -->
+      <rect x="146" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 7 -->
+      <rect x="152" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 8 -->
+      <rect x="158" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 9 -->
+      <rect x="164" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 10 -->
+      <rect x="170" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 11 -->
+      <rect x="176" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+      <!-- Rib 12 -->
+      <rect x="181" y="219" width="3" height="62" fill="url(#ridgeGrad)" />
+    </g>
+
+    <!-- Horizontal micro-groove cuts crossing the ridges for a true diamond/knurl finish -->
+    <path d="M 113 235 Q 150 238 187 235" fill="none" stroke="#334155" stroke-width="1.5" opacity="0.6" />
+    <path d="M 113 250 Q 150 253 187 250" fill="none" stroke="#1e293b" stroke-width="1.5" opacity="0.7" />
+    <path d="M 113 265 Q 150 268 187 265" fill="none" stroke="#334155" stroke-width="1.5" opacity="0.6" />
+
+
+    <!-- ================= PART 4: CLEAR GLASS PROTECTIVE SHROUD & SENSING ELECTRODE ================= -->
+    
+    <!-- BACKGROUND SENSING BULB & INTERNAL ELECTRODES (Visually inside the transparent shroud) -->
+    <g id="internal-electrodes" filter="url(#glassGlow)">
+      <!-- Main Blue Core Pillar continuing into shroud -->
+      <rect x="136" y="100" width="28" height="115" rx="3" fill="url(#innerBlueRodGrad)" stroke="#0ea5e9" stroke-width="0.5" />
+      
+      <!-- Inner sensing glass bulb (The critical round pH glass dome) -->
+      <circle cx="150" cy="95" r="15" fill="url(#innerBlueRodGrad)" stroke="#38bdf8" stroke-width="1.2" />
+      
+      <!-- Specular glass highlight on inner bulb -->
+      <circle cx="145" cy="90" r="4" fill="#ffffff" opacity="0.55" />
+      <circle cx="150" cy="95" r="13" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="3 6" opacity="0.4" />
+
+      <!-- Supporting second metal/glass wire node seen inside -->
+      <line x1="142" y1="100" x2="142" y2="215" stroke="#e2e8f0" stroke-width="1" opacity="0.9" />
+      <circle cx="142" cy="112" r="2.5" fill="#e2e8f0" stroke="#475569" stroke-width="0.5" />
+      
+      <!-- Tiny realistic fluid bubbles inside storage buffer solution -->
+      <circle cx="142" cy="130" r="1.5" fill="url(#bubbleGrad)" />
+      <circle cx="158" cy="115" r="2.2" fill="url(#bubbleGrad)" />
+      <circle cx="148" cy="165" r="1.8" fill="url(#bubbleGrad)" />
+      <circle cx="138" cy="180" r="2.5" fill="url(#bubbleGrad)" />
+      <circle cx="160" cy="150" r="1.2" fill="url(#bubbleGrad)" />
+      <circle cx="152" cy="120" r="1.6" fill="url(#bubbleGrad)" />
+      <circle cx="143" cy="148" r="2.0" fill="url(#bubbleGrad)" />
+      <circle cx="156" cy="175" r="1.4" fill="url(#bubbleGrad)" />
+    </g>
+
+    <!-- Outer Clear Transparent Protective Shroud/Cap -->
+    <!-- Drawn as a beautiful capsule dome on top -->
+    <path 
+      d="M 116 215 
+         L 116 100 
+         Q 116 50 150 50 
+         Q 184 50 184 100 
+         L 184 215 Z" 
+      fill="url(#shroudGlassGrad)" 
+      stroke="#cbd5e1" 
+      stroke-width="1.5" 
+      stroke-opacity="0.75"
+    />
+
+    <!-- Highlight Reflection Curves on Outer Shroud Glass Surface -->
+    <!-- Long vertical left glare reflection -->
+    <path 
+      d="M 121 210 
+         L 121 100 
+         Q 121 54 150 54" 
+      fill="none" 
+      stroke="#ffffff" 
+      stroke-width="3" 
+      stroke-linecap="round" 
+      stroke-opacity="0.5" 
+    />
+    
+    <!-- Long vertical right edge glow reflection -->
+    <path 
+      d="M 179 210 
+         L 179 100 
+         Q 179 54 150 54" 
+      fill="none" 
+      stroke="#ffffff" 
+      stroke-width="1.5" 
+      stroke-linecap="round" 
+      stroke-opacity="0.35" 
+    />
+
+    <!-- Subtle horizontal glass curve reflection across dome -->
+    <path d="M 124 100 Q 150 102 176 100" fill="none" stroke="#ffffff" stroke-width="0.75" opacity="0.3" />
+    <path d="M 120 150 Q 150 153 180 150" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.25" />
+    <path d="M 124 75 Q 150 77 176 75" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.3" />
+
+  </g>
 </svg>

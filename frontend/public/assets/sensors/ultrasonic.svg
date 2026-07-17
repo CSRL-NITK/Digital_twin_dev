@@ -1,51 +1,539 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+<svg
+  id="ultrasonic-sensor-svg"
+  viewBox="0 20 600 310"
+  width="100%"
+  height="100%"
+  xmlns="http://www.w3.org/2000/svg"
+  preserveAspectRatio="xMidYMid meet"
+>
   <defs>
-    <!-- Gradients -->
-    <linearGradient id="bracketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#475569" />
-      <stop offset="100%" stop-color="#1e293b" />
+    <!-- PCB Board Gradients -->
+    <linearGradient id="pcbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a5bbf" />
+      <stop offset="50%" stop-color="#0d439c" />
+      <stop offset="100%" stop-color="#082d6b" />
     </linearGradient>
-    <linearGradient id="transGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#94a3b8" />
-      <stop offset="50%" stop-color="#64748b" />
-      <stop offset="100%" stop-color="#334155" />
+
+    <!-- Glossy Overlay for PCB -->
+    <linearGradient id="glossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.12" />
+      <stop offset="30%" stop-color="white" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="black" stop-opacity="0.25" />
     </linearGradient>
-    <radialGradient id="meshGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#38bdf8" />
+
+    <!-- Silver Metal Ring Radial Gradient for Cylinders -->
+    <radialGradient id="metalRingGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="30%" stop-color="#e8ebed" />
+      <stop offset="70%" stop-color="#9ba3af" />
+      <stop offset="95%" stop-color="#d1d5db" />
+      <stop offset="100%" stop-color="#4b5563" />
     </radialGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+
+    <!-- Dark inner cylinder depth gradient -->
+    <radialGradient id="innerCylinderGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="75%" stop-color="#1f2937" />
+      <stop offset="95%" stop-color="#374151" />
+      <stop offset="100%" stop-color="#030712" />
+    </radialGradient>
+
+    <!-- Transducer Center Element Cap -->
+    <linearGradient id="centerCapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#9ba3af" />
+      <stop offset="100%" stop-color="#4b5563" />
+    </linearGradient>
+
+    <!-- Golden Headers Pins Gradient -->
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d4af37" />
+      <stop offset="30%" stop-color="#fff1b0" />
+      <stop offset="70%" stop-color="#aa7c11" />
+      <stop offset="100%" stop-color="#805d05" />
+    </linearGradient>
+
+    <!-- Solder Joints Gradient -->
+    <radialGradient id="solderGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f3f4f6" />
+      <stop offset="50%" stop-color="#9ca3af" />
+      <stop offset="90%" stop-color="#4b5563" />
+      <stop offset="100%" stop-color="#111827" />
+    </radialGradient>
+
+    <!-- High Tech Mesh Pattern for the Ultrasonic mesh grills -->
+    <pattern id="meshPattern" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="none" />
+      <path d="M 0 4 L 8 4 M 4 0 L 4 8" stroke="#111827" stroke-width="1" opacity="0.4" />
+      <path d="M 0 0 L 8 8 M 8 0 L 0 8" stroke="#000000" stroke-width="1.2" opacity="0.8" />
+      <circle cx="4" cy="4" r="1.5" fill="#374151" opacity="0.3" />
+    </pattern>
+
+    <!-- Drop shadow filter for 3D realism -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Metallic cylinder outer lip shadow -->
+    <filter id="innerShadow">
+      <feOffset dx="2" dy="2" />
+      <feGaussianBlur stdDeviation="3" result="offset-blur" />
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+      <feFlood flood-color="black" flood-opacity="0.7" result="color" />
+      <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+      <feComposite operator="over" in="shadow" in2="SourceGraphic" />
     </filter>
   </defs>
 
-  <!-- Mounting Bracket -->
-  <rect x="20" y="35" width="60" height="12" rx="3" fill="url(#bracketGrad)" stroke="#64748b" stroke-width="1.5" />
-  <circle cx="28" cy="41" r="2.5" fill="#0f172a" />
-  <circle cx="72" cy="41" r="2.5" fill="#0f172a" />
+  <!-- BACKGROUND SHADOW / GLOW -->
+  <rect
+    x="25"
+    y="45"
+    width="550"
+    height="230"
+    rx="24"
+    fill="rgba(13, 67, 156, 0.3)"
+    filter="url(#softGlow)"
+    opacity="0.7"
+  />
 
-  <!-- Transceiver 1 (Left Barrel) -->
-  <rect x="30" y="47" width="16" height="26" rx="2" fill="url(#transGrad)" stroke="#475569" stroke-width="1" />
-  <!-- Lens/Face -->
-  <ellipse cx="38" cy="73" rx="8" ry="4" fill="url(#meshGrad)" stroke="#38bdf8" stroke-width="1.5" />
-  
-  <!-- Transceiver 2 (Right Barrel) -->
-  <rect x="54" y="47" width="16" height="26" rx="2" fill="url(#transGrad)" stroke="#475569" stroke-width="1" />
-  <!-- Lens/Face -->
-  <ellipse cx="62" cy="73" rx="8" ry="4" fill="url(#meshGrad)" stroke="#38bdf8" stroke-width="1.5" />
+  <!-- SENSOR DEVICE GROUP -->
+  <g>
+    <!-- PCB BOARD ROOT BASE -->
+    <rect
+      x="30"
+      y="50"
+      width="540"
+      height="220"
+      rx="20"
+      fill="url(#pcbGrad)"
+      stroke="#1a5bbf"
+      stroke-width="3"
+      filter="url(#shadow)"
+    />
 
-  <!-- Back Sensor Housing -->
-  <rect x="35" y="15" width="30" height="20" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
-  <rect x="42" y="8" width="16" height="7" rx="1.5" fill="#1e293b" stroke="#475569" />
+    <!-- Subtle glossy sheen over PCB -->
+    <rect
+      x="32"
+      y="52"
+      width="536"
+      height="216"
+      rx="18"
+      fill="url(#glossGrad)"
+      pointer-events="none"
+    />
 
-  <!-- Status Indicator LED -->
-  <circle cx="50" cy="25" r="3" fill="#38bdf8" filter="url(#glow)" />
-  
-  <!-- Active Acoustic Waves (Light overlay representing sound) -->
-  <path d="M 38 82 A 12 6 0 0 1 38 90" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" opacity="0.6" stroke-dasharray="2 2" />
-  <path d="M 62 82 A 12 6 0 0 1 62 90" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" opacity="0.6" stroke-dasharray="2 2" />
+    <!-- Copper Track Lines / Circuit Board Aesthetics -->
+    <g opacity="0.25">
+      <!-- Top/Bottom border guard traces -->
+      <rect x="42" y="62" width="516" height="196" rx="12" fill="none" stroke="#ffffff" stroke-width="1" stroke-dasharray="10 4" />
+      <rect x="46" y="66" width="508" height="188" rx="10" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.5" />
+
+      <!-- Bus traces flowing from pins to transducers and IC - Perfectly aligned with pin coordinates -->
+      <path d="M 270 240 L 270 180 L 150 180 L 150 160" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round" />
+      <path d="M 290 240 L 290 190 L 265 190" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round" />
+      <path d="M 310 240 L 310 190 L 335 190" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round" />
+      <path d="M 330 240 L 330 180 L 450 180 L 450 160" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round" />
+
+      <!-- Intersecting circular pads (Solder via simulation) -->
+      <circle cx="150" cy="180" r="3" fill="#ffffff" />
+      <circle cx="270" cy="180" r="3" fill="#ffffff" />
+      <circle cx="290" cy="190" r="3" fill="#ffffff" />
+      <circle cx="310" cy="190" r="3" fill="#ffffff" />
+      <circle cx="330" cy="180" r="3" fill="#ffffff" />
+      <circle cx="450" cy="180" r="3" fill="#ffffff" />
+
+      <!-- Abstract Microchip connections -->
+      <path d="M 270 135 L 330 135 M 270 145 L 330 145 M 270 155 L 330 155 M 270 165 L 330 165" stroke="#ffffff" stroke-width="1" fill="none" />
+    </g>
+
+    <!-- MOUNTING HOLES (At four corners of PCB) -->
+    <g filter="url(#innerShadow)">
+      <!-- Top-Left -->
+      <circle cx="50" cy="70" r="14" fill="none" stroke="#9ca3af" stroke-width="2" opacity="0.8" />
+      <circle cx="50" cy="70" r="12" fill="none" stroke="#d1d5db" stroke-width="1" />
+      <circle cx="50" cy="70" r="8" fill="#1e293b" />
+      <circle cx="50" cy="70" r="8" fill="none" stroke="#4b5563" stroke-width="1" opacity="0.5" />
+
+      <!-- Top-Right -->
+      <circle cx="550" cy="70" r="14" fill="none" stroke="#9ca3af" stroke-width="2" opacity="0.8" />
+      <circle cx="550" cy="70" r="12" fill="none" stroke="#d1d5db" stroke-width="1" />
+      <circle cx="550" cy="70" r="8" fill="#1e293b" />
+      <circle cx="550" cy="70" r="8" fill="none" stroke="#4b5563" stroke-width="1" opacity="0.5" />
+
+      <!-- Bottom-Left -->
+      <circle cx="50" cy="250" r="14" fill="none" stroke="#9ca3af" stroke-width="2" opacity="0.8" />
+      <circle cx="50" cy="250" r="12" fill="none" stroke="#d1d5db" stroke-width="1" />
+      <circle cx="50" cy="250" r="8" fill="#1e293b" />
+      <circle cx="50" cy="250" r="8" fill="none" stroke="#4b5563" stroke-width="1" opacity="0.5" />
+
+      <!-- Bottom-Right -->
+      <circle cx="550" cy="250" r="14" fill="none" stroke="#9ca3af" stroke-width="2" opacity="0.8" />
+      <circle cx="550" cy="250" r="12" fill="none" stroke="#d1d5db" stroke-width="1" />
+      <circle cx="550" cy="250" r="8" fill="#1e293b" />
+      <circle cx="550" cy="250" r="8" fill="none" stroke="#4b5563" stroke-width="1" opacity="0.5" />
+    </g>
+
+    <!-- DETAILED SMD COMPONENTS -->
+    <g id="smd-components" opacity="0.95">
+      <!-- Main Integrated Circuit (LM324 - Shifted down to clear HC-SR04 text headers) -->
+      <g transform="translate(265, 115)">
+        <!-- IC Body -->
+        <rect x="0" y="0" width="70" height="65" rx="4" fill="#111827" stroke="#374151" stroke-width="1" />
+        <rect x="4" y="4" width="62" height="57" rx="2" fill="#1f2937" opacity="0.5" />
+        <!-- Chip orientation notch / dot -->
+        <circle cx="10" cy="10" r="3" fill="#0f172a" />
+        <path d="M 35 0 C 35 4, 45 4, 45 0 Z" fill="#111827" />
+
+        <!-- Microchip Pins - Left Side -->
+        <g>
+          <rect x="-8" y="5" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M -8 6.5 L 0 6.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="-8" y="18" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M -8 19.5 L 0 19.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="-8" y="31" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M -8 32.5 L 0 32.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="-8" y="44" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M -8 45.5 L 0 45.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="-8" y="57" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M -8 58.5 L 0 58.5" stroke="#9ca3af" stroke-width="1.5" />
+        </g>
+        <!-- Microchip Pins - Right Side -->
+        <g>
+          <rect x="70" y="5" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M 70 6.5 L 78 6.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="70" y="18" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M 70 19.5 L 78 19.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="70" y="31" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M 70 32.5 L 78 32.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="70" y="44" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M 70 45.5 L 78 45.5" stroke="#9ca3af" stroke-width="1.5" />
+          <rect x="70" y="57" width="8" height="3" fill="url(#solderGrad)" />
+          <path d="M 70 58.5 L 78 58.5" stroke="#9ca3af" stroke-width="1.5" />
+        </g>
+
+        <!-- Text on Chip -->
+        <text x="35" y="32" fill="#9ca3af" fontSize="9" fontFamily="monospace" fontWeight="bold" text-anchor="middle" letter-spacing="0.5">
+          LM324
+        </text>
+        <text x="35" y="45" fill="#6b7280" fontSize="7" fontFamily="monospace" text-anchor="middle">
+          2620XT
+        </text>
+      </g>
+
+      <!-- Relocated smaller SMD IC to bottom-left safe zone below left transducer -->
+      <g transform="translate(80, 230)">
+        <rect x="0" y="0" width="36" height="28" rx="2" fill="#111827" stroke="#374151" stroke-width="0.5" />
+        <circle cx="5" cy="5" r="1.5" fill="#374151" />
+        <!-- Pins on top -->
+        <rect x="4" y="-3" width="4" height="3" fill="#9ca3af" />
+        <rect x="16" y="-3" width="4" height="3" fill="#9ca3af" />
+        <rect x="28" y="-3" width="4" height="3" fill="#9ca3af" />
+        <!-- Pins on bottom -->
+        <rect x="4" y="28" width="4" height="3" fill="#9ca3af" />
+        <rect x="16" y="28" width="4" height="3" fill="#9ca3af" />
+        <rect x="28" y="28" width="4" height="3" fill="#9ca3af" />
+        <text x="18" y="17" fill="#6b7280" fontSize="7" fontFamily="monospace" text-anchor="middle" fontWeight="bold">I2C</text>
+      </g>
+
+      <!-- SMT Resistors & Capacitors in Center corridor (Balanced left and right of chip) -->
+      <!-- Left of Chip Capacitors -->
+      <g transform="translate(235, 148)">
+        <rect x="0" y="0" width="16" height="8" rx="1" fill="#b45309" />
+        <rect x="0" y="0" width="3" height="8" fill="#d1d5db" />
+        <rect x="13" y="0" width="3" height="8" fill="#d1d5db" />
+        <text x="8" y="-4" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">C1</text>
+      </g>
+      <g transform="translate(235, 163)">
+        <rect x="0" y="0" width="16" height="8" rx="1" fill="#b45309" />
+        <rect x="0" y="0" width="3" height="8" fill="#d1d5db" />
+        <rect x="13" y="0" width="3" height="8" fill="#d1d5db" />
+        <text x="8" y="15" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">C2</text>
+      </g>
+
+      <!-- Left and Right Black Resistors with values (100% safe corridor) -->
+      <g transform="translate(235, 80)">
+        <rect x="0" y="0" width="18" height="9" rx="1" fill="#1f2937" />
+        <rect x="0" y="0" width="4" height="9" fill="#d1d5db" />
+        <rect x="14" y="0" width="4" height="9" fill="#d1d5db" />
+        <text x="9" y="7" fill="#ffffff" fontSize="5" fontFamily="monospace" fontWeight="bold" text-anchor="middle">103</text>
+        <text x="9" y="-3" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">R1</text>
+      </g>
+      <g transform="translate(235, 95)">
+        <rect x="0" y="0" width="18" height="9" rx="1" fill="#1f2937" />
+        <rect x="0" y="0" width="4" height="9" fill="#d1d5db" />
+        <rect x="14" y="0" width="4" height="9" fill="#d1d5db" />
+        <text x="9" y="7" fill="#ffffff" fontSize="5" fontFamily="monospace" fontWeight="bold" text-anchor="middle">472</text>
+        <text x="9" y="-3" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">R2</text>
+      </g>
+      <g transform="translate(345, 80)">
+        <rect x="0" y="0" width="18" height="9" rx="1" fill="#1f2937" />
+        <rect x="0" y="0" width="4" height="9" fill="#d1d5db" />
+        <rect x="14" y="0" width="4" height="9" fill="#d1d5db" />
+        <text x="9" y="7" fill="#ffffff" fontSize="5" fontFamily="monospace" fontWeight="bold" text-anchor="middle">102</text>
+        <text x="9" y="-3" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">R3</text>
+      </g>
+      <g transform="translate(345, 95)">
+        <rect x="0" y="0" width="18" height="9" rx="1" fill="#1f2937" />
+        <rect x="0" y="0" width="4" height="9" fill="#d1d5db" />
+        <rect x="14" y="0" width="4" height="9" fill="#d1d5db" />
+        <text x="9" y="7" fill="#ffffff" fontSize="5" fontFamily="monospace" fontWeight="bold" text-anchor="middle">104</text>
+        <text x="9" y="-3" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">R4</text>
+      </g>
+      <g transform="translate(345, 148)">
+        <rect x="0" y="0" width="18" height="9" rx="1" fill="#1f2937" />
+        <rect x="0" y="0" width="4" height="9" fill="#d1d5db" />
+        <rect x="14" y="0" width="4" height="9" fill="#d1d5db" />
+        <text x="9" y="7" fill="#ffffff" fontSize="5" fontFamily="monospace" fontWeight="bold" text-anchor="middle">101</text>
+        <text x="9" y="-3" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">R5</text>
+      </g>
+      <g transform="translate(345, 163)">
+        <rect x="0" y="0" width="18" height="9" rx="1" fill="#1f2937" />
+        <rect x="0" y="0" width="4" height="9" fill="#d1d5db" />
+        <rect x="14" y="0" width="4" height="9" fill="#d1d5db" />
+        <text x="9" y="7" fill="#ffffff" fontSize="5" fontFamily="monospace" fontWeight="bold" text-anchor="middle">000</text>
+        <text x="9" y="-3" fill="#9ca3af" fontSize="6" fontFamily="monospace" text-anchor="middle">R6</text>
+      </g>
+
+      <!-- Crystal Oscillator (Shifted down below LM324 Chip) -->
+      <g transform="translate(270, 195)" filter="url(#shadow)">
+        <!-- Base plastic pad -->
+        <rect x="-2" y="-2" width="64" height="18" rx="4" fill="#111827" />
+        <!-- Metallic Canister -->
+        <rect x="0" y="0" width="60" height="14" rx="7" fill="url(#centerCapGrad)" stroke="#4b5563" stroke-width="0.5" />
+        <ellipse cx="7" cy="7" rx="3" ry="5" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.3" />
+        <text x="30" y="10" fill="#374151" fontSize="8" fontFamily="sans-serif" fontWeight="bold" text-anchor="middle">4.000</text>
+      </g>
+    </g>
+
+    <!-- TEXT LABELS AND LOGO ON PCB -->
+    <g id="pcb-labels">
+      <!-- Main Brand Name -->
+      <text
+        x="300"
+        y="85"
+        fill="#ffffff"
+        fontSize="26"
+        fontFamily="'Space Grotesk', 'Inter', sans-serif"
+        fontWeight="bold"
+        letter-spacing="2"
+        text-anchor="middle"
+        opacity="0.9"
+        filter="url(#shadow)"
+      >
+        HC-SR04
+      </text>
+
+      <!-- Subtitle / Description -->
+      <text
+        x="300"
+        y="98"
+        fill="#9ca3af"
+        fontSize="9"
+        fontFamily="'JetBrains Mono', monospace"
+        letter-spacing="1"
+        text-anchor="middle"
+        opacity="0.8"
+      >
+        ULTRASONIC SENSOR
+      </text>
+
+      <!-- Transducer labels "T" (Transmitter) and "R" (Receiver) -->
+      <text
+        x="150"
+        y="255"
+        fill="#ffffff"
+        fontSize="24"
+        fontFamily="'Space Grotesk', 'Inter', sans-serif"
+        fontWeight="900"
+        text-anchor="middle"
+        opacity="0.95"
+        filter="url(#shadow)"
+      >
+        T
+      </text>
+
+      <text
+        x="450"
+        y="255"
+        fill="#ffffff"
+        fontSize="24"
+        fontFamily="'Space Grotesk', 'Inter', sans-serif"
+        fontWeight="900"
+        text-anchor="middle"
+        opacity="0.95"
+        filter="url(#shadow)"
+      >
+        R
+      </text>
+
+      <!-- Small copyright/symbol -->
+      <text
+        x="42"
+        y="230"
+        fill="#ffffff"
+        fontSize="8"
+        fontFamily="monospace"
+        opacity="0.5"
+        transform="rotate(-90 42 230)"
+      >
+        GEOMETRIC
+      </text>
+    </g>
+
+    <!-- BOARD STATUS INDICATOR LED (STATIC) -->
+    <g transform="translate(480, 64)" id="status-led">
+      <!-- Solder base pad -->
+      <rect x="-6" y="-6" width="12" height="12" rx="1" fill="#4b5563" />
+      <!-- LED casing -->
+      <rect x="-4" y="-4" width="8" height="8" rx="1" fill="#374151" />
+      <!-- Glowing element -->
+      <circle cx="0" cy="0" r="3" fill="#10B981" />
+      <!-- Bright center spot -->
+      <circle cx="0" cy="0" r="1" fill="#ffffff" opacity="0.8" />
+      <text x="12" y="3" fill="#9ca3af" fontSize="7" fontFamily="monospace">LED</text>
+    </g>
+
+    <!-- ULTRASONIC SENSOR CYLINDER 1: TRANSMITTER (LEFT "T") -->
+    <g id="transmitter-module" transform="translate(150, 150)" filter="url(#shadow)">
+      <!-- Outer Cylinder Casing -->
+      <circle cx="0" cy="0" r="76" fill="url(#metalRingGrad)" />
+      <!-- Deep bezel / metallic inner rim shadow -->
+      <circle cx="0" cy="0" r="72" fill="#1f2937" stroke="#9ca3af" stroke-width="1" />
+      <!-- Dark interior chamber -->
+      <circle cx="0" cy="0" r="66" fill="url(#innerCylinderGrad)" />
+
+      <!-- Inner acoustic damper gasket (black ring) -->
+      <circle cx="0" cy="0" r="54" fill="none" stroke="#111827" stroke-width="4" opacity="0.9" />
+
+      <!-- Speaker center core cap -->
+      <circle cx="0" cy="0" r="28" fill="url(#centerCapGrad)" stroke="#374151" stroke-width="1.5" />
+      <!-- Inner piezoelectric crystal sensor lines -->
+      <circle cx="0" cy="0" r="24" fill="none" stroke="#111827" stroke-width="1" stroke-dasharray="3 3" opacity="0.6" />
+      <circle cx="0" cy="0" r="14" fill="#111827" opacity="0.9" />
+      <circle cx="-3" cy="-3" r="4" fill="#ffffff" opacity="0.15" />
+
+      <!-- High-Fidelity Metal Grill Mesh Overlay -->
+      <circle cx="0" cy="0" r="66" fill="url(#meshPattern)" pointer-events="none" />
+
+      <!-- Gloss highlight arc for glossy look on the metallic casing -->
+      <path d="M -54 -54 A 76 76 0 0 1 54 -54" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.4" pointer-events="none" />
+      <path d="M -60 -60 A 85 85 0 0 1 60 -60" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.2" pointer-events="none" />
+    </g>
+
+    <!-- ULTRASONIC SENSOR CYLINDER 2: RECEIVER (RIGHT "R") -->
+    <g id="receiver-module" transform="translate(450, 150)" filter="url(#shadow)">
+      <!-- Outer Cylinder Casing -->
+      <circle cx="0" cy="0" r="76" fill="url(#metalRingGrad)" />
+      <!-- Deep bezel / metallic inner rim shadow -->
+      <circle cx="0" cy="0" r="72" fill="#1f2937" stroke="#9ca3af" stroke-width="1" />
+      <!-- Dark interior chamber -->
+      <circle cx="0" cy="0" r="66" fill="url(#innerCylinderGrad)" />
+
+      <!-- Inner acoustic damper gasket (black ring) -->
+      <circle cx="0" cy="0" r="54" fill="none" stroke="#111827" stroke-width="4" opacity="0.9" />
+
+      <!-- Speaker center core cap -->
+      <circle cx="0" cy="0" r="28" fill="url(#centerCapGrad)" stroke="#374151" stroke-width="1.5" />
+      <!-- Inner piezoelectric crystal sensor lines -->
+      <circle cx="0" cy="0" r="24" fill="none" stroke="#111827" stroke-width="1" stroke-dasharray="3 3" opacity="0.6" />
+      <circle cx="0" cy="0" r="14" fill="#111827" opacity="0.9" />
+      <circle cx="-3" cy="-3" r="4" fill="#ffffff" opacity="0.15" />
+
+      <!-- High-Fidelity Metal Grill Mesh Overlay -->
+      <circle cx="0" cy="0" r="66" fill="url(#meshPattern)" pointer-events="none" />
+
+      <!-- Gloss highlight arc for glossy look on the metallic casing -->
+      <path d="M -54 -54 A 76 76 0 0 1 54 -54" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.4" pointer-events="none" />
+      <path d="M -60 -60 A 85 85 0 0 1 60 -60" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.2" pointer-events="none" />
+    </g>
+
+    <!-- 4-PIN MALE HEADER & PLASTIC BLOCK (Bottom Center) -->
+    <g id="header-connector" transform="translate(300, 260)">
+      <!-- Black Plastic Spacer Blocks -->
+      <g>
+        <!-- Pin 1 Block (Vcc) -->
+        <g transform="translate(-30, 0)">
+          <rect x="-9.5" y="-4" width="19" height="15" fill="#111827" rx="1.5" />
+          <rect x="-9.5" y="-4" width="19" height="15" fill="none" stroke="#374151" stroke-width="0.5" />
+          <rect x="-7.5" y="-2" width="15" height="4" fill="#1f2937" />
+          <circle cx="0" cy="-6" r="4.5" fill="url(#solderGrad)" />
+          <circle cx="0" cy="-6" r="2" fill="#111827" />
+        </g>
+        <!-- Pin 2 Block (Trig) -->
+        <g transform="translate(-10, 0)">
+          <rect x="-9.5" y="-4" width="19" height="15" fill="#111827" rx="1.5" />
+          <rect x="-9.5" y="-4" width="19" height="15" fill="none" stroke="#374151" stroke-width="0.5" />
+          <rect x="-7.5" y="-2" width="15" height="4" fill="#1f2937" />
+          <circle cx="0" cy="-6" r="4.5" fill="url(#solderGrad)" />
+          <circle cx="0" cy="-6" r="2" fill="#111827" />
+        </g>
+        <!-- Pin 3 Block (Echo) -->
+        <g transform="translate(10, 0)">
+          <rect x="-9.5" y="-4" width="19" height="15" fill="#111827" rx="1.5" />
+          <rect x="-9.5" y="-4" width="19" height="15" fill="none" stroke="#374151" stroke-width="0.5" />
+          <rect x="-7.5" y="-2" width="15" height="4" fill="#1f2937" />
+          <circle cx="0" cy="-6" r="4.5" fill="url(#solderGrad)" />
+          <circle cx="0" cy="-6" r="2" fill="#111827" />
+        </g>
+        <!-- Pin 4 Block (Gnd) -->
+        <g transform="translate(30, 0)">
+          <rect x="-9.5" y="-4" width="19" height="15" fill="#111827" rx="1.5" />
+          <rect x="-9.5" y="-4" width="19" height="15" fill="none" stroke="#374151" stroke-width="0.5" />
+          <rect x="-7.5" y="-2" width="15" height="4" fill="#1f2937" />
+          <circle cx="0" cy="-6" r="4.5" fill="url(#solderGrad)" />
+          <circle cx="0" cy="-6" r="2" fill="#111827" />
+        </g>
+      </g>
+
+      <!-- Four Golden Metal Pins going downward -->
+      <g filter="url(#shadow)">
+        <!-- Pin 1 -->
+        <g transform="translate(-30, 0)">
+          <rect x="-2" y="11" width="4" height="42" fill="url(#pinGrad)" rx="0.5" />
+          <polygon points="-2,51 2,51 1.5,55 -1.5,55" fill="#aa7c11" />
+          <line x1="-0.5" y1="11" x2="-0.5" y2="51" stroke="#fff9e6" stroke-width="0.8" opacity="0.7" />
+        </g>
+        <!-- Pin 2 -->
+        <g transform="translate(-10, 0)">
+          <rect x="-2" y="11" width="4" height="42" fill="url(#pinGrad)" rx="0.5" />
+          <polygon points="-2,51 2,51 1.5,55 -1.5,55" fill="#aa7c11" />
+          <line x1="-0.5" y1="11" x2="-0.5" y2="51" stroke="#fff9e6" stroke-width="0.8" opacity="0.7" />
+        </g>
+        <!-- Pin 3 -->
+        <g transform="translate(10, 0)">
+          <rect x="-2" y="11" width="4" height="42" fill="url(#pinGrad)" rx="0.5" />
+          <polygon points="-2,51 2,51 1.5,55 -1.5,55" fill="#aa7c11" />
+          <line x1="-0.5" y1="11" x2="-0.5" y2="51" stroke="#fff9e6" stroke-width="0.8" opacity="0.7" />
+        </g>
+        <!-- Pin 4 -->
+        <g transform="translate(30, 0)">
+          <rect x="-2" y="11" width="4" height="42" fill="url(#pinGrad)" rx="0.5" />
+          <polygon points="-2,51 2,51 1.5,55 -1.5,55" fill="#aa7c11" />
+          <line x1="-0.5" y1="11" x2="-0.5" y2="51" stroke="#fff9e6" stroke-width="0.8" opacity="0.7" />
+        </g>
+      </g>
+
+      <!-- Vertical text labels for pins (Vcc, Trig, Echo, Gnd) -->
+      <g>
+        <g transform="translate(-30, -12)">
+          <text x="0" y="0" fill="#e2e8f0" fontSize="10" fontFamily="'JetBrains Mono', 'Fira Code', monospace" fontWeight="bold" text-anchor="middle" transform="rotate(-90)" letter-spacing="0.5" opacity="0.9">Vcc</text>
+        </g>
+        <g transform="translate(-10, -12)">
+          <text x="0" y="0" fill="#e2e8f0" fontSize="10" fontFamily="'JetBrains Mono', 'Fira Code', monospace" fontWeight="bold" text-anchor="middle" transform="rotate(-90)" letter-spacing="0.5" opacity="0.9">Trig</text>
+        </g>
+        <g transform="translate(10, -12)">
+          <text x="0" y="0" fill="#e2e8f0" fontSize="10" fontFamily="'JetBrains Mono', 'Fira Code', monospace" fontWeight="bold" text-anchor="middle" transform="rotate(-90)" letter-spacing="0.5" opacity="0.9">Echo</text>
+        </g>
+        <g transform="translate(30, -12)">
+          <text x="0" y="0" fill="#e2e8f0" fontSize="10" fontFamily="'JetBrains Mono', 'Fira Code', monospace" fontWeight="bold" text-anchor="middle" transform="rotate(-90)" letter-spacing="0.5" opacity="0.9">Gnd</text>
+        </g>
+      </g>
+    </g>
+  </g>
 </svg>
