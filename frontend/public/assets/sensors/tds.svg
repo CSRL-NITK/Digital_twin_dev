@@ -1,47 +1,314 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+<svg
+  id="tds-sensor-svg"
+  viewBox="0 0 300 600"
+  width="100%"
+  height="100%"
+  xmlns="http://www.w3.org/2000/svg"
+  preserveAspectRatio="xMidYMid meet"
+>
   <defs>
-    <!-- Gradients -->
-    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#94a3b8" />
-      <stop offset="50%" stop-color="#e2e8f0" />
-      <stop offset="100%" stop-color="#475569" />
+    <!-- Drop Shadow Filter for Realistic 3D Depth -->
+    <filter id="tdsShadow" x="-30%" y="-15%" width="160%" height="130%">
+      <feDropShadow dx="3" dy="10" stdDeviation="8" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+
+    <!-- Metallic Steel Tube Gradient (Polished Stainless Finish) -->
+    <linearGradient id="steelShaftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="8%" stop-color="#94a3b8" />
+      <stop offset="20%" stop-color="#cbd5e1" />
+      <stop offset="35%" stop-color="#f8fafc" />
+      <stop offset="48%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#e2e8f0" />
+      <stop offset="78%" stop-color="#94a3b8" />
+      <stop offset="92%" stop-color="#475569" />
+      <stop offset="100%" stop-color="#334155" />
     </linearGradient>
-    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+
+    <!-- Metallic Inside Slot Depth Shadow (Darker cylinder background) -->
+    <linearGradient id="innerSlotGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="30%" stop-color="#1e293b" />
+      <stop offset="70%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+
+    <!-- Gold/Platinum Dual Electrode Pins Gradient -->
+    <linearGradient id="electrodePinGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#854d0e" />
+      <stop offset="25%" stop-color="#ca8a04" />
+      <stop offset="50%" stop-color="#fef08a" />
+      <stop offset="75%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#a16207" />
+    </linearGradient>
+
+    <!-- Heavy Hexagonal Plastic Nut body Gradients -->
+    <!-- Front Face (Brightest direct light) -->
+    <linearGradient id="hexFrontGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#1e293b" />
-      <stop offset="50%" stop-color="#334155" />
+      <stop offset="20%" stop-color="#334155" />
+      <stop offset="50%" stop-color="#475569" />
+      <stop offset="80%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    
+    <!-- Left Beveled Face (Shadowed) -->
+    <linearGradient id="hexLeftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#2c3e50" />
+    </linearGradient>
+
+    <!-- Right Beveled Face (Reflective) -->
+    <linearGradient id="hexRightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2c3e50" />
+      <stop offset="50%" stop-color="#1e293b" />
       <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
-    <radialGradient id="electricArc" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#fef08a" />
-      <stop offset="60%" stop-color="#f59e0b" />
-      <stop offset="100%" stop-color="#78350f" />
-    </radialGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+
+    <!-- Black/Dark Charcoal Matte Plastic Body Gradient -->
+    <linearGradient id="mattePlasticGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#09090b" />
+      <stop offset="15%" stop-color="#18181b" />
+      <stop offset="45%" stop-color="#2d3748" />
+      <stop offset="75%" stop-color="#1a202c" />
+      <stop offset="90%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+
+    <!-- Thread Highlights/Shadows for mounting screw section -->
+    <linearGradient id="threadShade" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#09090b" />
+      <stop offset="10%" stop-color="#2d3748" />
+      <stop offset="35%" stop-color="#4a5568" />
+      <stop offset="50%" stop-color="#718096" />
+      <stop offset="65%" stop-color="#4a5568" />
+      <stop offset="85%" stop-color="#1a202c" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+
+    <!-- Fine Chrome Thread Coupling (at the top) -->
+    <linearGradient id="chromeThreadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="20%" stop-color="#94a3b8" />
+      <stop offset="50%" stop-color="#f1f5f9" />
+      <stop offset="80%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+
+    <!-- Top Tapered Strain Relief Boot Gradient -->
+    <linearGradient id="rubberBootGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#020205" />
+      <stop offset="25%" stop-color="#1e293b" />
+      <stop offset="50%" stop-color="#334155" />
+      <stop offset="75%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#020205" />
+    </linearGradient>
+
+    <!-- Linear highlight stroke for metal reflection -->
+    <linearGradient id="specularGlint" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6" />
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="70%" stop-color="#ffffff" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.4" />
+    </linearGradient>
   </defs>
 
-  <!-- Connection wire -->
-  <path d="M 45 4 L 55 4 L 52 18 L 48 18 Z" fill="#334155" stroke="#1e293b" />
+  <!-- BACKGROUND GRID lines for technical showcase (with opacity 0.1) -->
+  <g opacity="0.08">
+    <rect width="300" height="600" fill="none" />
+    <path d="M 0 100 L 300 100 M 0 200 L 300 200 M 0 300 L 300 300 M 0 400 L 300 400 M 0 500 L 300 500" stroke="#0ea5e9" stroke-width="0.5" stroke-dasharray="4 8" />
+    <path d="M 50 0 L 50 600 M 100 0 L 100 600 M 150 0 L 150 600 M 200 0 L 200 600 M 250 0 L 250 600" stroke="#0ea5e9" stroke-width="0.5" stroke-dasharray="4 8" />
+  </g>
 
-  <!-- Probe Cap / Connector -->
-  <path d="M 38 18 L 62 18 L 58 30 L 42 30 Z" fill="#475569" stroke="#334155" />
+  <!-- MAIN SENSOR DEVICE - SOLID VERTICAL ALIGNMENT WITH SHADOW -->
+  <g filter="url(#tdsShadow)">
 
-  <!-- Main Sheath Body -->
-  <rect x="42" y="30" width="16" height="42" rx="2" fill="url(#bodyGrad)" stroke="#475569" />
+    <!-- ================= PART 1: TOP RUBBER STRAIN RELIEF BOOT ================= -->
+    <!-- Centered at X=150. Tapered from W=18 down to W=12 -->
+    <path 
+      d="M 141 50
+         L 159 50
+         Q 157 90 155 110
+         L 145 110
+         Q 143 90 141 50 Z" 
+      fill="url(#rubberBootGrad)" 
+      stroke="#020205" 
+      stroke-width="0.5" 
+    />
+    <!-- Circular cap detail where cable would emerge (but cable is removed as requested) -->
+    <ellipse cx="150" cy="50" rx="9" ry="2.5" fill="#09090b" stroke="#1f2937" stroke-width="0.5" />
+    
+    <!-- Segment ridges on rubber boot -->
+    <path d="M 142 65 Q 150 67 158 65" stroke="#09090b" stroke-width="1.2" fill="none" />
+    <path d="M 143 80 Q 150 82 157 80" stroke="#09090b" stroke-width="1.2" fill="none" />
+    <path d="M 144 95 Q 150 97 156 95" stroke="#09090b" stroke-width="1.2" fill="none" />
 
-  <!-- Lower Electrode Collar -->
-  <rect x="40" y="60" width="20" height="4" fill="#64748b" />
 
-  <!-- Prongs/Electrodes (Dual conductiviy pins at bottom) -->
-  <rect x="45" y="72" width="3" height="15" fill="url(#metalGrad)" stroke="#475569" stroke-width="0.5" />
-  <rect x="52" y="72" width="3" height="15" fill="url(#metalGrad)" stroke="#475569" stroke-width="0.5" />
+    <!-- ================= PART 2: FINE CHROME THREADED CONNECTOR ================= -->
+    <!-- Cylindrical nickel/steel transition sleeve under boot -->
+    <rect x="136" y="110" width="28" height="30" rx="1" fill="url(#chromeThreadGrad)" stroke="#475569" stroke-width="0.5" />
+    <ellipse cx="150" cy="110" rx="14" ry="2" fill="#94a3b8" />
+    <ellipse cx="150" cy="140" rx="14" ry="2" fill="#475569" />
 
-  <!-- Electrical potential arc / conductivity field representing measurement -->
-  <ellipse cx="50" cy="85" rx="10" ry="5" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" filter="url(#glow)" />
-  <circle cx="50" cy="85" r="2.5" fill="url(#electricArc)" />
+    <!-- Highly defined fine helical thread lines cut into the chrome connector -->
+    <path d="M 136 115 Q 150 117 164 115" stroke="#1e293b" stroke-width="1.2" fill="none" opacity="0.8" />
+    <path d="M 136 120 Q 150 122 164 120" stroke="#1e293b" stroke-width="1.2" fill="none" opacity="0.8" />
+    <path d="M 136 125 Q 150 127 164 125" stroke="#1e293b" stroke-width="1.2" fill="none" opacity="0.8" />
+    <path d="M 136 130 Q 150 132 164 130" stroke="#1e293b" stroke-width="1.2" fill="none" opacity="0.8" />
+    <path d="M 136 135 Q 150 137 164 135" stroke="#1e293b" stroke-width="1.2" fill="none" opacity="0.8" />
+
+    <!-- Bright chrome polished stop spacer block under threads -->
+    <rect x="133" y="140" width="34" height="15" rx="1" fill="url(#steelShaftGrad)" stroke="#334155" stroke-width="0.5" />
+    <ellipse cx="150" cy="140" rx="17" ry="2" fill="#cbd5e1" />
+    <ellipse cx="150" cy="155" rx="17" ry="2" fill="#475569" />
+
+
+    <!-- ================= PART 3: INDUSTRIAL HEAVY HEXAGONAL NUT BODY ================= -->
+    <!-- The hex nut is represented as three 3D faces (Left, Center, Right) -->
+    <!-- Width is roughly 76px. Height is 75px. Spans from Y=155 to Y=230 -->
+    <!-- Centered exactly. Left face (X: 112 to 131), Front face (X: 131 to 169), Right face (X: 169 to 188) -->
+    <g id="heavy-hex-nut">
+      <!-- Left bevel shadowed face -->
+      <path 
+        d="M 112 165
+           L 131 155
+           L 131 220
+           L 112 230 Z" 
+        fill="url(#hexLeftGrad)" 
+        stroke="#0f172a" 
+        stroke-width="0.5" 
+      />
+
+      <!-- Front primary face with central reflection -->
+      <path 
+        d="M 131 155
+           L 169 155
+           L 169 220
+           L 131 220 Z" 
+        fill="url(#hexFrontGrad)" 
+        stroke="#0f172a" 
+        stroke-width="0.5" 
+      />
+
+      <!-- Right bevel reflective face -->
+      <path 
+        d="M 169 155
+           L 188 165
+           L 188 230
+           L 169 220 Z" 
+        fill="url(#hexRightGrad)" 
+        stroke="#0f172a" 
+        stroke-width="0.5" 
+      />
+
+      <!-- Rounded top and bottom bevel lines to simulate 3D molded hex mold -->
+      <path d="M 112 165 Q 131 152 150 152" fill="none" stroke="#475569" stroke-width="1" opacity="0.4" />
+      <path d="M 150 152 Q 169 152 188 165" fill="none" stroke="#475569" stroke-width="1" opacity="0.4" />
+      <path d="M 112 230 Q 131 223 150 223" fill="none" stroke="#0f172a" stroke-width="1.2" opacity="0.7" />
+      <path d="M 150 223 Q 169 223 188 230" fill="none" stroke="#0f172a" stroke-width="1.2" opacity="0.7" />
+    </g>
+
+
+    <!-- ================= PART 4: MALE MOUNTING PIPE SCREW THREAD SECTION ================= -->
+    <!-- The tapered thread block in the middle of the sensor. Y=230 to Y=310 -->
+    <!-- Core cylindrical backing block -->
+    <rect x="123" y="230" width="54" height="80" rx="3" fill="url(#mattePlasticGrad)" stroke="#111827" stroke-width="0.5" />
+    <ellipse cx="150" cy="230" rx="27" ry="4" fill="#18181b" />
+    <ellipse cx="150" cy="310" rx="27" ry="4" fill="#09090b" />
+
+    <!-- Deep Cut Male Pipe Threads (NPT standard simulation) -->
+    <!-- These overlap slightly and taper inward towards the bottom to match NPT standards -->
+    <g id="npt-threads">
+      <!-- Thread 1 -->
+      <path d="M 121 240 L 179 240 Q 179 245 174 247 L 126 247 Q 121 245 121 240 Z" fill="url(#threadShade)" stroke="#09090b" stroke-width="0.5" />
+      <!-- Thread 2 -->
+      <path d="M 122 250 L 178 250 Q 178 255 173 257 L 127 257 Q 122 255 122 250 Z" fill="url(#threadShade)" stroke="#09090b" stroke-width="0.5" />
+      <!-- Thread 3 -->
+      <path d="M 123 260 L 177 260 Q 177 265 172 267 L 128 267 Q 123 265 123 260 Z" fill="url(#threadShade)" stroke="#09090b" stroke-width="0.5" />
+      <!-- Thread 4 -->
+      <path d="M 124 270 L 176 270 Q 176 275 171 277 L 129 277 Q 124 275 124 270 Z" fill="url(#threadShade)" stroke="#09090b" stroke-width="0.5" />
+      <!-- Thread 5 -->
+      <path d="M 125 280 L 175 280 Q 175 285 170 287 L 130 287 Q 125 285 125 280 Z" fill="url(#threadShade)" stroke="#09090b" stroke-width="0.5" />
+      <!-- Thread 6 -->
+      <path d="M 126 290 L 174 290 Q 174 295 169 297 L 131 297 Q 126 295 126 290 Z" fill="url(#threadShade)" stroke="#09090b" stroke-width="0.5" />
+      <!-- Thread 7 -->
+      <path d="M 127 300 L 173 300 Q 173 305 168 307 L 132 307 Q 127 305 127 300 Z" fill="url(#threadShade)" stroke="#09090b" stroke-width="0.5" />
+    </g>
+
+
+    <!-- ================= PART 5: POLISHED STAINLESS-STEEL SENSING TUBE ================= -->
+    <!-- Probe tube of Stainless steel. Shortened. -->
+    <g id="stainless-sensing-tube">
+      
+      <!-- Under-lip collar detail where metal tube inserts into plastic header -->
+      <rect x="131" y="310" width="38" height="10" rx="1" fill="url(#steelShaftGrad)" stroke="#111827" stroke-width="0.5" />
+      <ellipse cx="150" cy="310" rx="19" ry="2" fill="#94a3b8" />
+      <ellipse cx="150" cy="320" rx="19" ry="2" fill="#475569" />
+
+      <!-- Main Stainless Tube Column -->
+      <rect x="134" y="320" width="32" height="220" rx="2" fill="url(#steelShaftGrad)" stroke="#475569" stroke-width="0.5" />
+      
+      <!-- Absolute vertical specular bright shine glare highlights -->
+      <rect x="136" y="321" width="3" height="218" fill="url(#specularGlint)" opacity="0.85" />
+      <rect x="162" y="321" width="1.5" height="218" fill="url(#specularGlint)" opacity="0.4" />
+      <rect x="141" y="321" width="1" height="218" fill="#ffffff" opacity="0.25" />
+
+      <!-- Horizontal metal grain lathe rings (very faint, for maximum engineering realism) -->
+      <path d="M 134 360 Q 150 361 166 360" stroke="#ffffff" stroke-width="0.5" fill="none" opacity="0.15" />
+      <path d="M 134 410 Q 150 411 166 410" stroke="#ffffff" stroke-width="0.5" fill="none" opacity="0.15" />
+      <path d="M 134 460 Q 150 461 166 460" stroke="#ffffff" stroke-width="0.5" fill="none" opacity="0.15" />
+
+      <!-- Curved Bottom Rounded Cap of the metal tube -->
+      <path 
+        d="M 134 540 
+           Q 134 550 150 550 
+           Q 166 550 166 540 Z" 
+        fill="url(#steelShaftGrad)" 
+        stroke="#475569" 
+        stroke-width="0.5" 
+      />
+      <!-- Cap edge line reflection -->
+      <path d="M 135 538 Q 150 545 165 538" fill="none" stroke="#ffffff" stroke-width="0.75" opacity="0.4" />
+    </g>
+
+
+    <!-- ================= PART 6: OVAL FLOW-THROUGH NOTCH & SENSING PINS ================= -->
+    <!-- An analytical cut-out slot near the bottom of the steel probe (Y=478 to Y=526) -->
+    <!-- This allows solution flow across the dual electrodes inside -->
+    <g id="flow-through-notch">
+      <!-- Dark hollow inside cavity of the slot -->
+      <rect x="141" y="478" width="18" height="48" rx="9" fill="url(#innerSlotGrad)" stroke="#1e293b" stroke-width="1" />
+      
+      <!-- Inner top and bottom curves of the slot cutout to show metal wall thickness -->
+      <path d="M 141 487 C 141 477, 159 477, 159 487" fill="none" stroke="#e2e8f0" stroke-width="1.2" opacity="0.8" />
+      <path d="M 141 517 C 141 527, 159 527, 159 517" fill="none" stroke="#475569" stroke-width="1.0" opacity="0.6" />
+
+      <!-- Left inner wall thickness visual bezel -->
+      <path d="M 141 487 L 141 517" fill="none" stroke="#94a3b8" stroke-width="1.5" opacity="0.7" />
+      
+      <!-- TWO GOLD-PLATED CONDUCTIVITY ELECTRODE PINS (Sensing elements) -->
+      <!-- Coaxial/Parallel gold wire probes sticking out inside the slot -->
+      <!-- Pin 1 (Left Electrode) -->
+      <g id="electrode-pin-left">
+        <!-- Base black insulating collar for Pin 1 -->
+        <rect x="144" y="482" width="4" height="6" fill="#09090b" rx="0.5" />
+        <!-- Actual active Gold conductor pin -->
+        <rect x="145" y="488" width="2" height="14" rx="0.8" fill="url(#electrodePinGrad)" stroke="#7e22ce" stroke-width="0.2" stroke-opacity="0.2" />
+        <!-- Micro glow on active gold pin tip -->
+        <circle cx="146" cy="500" r="1.5" fill="#fef08a" opacity="0.7" />
+      </g>
+
+      <!-- Pin 2 (Right Electrode) -->
+      <g id="electrode-pin-right">
+        <!-- Base black insulating collar for Pin 2 -->
+        <rect x="152" y="482" width="4" height="6" fill="#09090b" rx="0.5" />
+        <!-- Actual active Gold conductor pin -->
+        <rect x="153" y="488" width="2" height="14" rx="0.8" fill="url(#electrodePinGrad)" stroke="#7e22ce" stroke-width="0.2" stroke-opacity="0.2" />
+        <!-- Micro glow on active gold pin tip -->
+        <circle cx="154" cy="500" r="1.5" fill="#fef08a" opacity="0.7" />
+      </g>
+    </g>
+
+  </g>
 </svg>
