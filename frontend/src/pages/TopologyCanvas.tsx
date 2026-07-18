@@ -22,7 +22,6 @@ import { io } from 'socket.io-client';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair, Move, Undo, Redo, Trash2, Layers, Gauge, Activity, Zap, Thermometer, Sliders } from 'lucide-react';
 
-import NodeDetailsPanel from '../components/NodeDetailsPanel';
 import FlowConnectionsMenu from '../components/topology/FlowConnectionsMenu';
 import WaterFlowEdge from '../components/topology/WaterFlowEdge';
 import { WaterTank as TankWaterTank } from '../components/nodes/WaterTank';
@@ -1469,8 +1468,8 @@ export default function TopologyCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
   const [rfInstance, setRfInstance] = useState<any>(null);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { selectedNode, setSelectedNode } = useOutletContext<any>();
-  const [nodeHistory, setNodeHistory] = useState<any[]>([]);
+  const { setSelectedNode } = useOutletContext<any>();
+  const [, setNodeHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [undoStack, setUndoStack] = useState<HistoryAction[]>([]);
@@ -3417,7 +3416,7 @@ export default function TopologyCanvas() {
         onInit={(instance) => {
           setRfInstance(instance);
         }}
-        className={dark ? '' : 'bg-white'}
+        className={`${dark ? '' : 'bg-white'} ${editMode ? 'edit-mode-on' : 'edit-mode-off'}`}
         style={{ width: '100%', height: '100%', background: dark ? '#1c1d22' : '#ffffff', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
       >
         <Background gap={isFullscreen ? 36 : 28} size={1.2} color={dark ? '#3a3b44' : '#e0e0e0'} style={{ opacity: 0.8 }} />
@@ -3455,14 +3454,6 @@ export default function TopologyCanvas() {
           />
         )}
       </ReactFlow>
-
-      {selectedNode && (
-        <NodeDetailsPanel
-          node={selectedNode}
-          history={nodeHistory}
-          onClose={() => setSelectedNode(null)}
-        />
-      )}
     </div>
   );
 }

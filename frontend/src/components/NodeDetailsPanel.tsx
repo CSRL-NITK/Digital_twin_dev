@@ -21,62 +21,65 @@ export default function NodeDetailsPanel({ node, history, onClose }: any) {
   };
 
   return (
-    <div className="absolute right-0 top-0 h-full w-[400px] bg-surface border-l border-border shadow-soft p-6 flex flex-col z-40 transform transition-transform animate-in slide-in-from-right duration-300">
-      <div className="flex justify-between items-center mb-8">
+    <div className="h-full w-full flex flex-col rounded-[18px] overflow-hidden bg-surface border border-border shadow-soft relative"
+         style={{ background: 'var(--color-surface)' }}>
+      {/* Header */}
+      <div className="flex justify-between items-center p-5 border-b border-border bg-surface-light shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg text-primary">
-            <Activity size={24} />
+          <div className="p-2 bg-primary/10 rounded-[10px] text-primary">
+            <Activity size={20} />
           </div>
           <div>
-            <h2 className="text-[24px] font-bold text-text">{node.nodeName}</h2>
-            <p className="text-[14px] text-text-muted capitalize">{node.nodeType.replace('_', ' ')}</p>
+            <h2 className="text-[18px] font-bold text-text leading-tight">{node.nodeName}</h2>
+            <p className="text-[12px] font-medium text-text-muted capitalize tracking-wide">{node.nodeType.replace('_', ' ')}</p>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-border rounded-full transition-colors text-text-muted hover:text-text">
-          <X size={20} />
+        <button onClick={onClose} className="p-1.5 hover:bg-border rounded-full transition-colors text-text-muted hover:text-text cursor-pointer z-10 relative">
+          <X size={18} strokeWidth={2.5} />
         </button>
       </div>
 
-      <div className="space-y-6 flex-1 overflow-y-auto pr-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        {/* Pump Operator Control */}
         {node.nodeType === 'pump' && node.canControlPump && (
-          <div className="glass-card p-4 mb-6 flex items-center justify-between border border-primary/30 bg-primary/5">
-            <div>
-              <div className="text-[11px] font-bold text-primary tracking-wider uppercase mb-1">OPERATOR CONTROL</div>
-              <div className="text-[16px] font-bold text-text flex items-center gap-2">
-                Pump Signal: <span className={node.status !== 'Offline' ? 'text-success font-extrabold' : 'text-danger font-extrabold'}>{node.status !== 'Offline' ? '1 - ON' : '0 - OFF'}</span>
+          <div className="glass-card p-4 flex flex-col border border-primary/30 bg-primary/5 rounded-[14px]">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <div className="text-[10px] font-bold text-primary tracking-widest uppercase mb-1">OPERATOR CONTROL</div>
+                <div className="text-[14px] font-bold text-text flex items-center gap-2">
+                  Status: <span className={node.status !== 'Offline' ? 'text-success font-extrabold' : 'text-danger font-extrabold'}>{node.status !== 'Offline' ? 'ON' : 'OFF'}</span>
+                </div>
               </div>
             </div>
             <button
               onClick={() => node.onTogglePump?.(node.id, node.status !== 'Offline')}
-              className={`px-4 py-2 rounded-xl font-bold text-[13px] transition-all shadow-md flex items-center gap-2 ${
+              className={`w-full py-2.5 rounded-[10px] font-bold text-[13px] transition-all flex items-center justify-center gap-2 shadow-sm ${
                 node.status !== 'Offline'
-                  ? 'bg-danger hover:bg-danger/90 text-white shadow-danger/20'
-                  : 'bg-success hover:bg-success/90 text-black shadow-success/20'
+                  ? 'bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 hover:border-danger'
+                  : 'bg-success/10 hover:bg-success text-success hover:text-white border border-success/20 hover:border-success'
               }`}
             >
-              <span className={`w-2.5 h-2.5 rounded-full ${node.status !== 'Offline' ? 'bg-white' : 'bg-black animate-pulse'}`} />
-              {node.status !== 'Offline' ? 'Send Signal: 0 (OFF)' : 'Send Signal: 1 (ON)'}
+              <span className={`w-2 h-2 rounded-full ${node.status !== 'Offline' ? 'bg-current' : 'bg-current animate-pulse'}`} />
+              {node.status !== 'Offline' ? 'SEND SIGNAL: OFF' : 'SEND SIGNAL: ON'}
             </button>
           </div>
         )}
 
-        {/* Sensors List (First-class entities) */}
-        <div className="glass-card p-0 overflow-hidden mb-6">
-          <div className="flex justify-between items-center p-4 border-b border-border bg-surface-light">
-            <span className="text-text font-bold text-[16px]">Associated Sensors</span>
-            <span className={`font-semibold text-[14px] ${node.status === 'Healthy' ? 'text-success' : node.status === 'Warning' ? 'text-warning' : node.status === 'Critical' ? 'text-danger' : 'text-text-muted'}`}>
-              System: {node.status || 'Unknown'}
+        {/* Sensors List */}
+        <div className="glass-card flex flex-col border border-border bg-surface-light/30 rounded-[14px] overflow-hidden">
+          <div className="flex justify-between items-center p-3.5 border-b border-border bg-surface-light">
+            <span className="text-text font-bold text-[13px] uppercase tracking-wider">Associated Sensors</span>
+            <span className={`font-bold text-[11px] px-2 py-0.5 rounded-full ${node.status === 'Healthy' ? 'bg-success/10 text-success' : node.status === 'Warning' ? 'bg-warning/10 text-warning' : node.status === 'Critical' ? 'bg-danger/10 text-danger' : 'bg-border text-text-muted'}`}>
+              {node.status || 'Unknown'}
             </span>
           </div>
           
           <div className="flex flex-col">
             {node.sensors && node.sensors.length > 0 ? (
               node.sensors.map((sensor: any, idx: number) => {
-                // Handle merged data between API and Socket
                 const name = sensor.sensorName || sensor.sensorType?.replace('_', ' ').toUpperCase();
                 const type = sensor.sensorType;
                 
-                // Get value from either the sensor object (if merged from socket) or from the aggregated node value
                 let val = sensor.value;
                 if (val == null) {
                   if (type === 'water_level') val = node.waterLevel;
@@ -89,58 +92,72 @@ export default function NodeDetailsPanel({ node, history, onClose }: any) {
                 const unit = type === 'water_level' ? '%' : type === 'temperature' ? '°C' : type === 'tds' ? 'ppm' : '';
 
                 return (
-                  <div key={sensor.id || idx} className="p-4 border-b border-border last:border-0 hover:bg-surface-light/50 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-semibold text-text text-[14px]">{name}</span>
-                      <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${sensor.status === 'Online' || sensor.status === 'Healthy' ? 'bg-success/10 text-success' : sensor.status === 'Warning' ? 'bg-warning/10 text-warning' : sensor.status === 'Critical' ? 'bg-danger/10 text-danger' : 'bg-border text-text-muted'}`}>
-                        {sensor.status || 'Online'}
+                  <div key={sensor.id || idx} className="p-3.5 border-b border-border last:border-0 hover:bg-surface-light/50 transition-colors flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-text text-[13px]">{name}</span>
+                      <span className="text-[10px] font-medium text-text-muted">
+                        Updated {sensor.lastSeen ? formatTime(sensor.lastSeen) : 'just now'}
                       </span>
                     </div>
-                    <div className="flex justify-between items-end">
-                      <span className="text-[20px] font-bold text-primary tracking-tight">
-                        {displayVal} <span className="text-[12px] font-normal text-text-muted">{unit}</span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[18px] font-extrabold text-primary tracking-tight leading-none">
+                        {displayVal} <span className="text-[11px] font-medium text-text-muted">{unit}</span>
                       </span>
-                      <span className="text-[10px] text-text-muted">
-                        Updated: {sensor.lastSeen ? formatTime(sensor.lastSeen) : 'Just now'}
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] uppercase tracking-wider ${sensor.status === 'Online' || sensor.status === 'Healthy' ? 'bg-success/10 text-success' : sensor.status === 'Warning' ? 'bg-warning/10 text-warning' : sensor.status === 'Critical' ? 'bg-danger/10 text-danger' : 'bg-border text-text-muted'}`}>
+                        {sensor.status || 'Online'}
                       </span>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="p-6 text-center text-text-muted text-[14px]">No sensors found.</div>
+              <div className="p-5 text-center text-text-muted text-[12px] font-medium">No sensors found.</div>
             )}
           </div>
         </div>
 
         {/* Chart */}
-        <div className="glass-card p-4 mt-6">
-          <h3 className="text-[16px] font-medium text-text mb-4">Water Level History</h3>
-          <div className="h-48 w-full">
+        <div className="glass-card p-4 border border-border bg-surface-light/30 rounded-[14px]">
+          <h3 className="text-[13px] font-bold text-text uppercase tracking-wider mb-4">Water Level History</h3>
+          <div className="h-[180px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                 <XAxis 
                   dataKey="createdAt" 
                   tickFormatter={formatTime} 
                   stroke="var(--color-text-muted)" 
                   fontSize={10}
-                  tickMargin={10}
+                  tickMargin={8}
                   tickLine={false}
                   axisLine={false}
                 />
-                <YAxis stroke="var(--color-text-muted)" fontSize={10} domain={['dataMin - 10', 'dataMax + 10']} tickLine={false} axisLine={false} />
+                <YAxis 
+                  stroke="var(--color-text-muted)" 
+                  fontSize={10} 
+                  domain={['dataMin - 10', 'dataMax + 10']} 
+                  tickLine={false} 
+                  axisLine={false}
+                  tickFormatter={(val) => `${Math.round(val)}%`}
+                />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', borderRadius: '12px', boxShadow: 'var(--shadow-soft)' }}
+                  contentStyle={{ 
+                    backgroundColor: 'var(--color-surface)', 
+                    borderColor: 'var(--color-border)', 
+                    borderRadius: '8px', 
+                    boxShadow: 'var(--shadow-soft)',
+                    fontSize: '12px',
+                    fontWeight: 600
+                  }}
                   labelFormatter={formatTime}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="waterLevel" 
                   stroke="var(--color-primary)" 
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   dot={false}
-                  activeDot={{ r: 4, fill: 'var(--color-primary)' }}
+                  activeDot={{ r: 5, fill: 'var(--color-surface)', stroke: 'var(--color-primary)', strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>

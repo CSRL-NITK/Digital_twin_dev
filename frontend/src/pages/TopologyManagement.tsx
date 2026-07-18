@@ -105,7 +105,14 @@ export default function TopologyManagement() {
   const [search, setSearch] = useState('');
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'topologies' | 'sensors'>('topologies');
+  const [activeTab, setActiveTab] = useState<'topologies' | 'sensors'>(() => {
+    const saved = localStorage.getItem('dt-active-tab');
+    return (saved === 'sensors' || saved === 'topologies') ? saved : 'topologies';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('dt-active-tab', activeTab);
+  }, [activeTab]);
 
   // Sensor Catalog State
   const [sensors, setSensors] = useState<SensorCatalogItem[]>(() => {

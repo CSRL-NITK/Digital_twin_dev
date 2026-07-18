@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, Droplet, Activity, Plus, Layers, Gauge, Zap, Thermometer, Radio } from 'lucide-react';
+import { Database, Droplet, Activity, Plus, Layers, Radio } from 'lucide-react';
 
 export interface PaletteItem {
   nodeType: string;
@@ -40,36 +40,7 @@ const NODE_PALETTE_ITEMS: PaletteItem[] = [
   },
 ];
 
-const SENSOR_PALETTE_ITEMS: PaletteItem[] = [
-  {
-    nodeType: 'water_level',
-    label: 'Water Level Sensor',
-    description: 'Ultrasonic fluid level probe',
-    icon: <Gauge size={18} />,
-    color: '#38bdf8',
-  },
-  {
-    nodeType: 'ph',
-    label: 'pH Quality Sensor',
-    description: 'Electrochemical acidity monitor',
-    icon: <Activity size={18} />,
-    color: '#10b981',
-  },
-  {
-    nodeType: 'tds',
-    label: 'TDS Sensor',
-    description: 'Total dissolved solids monitor',
-    icon: <Zap size={18} />,
-    color: '#f59e0b',
-  },
-  {
-    nodeType: 'temperature',
-    label: 'Temperature Sensor',
-    description: 'Thermal PT100 probe',
-    icon: <Thermometer size={18} />,
-    color: '#ef4444',
-  },
-];
+
 
 export interface FloatingNodePaletteProps {
   showNodePalette?: boolean;
@@ -82,10 +53,28 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
   showSensorPalette = false,
   isMenuOpen = false,
 }) => {
-  const onDragStart = (event: React.DragEvent, item: PaletteItem) => {
-    event.dataTransfer.setData('application/reactflow/nodeType', item.nodeType);
-    event.dataTransfer.setData('application/reactflow/nodeName', item.label);
-    event.dataTransfer.setData('text/plain', JSON.stringify({ nodeType: item.nodeType, nodeName: item.label }));
+  const dynamicSensors = React.useMemo(() => {
+    try {
+      const saved = localStorage.getItem('dt-sensor-catalog');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to parse dt-sensor-catalog:', e);
+    }
+    // Fallback to static items if not present in localStorage
+    return [
+      { id: 'water_level', name: 'Water Level Sensor', type: 'water_level', svgName: 'ultrasonic', description: 'Ultrasonic fluid level probe', color: '#38bdf8' },
+      { id: 'ph', name: 'pH Quality Sensor', type: 'ph', svgName: 'ph', description: 'Electrochemical acidity monitor', color: '#10b981' },
+      { id: 'tds', name: 'TDS Sensor', type: 'tds', svgName: 'tds', description: 'Total dissolved solids monitor', color: '#f59e0b' },
+      { id: 'temperature', name: 'Temperature Sensor', type: 'temperature', svgName: 'temperature', description: 'Thermal PT100 probe', color: '#ef4444' },
+    ];
+  }, []);
+
+  const handleDragStart = (event: React.DragEvent, nodeType: string, label: string) => {
+    event.dataTransfer.setData('application/reactflow/nodeType', nodeType);
+    event.dataTransfer.setData('application/reactflow/nodeName', label);
+    event.dataTransfer.setData('text/plain', JSON.stringify({ nodeType, nodeName: label }));
     event.dataTransfer.effectAllowed = 'move';
   };
 
@@ -153,7 +142,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
                 key={item.nodeType}
                 className="palette-item"
                 draggable
-                onDragStart={(e) => onDragStart(e, item)}
+                onDragStart={(e) => handleDragStart(e, item.nodeType, item.label)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -234,12 +223,12 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {SENSOR_PALETTE_ITEMS.map((item) => (
+            {dynamicSensors.map((item: any) => (
               <div
-                key={item.nodeType}
+                key={item.id}
                 className="palette-item"
                 draggable
-                onDragStart={(e) => onDragStart(e, item)}
+                onDragStart={(e) => handleDragStart(e, item.type, item.name)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -264,13 +253,26 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
                     justifyContent: 'center',
                     color: item.color,
                     flexShrink: 0,
+                    padding: 4,
+                    boxSizing: 'border-box',
                   }}
                 >
-                  {item.icon}
+                  {item.svgContent ? (
+                    <div 
+                      style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      dangerouslySetInnerHTML={{ __html: item.svgContent }} 
+                    />
+                  ) : (
+                    <img 
+                      src={`/assets/sensors/${item.svgName}.svg`} 
+                      alt={item.name} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#ffffff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                    {item.label}
+                    {item.name}
                   </span>
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {item.description}

@@ -12,6 +12,7 @@ import {
 import axios from 'axios';
 import { useTheme } from '../ThemeProvider';
 import { useAuth } from '../../hooks/useAuth';
+import LiveChartsPanel from '../live/LiveChartsPanel';
 
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR
@@ -553,6 +554,7 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
 function MainLayoutContent() {
   const { pathname } = useLocation();
   const { theme } = useTheme();
+  const { globalTopologyId } = useGlobalTopology();
   const dark = theme === 'dark';
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies');
@@ -581,10 +583,14 @@ function MainLayoutContent() {
       >
         <Sidebar />
 
-        {/* Left blank panel — hide on full width pages */}
+        {/* Left panel — hide on full width pages */}
         {!isFullWidthPage && (
-          <div style={{ width: 270, flexShrink: 0, display: 'flex' }}>
-            <BlankPanel id="left-panel" />
+          <div style={{ width: 310, flexShrink: 0, display: 'flex' }}>
+            {pathname.startsWith('/topology') ? (
+              <LiveChartsPanel topologyId={globalTopologyId} selectedNode={selectedNode} />
+            ) : (
+              <BlankPanel id="left-panel" />
+            )}
           </div>
         )}
 

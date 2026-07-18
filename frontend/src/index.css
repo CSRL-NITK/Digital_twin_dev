@@ -15,7 +15,7 @@
 :root {
   /* ── Core palette (exact user values) ── */
   --dt-dark:          #17181c;   /* sidebar, topbar logo bg, dark surfaces   */
-  --dt-bg:            #f3f3f3;   /* page background                          */
+  --dt-bg:            #F5F7FA;   /* page background — cooler neutral         */
   --dt-card:          #ffffff;   /* primary card / panel                     */
   --dt-card-alt:      #e9eeea;   /* secondary card (slightly tinted)         */
 
@@ -41,9 +41,9 @@
   --dt-red:           #ef4444;
 
   /* ── Shadows (clean, no blur) ── */
-  --dt-shadow-sm:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --dt-shadow-md:     0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
-  --dt-shadow-lg:     0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  --dt-shadow-sm:     0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03);
+  --dt-shadow-md:     0 4px 20px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03);
+  --dt-shadow-lg:     0 8px 28px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.03);
 
   /* ── Node cards ── */
   --dt-node:          #ffffff;
@@ -54,8 +54,8 @@
   --r-xs:  6px;
   --r-sm:  10px;
   --r-md:  14px;
-  --r-lg:  18px;
-  --r-xl:  22px;
+  --r-lg:  20px;
+  --r-xl:  24px;
 
   /* ── Font ── */
   --font: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
@@ -199,4 +199,60 @@ h3 { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: -0.2px
   pointer-events: auto;
 }
 
+/* Tanks, Pumps, Switches (Bottom layers, under pipes) */
+.react-flow__node-tank,
+.react-flow__node-central_tank,
+.react-flow__node-source_tank,
+.react-flow__node-pump,
+.react-flow__node-switch {
+  z-index: 5 !important;
+}
+
+/* Sensors (Top layers, on top of pipes) */
+.react-flow__node-sensor {
+  z-index: 15 !important;
+}
+
+/* Viewport Guide Node (Deepest background layer) */
+.react-flow__node-viewportGuide {
+  z-index: 1 !important;
+}
+
 @keyframes dash-flow { to { stroke-dashoffset: -40; } }
+
+/* ── Enterprise animations ─────────────────────────────────── */
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.75); }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Canvas Cursor tweaks when editMode is OFF ───────────────────── */
+.edit-mode-off .react-flow__node {
+  cursor: default !important;
+}
+.edit-mode-off .react-flow__node-switch {
+  cursor: pointer !important;
+}
+.edit-mode-off .react-flow__edge,
+.edit-mode-off .react-flow__edge-path,
+.edit-mode-off .react-flow__edge-interaction {
+  cursor: grab !important;
+}
+
+/* ── Recharts focus overrides ───────────────────────────────────── */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-wrapper:active,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-surface:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+
