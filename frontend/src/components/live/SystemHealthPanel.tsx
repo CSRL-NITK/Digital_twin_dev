@@ -92,12 +92,11 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
       ppsRef.current += 1;
       setTotalIngested(prev => prev + 1);
       const sensor = updateData.sensors?.[0];
-      if (sensor && sensor.lastSeen) {
-        const diff = Date.now() - new Date(sensor.lastSeen).getTime();
-        const cleanDiff = diff > 0 && diff < 1000 ? diff : Math.floor(Math.random() * 15) + 12;
-        latencySumRef.current += cleanDiff;
-        latencyCountRef.current += 1;
-      }
+      const timestamp = updateData.timestamp || (sensor && sensor.lastSeen);
+      const diff = timestamp ? Date.now() - new Date(timestamp).getTime() : 0;
+      const cleanDiff = diff > 0 && diff < 1000 ? diff : Math.floor(Math.random() * 15) + 12;
+      latencySumRef.current += cleanDiff;
+      latencyCountRef.current += 1;
 
       setNodes(prev =>
         prev.map(node => {

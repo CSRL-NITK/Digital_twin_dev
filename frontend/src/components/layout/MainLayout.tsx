@@ -449,8 +449,8 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
       }}
     >
       {/* ── Col 1: Water Quality ── */}
-      <div style={colCardStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <div style={{ ...colCardStyle, padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexShrink: 0 }}>
           <div style={{
             width: 24, height: 24, borderRadius: 6,
             background: dark ? 'rgba(0,255,255,0.10)' : 'rgba(8,145,178,0.1)',
@@ -459,30 +459,73 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
             <Droplets size={12} color={dark ? '#00FFFF' : '#0891b2'} strokeWidth={2.2} />
           </div>
           <span style={{
-            fontSize: 9.5, fontWeight: 700, letterSpacing: '0.10em',
-            textTransform: 'uppercase', color: dark ? '#9ca3af' : '#4b5563',
+            fontSize: 12, fontWeight: 700, letterSpacing: '-0.1px',
+            color: dark ? '#f0f0f2' : '#1a1b1e',
             fontFamily: 'var(--font)',
           }}>
             Water Quality
           </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
-          {[
-            { label: 'Avg Water Level', value: '60.0%', pct: 60, color: '#4A90D9' },
-            { label: 'Avg pH Index', value: '7.20', pct: (7.2 / 14) * 100, color: '#7C5CFC' },
-            { label: 'Avg Temperature', value: '24.5°C', pct: (24.5 / 50) * 100, color: '#E8634A' },
-            { label: 'Avg TDS (Solids)', value: '320 ppm', pct: (320 / 1000) * 100, color: '#2ECC71' },
-          ].map(m => (
-            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 10.5, color: dark ? '#9ca3af' : '#4b5563', letterSpacing: '-0.1px' }}>{m.label}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#f0f0f2' : '#1a1b1e', fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
-              </div>
-              <div style={{ height: 3, borderRadius: 999, background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-                <div style={{ width: `${m.pct}%`, height: '100%', borderRadius: 999, background: m.color, transition: 'width 600ms ease' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, height: '100%', minHeight: 0 }}>
+          {/* LEFT: SVG Donut/Circle for Water Quality Score (30% width) */}
+          <div style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 80, height: 80, position: 'relative' }}>
+              <svg width="80" height="80" viewBox="0 0 88 88" style={{ display: 'block', transform: 'rotate(-90deg)' }}>
+                {/* Background track */}
+                <circle
+                  cx="44" cy="44" r="36"
+                  fill="none"
+                  stroke={dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)'}
+                  strokeWidth="7"
+                />
+                {/* Foreground progress path (92% circumference) */}
+                <circle
+                  cx="44" cy="44" r="36"
+                  fill="none"
+                  stroke={dark ? '#00FFFF' : '#0891b2'}
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeDasharray={`${226.2 * 0.92} ${226.2 * 0.08}`}
+                  style={{ transition: 'stroke-dasharray 600ms ease' }}
+                />
+              </svg>
+              {/* Center text overlay */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none',
+              }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: dark ? '#f0f0f2' : '#1a1b1e', letterSpacing: '-0.5px', lineHeight: 1 }}>
+                  92%
+                </span>
+                <span style={{ fontSize: 7.5, fontWeight: 700, color: dark ? '#00FFFF' : '#0891b2', marginTop: 2, lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Optimal
+                </span>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* RIGHT: The 4 Metrics Progress Bars (70% width) */}
+          <div style={{ width: '70%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+            {[
+              { label: 'Avg Water Level', value: '60.0%', pct: 60, color: '#4A90D9' },
+              { label: 'Avg pH Index', value: '7.20', pct: (7.2 / 14) * 100, color: '#7C5CFC' },
+              { label: 'Avg Temperature', value: '24.5°C', pct: (24.5 / 50) * 100, color: '#E8634A' },
+              { label: 'Avg TDS (Solids)', value: '320 ppm', pct: (320 / 1000) * 100, color: '#2ECC71' },
+            ].map(m => (
+              <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 500, color: dark ? '#9ca3af' : '#4b5563', letterSpacing: '-0.1px' }}>{m.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#f0f0f2' : '#1a1b1e', fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
+                </div>
+                <div style={{ height: 3.5, borderRadius: 999, background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                  <div style={{ width: `${m.pct}%`, height: '100%', borderRadius: 999, background: m.color, transition: 'width 600ms ease' }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

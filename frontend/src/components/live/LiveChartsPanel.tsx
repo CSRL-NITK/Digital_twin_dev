@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import { ChevronDown, Activity, Droplets, Thermometer, Waves, Zap } from 'lucide-react';
 import { useTheme } from '../ThemeProvider';
 
@@ -579,7 +579,14 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
                       vertical={false}
                     />
                     <XAxis dataKey="time" hide />
-                    <YAxis hide domain={['auto', 'auto']} />
+                    <YAxis hide domain={cfg.key === 'level' ? [0, 100] : ['auto', 'auto']} />
+                    {cfg.key === 'level' && (
+                      <>
+                        <ReferenceLine y={25} stroke={dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'} strokeDasharray="2 2" />
+                        <ReferenceLine y={50} stroke={dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'} strokeDasharray="2 2" />
+                        <ReferenceLine y={75} stroke={dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'} strokeDasharray="2 2" />
+                      </>
+                    )}
                     <Tooltip
                       contentStyle={{
                         background: dark ? '#222329' : '#ffffff',
