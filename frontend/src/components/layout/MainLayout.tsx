@@ -13,6 +13,7 @@ import axios from 'axios';
 import { useTheme } from '../ThemeProvider';
 import { useAuth } from '../../hooks/useAuth';
 import LiveChartsPanel from '../live/LiveChartsPanel';
+import SystemHealthPanel from '../live/SystemHealthPanel';
 
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR
@@ -433,41 +434,42 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
         boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.05)',
       }}
     >
-      {/* ── Col 1: Alerts ── */}
+      {/* ── Col 1: Water Quality ── */}
       <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <div style={{
             width: 28, height: 28, borderRadius: 8,
-            background: 'rgba(245,158,11,0.10)',
+            background: 'rgba(0,255,255,0.10)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <AlertTriangle size={14} color="#f59e0b" strokeWidth={2.2} />
+            <Droplets size={14} color="#00FFFF" strokeWidth={2.2} />
           </div>
           <span style={{
             fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em',
             textTransform: 'uppercase', color: '#9ca3af',
             fontFamily: 'var(--font)',
           }}>
-            Recent Alerts
+            Water Quality
           </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
-            { time: '14:02', msg: 'T2 pH warning (6.4)', dot: '#f59e0b' },
-            { time: '13:45', msg: 'P1 flow fluctuation', dot: '#9ca3af' },
-          ].map(r => (
-            <div key={r.time} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.dot, flexShrink: 0 }} />
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? '#f0f0f2' : '#17181c', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.1px' }}>
-                {r.time}
-              </span>
-              <span style={{ fontSize: 12, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{r.msg}</span>
+            { label: 'Avg Water Level', value: '60.0%', pct: 60, color: '#4A90D9' },
+            { label: 'Avg pH Index', value: '7.20', pct: (7.2 / 14) * 100, color: '#7C5CFC' },
+            { label: 'Avg Temperature', value: '24.5°C', pct: (24.5 / 50) * 100, color: '#E8634A' },
+            { label: 'Avg TDS (Solids)', value: '320 ppm', pct: (320 / 1000) * 100, color: '#2ECC71' },
+          ].map(m => (
+            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{m.label}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? '#f0f0f2' : '#17181c', fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
+              </div>
+              <div style={{ height: 3, borderRadius: 999, background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                <div style={{ width: `${m.pct}%`, height: '100%', borderRadius: 999, background: m.color, transition: 'width 600ms ease' }} />
+              </div>
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 9.5, color: dark ? '#4b5563' : '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          blank · will update later
-        </p>
       </div>
 
       {/* Divider */}
@@ -585,7 +587,7 @@ function MainLayoutContent() {
 
         {/* Left panel — hide on full width pages */}
         {!isFullWidthPage && (
-          <div style={{ width: 310, flexShrink: 0, display: 'flex' }}>
+          <div style={{ width: 290, flexShrink: 0, display: 'flex' }}>
             {pathname.startsWith('/topology') ? (
               <LiveChartsPanel topologyId={globalTopologyId} selectedNode={selectedNode} />
             ) : (
@@ -617,10 +619,10 @@ function MainLayoutContent() {
           {!isFullWidthPage && <AnalyticsStrip />}
         </div>
 
-        {/* Right blank panel — hide on full width pages */}
+        {/* Right panel — hide on full width pages */}
         {!isFullWidthPage && (
-          <div style={{ width: 270, flexShrink: 0, display: 'flex' }}>
-            <BlankPanel id="right-panel" />
+          <div style={{ width: 290, flexShrink: 0, display: 'flex' }}>
+            <SystemHealthPanel topologyId={globalTopologyId} />
           </div>
         )}
       </div>

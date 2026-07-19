@@ -2034,6 +2034,12 @@ export default function TopologyCanvas() {
             const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
             const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(node.nodeType);
             const zIndexVal = isSensor ? 20 : 5;
+
+            const wl = node.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 0;
+            const phVal = node.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 0;
+            const tdsVal = node.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 0;
+            const tempVal = node.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 0;
+
             return {
               id: node.id.toString(),
               type: node.nodeType,
@@ -2044,7 +2050,7 @@ export default function TopologyCanvas() {
                 nodeName: node.nodeName,
                 status: node.status,
                 nodeType: node.nodeType,
-                waterLevel: 0, ph: 0, tds: 0, temperature: 0,
+                waterLevel: wl, ph: phVal, tds: tdsVal, temperature: tempVal,
                 editMode: false,
                 flipHorizontal: cfg.flipHorizontal,
                 maxCapacity: cfg.maxCapacity,

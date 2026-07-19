@@ -292,14 +292,14 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
     text:       dark ? '#f0f0f2' : '#1a1b1e',
     textSec:    dark ? '#9ca3af' : '#5a5f6b',
     textMuted:  dark ? '#4b5563' : '#9ca3af',
-    bg:         dark ? '#1c1d22' : '#ffffff',
-    cardBg:     dark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-    border:     dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)',
+    bg:         dark ? '#1c1d22' : '#f8f9fb',
+    cardBg:     dark ? 'rgba(255,255,255,0.025)' : '#ffffff',
+    border:     dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
     borderHover: dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
     hoverBg:    dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.01)',
     shadow:     dark
-      ? '0 8px 32px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)'
-      : '0 4px 20px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)',
+      ? '0 6px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04)'
+      : '0 2px 12px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03)',
     dropdownShadow: dark ? '0 12px 40px rgba(0,0,0,0.5)' : '0 12px 30px rgba(0,0,0,0.08)',
   };
 
