@@ -40,10 +40,9 @@
   --dt-amber:         #f59e0b;
   --dt-red:           #ef4444;
 
-  /* ── Shadows (clean, modern soft shadows for cards) ── */
-  --dt-shadow-sm:     0 1px 2px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.01);
-  --dt-shadow-md:     0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
-  --dt-shadow-lg:     0 10px 30px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.02);
+  --dt-shadow-sm:     0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --dt-shadow-md:     0 6px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --dt-shadow-lg:     0 12px 38px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
 
   /* ── Node cards ── */
   --dt-node:          #ffffff;

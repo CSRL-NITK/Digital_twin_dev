@@ -255,7 +255,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
     WebkitBackdropFilter: 'blur(16px)',
     boxShadow: dark 
       ? 'inset 0 1px 0 rgba(255,255,255,0.04), 0 6px 24px rgba(0,0,0,0.30)' 
-      : '0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.9)',
+      : '0 6px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)',
     display: 'flex',
     flexDirection: 'column',
     transition: 'all 200ms ease',

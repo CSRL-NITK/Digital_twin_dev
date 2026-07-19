@@ -511,7 +511,7 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
                 padding: '8px 10px',
                 background: tk.cardBg,
                 border: `1px solid ${isHovered ? tk.borderHover : tk.border}`,
-                boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
+                boxShadow: dark ? 'none' : '0 4px 14px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)',
                 transition: 'all 200ms ease',
               }}
             >

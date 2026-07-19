@@ -433,7 +433,7 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
     borderRadius: 12,
     background: dark ? 'rgba(255,255,255,0.025)' : '#ffffff',
     border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
-    boxShadow: dark ? 'none' : '0 4px 16px rgba(0,0,0,0.03), 0 0 0 1px rgba(0,0,0,0.02)',
+    boxShadow: dark ? 'none' : '0 6px 20px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03)',
     overflow: 'hidden',
   };
 
