@@ -457,20 +457,19 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
         </span>
       </div>
 
-      {/* ═══ CHARTS GRID (Optimized Vertical Spacing) ═══ */}
+      {/* ═══ CHARTS GRID (Unified card widgets) ═══ */}
       <div style={{
         flex: 1, minHeight: 0, overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
-        padding: '6px 8px',
-        gap: 2,
+        padding: '10px 10px',
+        gap: 8,
       }}>
-        {CHARTS_CONFIG.map((cfg, idx) => {
+        {CHARTS_CONFIG.map((cfg) => {
           const Icon = cfg.icon;
           const lastVal = data.length > 0 ? data[data.length - 1][cfg.key] : null;
           const display = lastVal !== null
             ? `${lastVal.toFixed(cfg.decimals)}${cfg.unit}`
             : '—';
-          const isLast = idx === CHARTS_CONFIG.length - 1;
           const trend = getTrendInfo(data, cfg.key);
           const stats = getStats(data, cfg.key, cfg.decimals);
           const isHovered = hoveredMetric === cfg.key;
@@ -483,12 +482,12 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
               style={{
                 flex: 1, minHeight: 0,
                 display: 'flex', flexDirection: 'column',
-                borderRadius: 10,
-                padding: '6px 8px',
-                background: isHovered ? tk.hoverBg : 'transparent',
-                border: `1px solid ${isHovered ? tk.borderHover : 'transparent'}`,
+                borderRadius: 12,
+                padding: '8px 10px',
+                background: tk.cardBg,
+                border: `1px solid ${isHovered ? tk.borderHover : tk.border}`,
+                boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
                 transition: 'all 200ms ease',
-                borderBottom: (!isHovered && !isLast) ? `1px solid ${tk.border}` : (isHovered ? `1px solid ${tk.borderHover}` : '1px solid transparent'),
               }}
             >
               {/* Label row */}

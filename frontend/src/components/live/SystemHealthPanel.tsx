@@ -150,6 +150,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
     return Date.now() - lastPiMessageTime < 6000;
   }, [lastPiMessageTime]);
 
+
   // Compute System Health based on warning/critical alerts in the last 2 hours
   const systemHealth = useMemo(() => {
     let score = 100;
@@ -436,7 +437,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
                 marginTop: 8,
                 padding: '6px 10px',
                 borderRadius: 10,
-                background: dark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                background: dark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <span style={{ fontSize: 10, fontWeight: 500, color: tk.textSec }}>
@@ -503,7 +504,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
                   style={{
                     display: 'flex',
                     borderRadius: 8,
-                    background: dark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                    background: dark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     overflow: 'hidden',
                     transition: 'background 150ms ease',
                   }}

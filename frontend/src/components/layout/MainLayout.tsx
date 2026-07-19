@@ -188,12 +188,13 @@ const TopBar = memo(function TopBar() {
 
   const iconBtn: React.CSSProperties = {
     width: 38, height: 38, borderRadius: 10,
-    border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
-    background: dark ? '#2a2b34' : '#e8e8e8',
+    border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}`,
+    background: dark ? '#2a2b34' : '#ffffff',
+    boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', flexShrink: 0,
     color: dark ? '#9ca3af' : '#5a5f6b',
-    transition: 'background 0.15s',
+    transition: 'all 0.15s ease',
   };
 
   return (
@@ -204,8 +205,8 @@ const TopBar = memo(function TopBar() {
         display: 'flex', alignItems: 'center',
         padding: '0 24px',
         background: dark ? '#1c1d22' : '#ffffff',
-        borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+        borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+        boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
         gap: 0,
       }}
     >
@@ -284,15 +285,16 @@ const TopBar = memo(function TopBar() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
-                  border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
-                  background: dark ? '#2a2b34' : '#e8e8e8',
-                  transition: 'background 0.15s',
+                  border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}`,
+                  background: dark ? '#2a2b34' : '#ffffff',
+                  boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  background: '#00ffff',
-                  boxShadow: '0 0 7px rgba(0,255,255,0.6)',
+                  background: dark ? '#00ffff' : '#0891b2',
+                  boxShadow: dark ? '0 0 7px rgba(0,255,255,0.6)' : '0 0 5px rgba(8,145,178,0.4)',
                 }} />
                 <span style={{
                   fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
@@ -301,7 +303,7 @@ const TopBar = memo(function TopBar() {
                 }}>
                   {currentTopology ? currentTopology.name : 'Loading...'}
                 </span>
-                <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#6b7280'} />
+                <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#5a5f6b'} />
               </div>
 
               {menuOpen && (

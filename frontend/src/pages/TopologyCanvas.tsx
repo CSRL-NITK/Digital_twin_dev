@@ -2968,7 +2968,7 @@ export default function TopologyCanvas() {
 
   /* ─────────────────────────────────────────────────────────── */
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden rounded-[24px]" style={{ background: dark ? '#1c1d22' : '#ffffff' }}>
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden rounded-[24px]" style={{ background: dark ? '#1c1d22' : '#f8fafc' }}>
 
       {/* Top-left admin buttons (Viewport, Guide) */}
       {isAdmin && editMode && (
@@ -3422,8 +3422,8 @@ export default function TopologyCanvas() {
         onInit={(instance) => {
           setRfInstance(instance);
         }}
-        className={`${dark ? '' : 'bg-white'} ${editMode ? 'edit-mode-on' : 'edit-mode-off'}`}
-        style={{ width: '100%', height: '100%', background: dark ? '#1c1d22' : '#ffffff', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
+        className={`${editMode ? 'edit-mode-on' : 'edit-mode-off'}`}
+        style={{ width: '100%', height: '100%', background: dark ? '#1c1d22' : '#f8fafc', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
       >
         <Background gap={isFullscreen ? 36 : 28} size={1.2} color={dark ? '#3a3b44' : '#e0e0e0'} style={{ opacity: 0.8 }} />
         <CustomControls containerRef={containerRef} onUndo={handleUndo} onRedo={handleRedo} canUndo={undoStack.length > 0} canRedo={redoStack.length > 0} />

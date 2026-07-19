@@ -15,35 +15,35 @@
 :root {
   /* ── Core palette (exact user values) ── */
   --dt-dark:          #17181c;   /* sidebar, topbar logo bg, dark surfaces   */
-  --dt-bg:            #F5F7FA;   /* page background — cooler neutral         */
-  --dt-card:          #ffffff;   /* primary card / panel                     */
-  --dt-card-alt:      #e9eeea;   /* secondary card (slightly tinted)         */
+  --dt-bg:            #f4f6f8;   /* page background — cooler neutral L0      */
+  --dt-card:          #ffffff;   /* primary card / panel L1                  */
+  --dt-card-alt:      #f8fafc;   /* secondary card (slightly tinted) L2      */
 
   /* ── Derived surfaces ── */
   --dt-sidebar:       var(--dt-dark);
   --dt-sidebar-border:rgba(255,255,255,0.07);
   --dt-topbar:        #ffffff;
-  --dt-topbar-border: rgba(0,0,0,0.07);
+  --dt-topbar-border: rgba(0,0,0,0.06);
 
   /* ── Typography ── */
-  --dt-text:          #17181c;   /* same as sidebar dark = maximum contrast  */
+  --dt-text:          #1a1b1e;   /* maximum contrast for light bg */
   --dt-text-2:        #5a5f6b;   /* secondary labels                         */
   --dt-text-3:        #9ca3af;   /* muted / placeholder                      */
 
-  /* ── Accent — lime (from reference) ── */
-  --dt-accent:        #00ffff;
-  --dt-accent-dim:    rgba(0,255,255,0.15);
-  --dt-accent-dark:   #a6cc1a;   /* darker lime for icons on light bg        */
+  /* ── Accent — Cyan/Teal (optimized for light bg readability) ── */
+  --dt-accent:        #0891b2;
+  --dt-accent-dim:    rgba(8,145,178,0.08);
+  --dt-accent-dark:   #0e7490;
 
   /* ── Status ── */
   --dt-green:         #22c55e;
   --dt-amber:         #f59e0b;
   --dt-red:           #ef4444;
 
-  /* ── Shadows (clean, no blur) ── */
-  --dt-shadow-sm:     0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03);
-  --dt-shadow-md:     0 4px 20px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03);
-  --dt-shadow-lg:     0 8px 28px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.03);
+  /* ── Shadows (clean, modern soft shadows for cards) ── */
+  --dt-shadow-sm:     0 1px 2px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.01);
+  --dt-shadow-md:     0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
+  --dt-shadow-lg:     0 10px 30px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.02);
 
   /* ── Node cards ── */
   --dt-node:          #ffffff;
@@ -92,6 +92,9 @@
   --dt-text:          #f0f0f2;
   --dt-text-2:        #6b7280;
   --dt-text-3:        #374151;
+  --dt-accent:        #00ffff;
+  --dt-accent-dim:    rgba(0,255,255,0.15);
+  --dt-accent-dark:   #00ffff;
   --dt-node:          #1c1d22;
   --dt-node-border:   rgba(255,255,255,0.07);
   --dt-shadow-sm:     0 1px 3px rgba(0,0,0,0.25);
