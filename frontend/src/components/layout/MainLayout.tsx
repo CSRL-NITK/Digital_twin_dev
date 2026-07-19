@@ -7,7 +7,7 @@ import {
   ChevronDown, Bell, LogOut,
   Activity, LayoutDashboard, BarChart2,
   Moon, Sun, Droplets,
-  Wifi, Server, AlertTriangle, Users,
+  Wifi, Server, AlertTriangle, Users, Gauge,
 } from 'lucide-react';
 import axios from 'axios';
 import { useTheme } from '../ThemeProvider';
@@ -424,47 +424,59 @@ const BlankPanel = memo(function BlankPanel({ id }: { id: string }) {
 const AnalyticsStrip = memo(function AnalyticsStrip() {
   const { theme } = useTheme();
   const dark = theme === 'dark';
+
+  const colCardStyle: React.CSSProperties = {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '12px 16px',
+    borderRadius: 12,
+    background: dark ? 'rgba(255,255,255,0.025)' : '#ffffff',
+    border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+    boxShadow: dark ? 'none' : '0 4px 16px rgba(0,0,0,0.03), 0 0 0 1px rgba(0,0,0,0.02)',
+    overflow: 'hidden',
+  };
+
   return (
     <div
       id="analytics-strip"
       style={{
-        height: 200, flexShrink: 0,
-        display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
-        background: dark ? '#1c1d22' : '#ffffff',
-        border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)'}`,
+        height: 230, flexShrink: 0,
+        display: 'flex', gap: 10, padding: 10,
+        background: dark ? '#1c1d22' : '#f8fafc',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
         borderRadius: 18, overflow: 'hidden',
-        boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.05)',
       }}
     >
       {/* ── Col 1: Water Quality ── */}
-      <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      <div style={colCardStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: 'rgba(0,255,255,0.10)',
+            width: 24, height: 24, borderRadius: 6,
+            background: dark ? 'rgba(0,255,255,0.10)' : 'rgba(8,145,178,0.1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Droplets size={14} color="#00FFFF" strokeWidth={2.2} />
+            <Droplets size={12} color={dark ? '#00FFFF' : '#0891b2'} strokeWidth={2.2} />
           </div>
           <span style={{
-            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em',
-            textTransform: 'uppercase', color: '#9ca3af',
+            fontSize: 9.5, fontWeight: 700, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: dark ? '#9ca3af' : '#4b5563',
             fontFamily: 'var(--font)',
           }}>
             Water Quality
           </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
           {[
             { label: 'Avg Water Level', value: '60.0%', pct: 60, color: '#4A90D9' },
             { label: 'Avg pH Index', value: '7.20', pct: (7.2 / 14) * 100, color: '#7C5CFC' },
             { label: 'Avg Temperature', value: '24.5°C', pct: (24.5 / 50) * 100, color: '#E8634A' },
             { label: 'Avg TDS (Solids)', value: '320 ppm', pct: (320 / 1000) * 100, color: '#2ECC71' },
           ].map(m => (
-            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{m.label}</span>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: dark ? '#f0f0f2' : '#17181c', fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
+                <span style={{ fontSize: 10.5, color: dark ? '#9ca3af' : '#4b5563', letterSpacing: '-0.1px' }}>{m.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#f0f0f2' : '#1a1b1e', fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
               </div>
               <div style={{ height: 3, borderRadius: 999, background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
                 <div style={{ width: `${m.pct}%`, height: '100%', borderRadius: 999, background: m.color, transition: 'width 600ms ease' }} />
@@ -474,78 +486,76 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
         </div>
       </div>
 
-      {/* Divider */}
-      <div style={{ background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
-
-      {/* ── Col 2: MQTT ── */}
-      <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      {/* ── Col 2: Flow & Throughput ── */}
+      <div style={colCardStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: 'rgba(0,255,255,0.18)',
+            width: 24, height: 24, borderRadius: 6,
+            background: dark ? 'rgba(0,255,255,0.10)' : 'rgba(8,145,178,0.1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Wifi size={14} color="#7fb200" strokeWidth={2.2} />
+            <Gauge size={12} color={dark ? '#00ffff' : '#0891b2'} strokeWidth={2.2} />
           </div>
           <span style={{
-            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em',
-            textTransform: 'uppercase', color: '#9ca3af',
+            fontSize: 9.5, fontWeight: 700, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: dark ? '#9ca3af' : '#4b5563',
             fontFamily: 'var(--font)',
           }}>
-            MQTT Status
+            Flow & Throughput
           </span>
         </div>
-        {[
-          { label: 'Connection', value: 'Connected', color: '#22c55e', dot: true },
-          { label: 'Message rate', value: '12 msg/s', color: dark ? '#f0f0f2' : '#17181c', dot: false },
-          { label: 'Topics', value: '3 active', color: dark ? '#f0f0f2' : '#17181c', dot: false },
-        ].map(r => (
-          <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: r.color }}>
-              {r.dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />}
-              {r.value}
-            </span>
-          </div>
-        ))}
-        <p style={{ fontSize: 9.5, color: dark ? '#4b5563' : '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          blank · will update later
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+          {[
+            { label: 'Total Flow Rate', value: '14.8 L/s', pct: (14.8 / 30) * 100, color: '#4A90D9' },
+            { label: 'System Avg Pressure', value: '3.4 bar', pct: (3.4 / 6) * 100, color: '#7C5CFC' },
+            { label: 'Active Power Load', value: '4.8 kW', pct: (4.8 / 8) * 100, color: '#E8634A' },
+            { label: 'Daily Distribution', value: '1,280 m³', pct: 64, color: '#2ECC71' },
+          ].map(m => (
+            <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10.5, color: dark ? '#9ca3af' : '#4b5563', letterSpacing: '-0.1px' }}>{m.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#f0f0f2' : '#1a1b1e', fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
+              </div>
+              <div style={{ height: 3, borderRadius: 999, background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                <div style={{ width: `${m.pct}%`, height: '100%', borderRadius: 999, background: m.color, transition: 'width 600ms ease' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Divider */}
-      <div style={{ background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', margin: '18px 0' }} />
-
-      {/* ── Col 3: System ── */}
-      <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      {/* ── Col 3: System Activity ── */}
+      <div style={colCardStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 8,
+            width: 24, height: 24, borderRadius: 6,
             background: 'rgba(34,197,94,0.10)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Server size={14} color="#22c55e" strokeWidth={2.2} />
+            <Server size={12} color="#22c55e" strokeWidth={2.2} />
           </div>
           <span style={{
-            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.10em',
-            textTransform: 'uppercase', color: '#9ca3af',
+            fontSize: 9.5, fontWeight: 700, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: dark ? '#9ca3af' : '#4b5563',
             fontFamily: 'var(--font)',
           }}>
             System Activity
           </span>
         </div>
-        {[
-          { label: 'PostgreSQL', value: 'Healthy', color: '#22c55e' },
-          { label: 'Backend API', value: 'Healthy', color: '#22c55e' },
-          { label: 'Node uptime', value: '99.9%', color: dark ? '#f0f0f2' : '#17181c' },
-        ].map(r => (
-          <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: dark ? '#9ca3af' : '#5a5f6b', letterSpacing: '-0.1px' }}>{r.label}</span>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: r.color }}>{r.value}</span>
-          </div>
-        ))}
-        <p style={{ fontSize: 9.5, color: dark ? '#4b5563' : '#d1d5db', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          blank · will update later
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+          {[
+            { label: 'PostgreSQL Database', value: 'Healthy', color: '#22c55e' },
+            { label: 'Backend API Service', value: 'Healthy', color: '#22c55e' },
+            { label: 'Active Node Uptime', value: '99.9%', color: dark ? '#f0f0f2' : '#1a1b1e' },
+          ].map(r => (
+            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 2 }}>
+              <span style={{ fontSize: 10.5, color: dark ? '#9ca3af' : '#4b5563', letterSpacing: '-0.1px' }}>{r.label}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: r.color }}>{r.value}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 9, color: dark ? '#4b5563' : '#9ca3af', marginTop: 'auto', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Platform Engine Online
         </p>
       </div>
     </div>

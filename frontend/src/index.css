@@ -15,7 +15,7 @@
 :root {
   /* ── Core palette (exact user values) ── */
   --dt-dark:          #17181c;   /* sidebar, topbar logo bg, dark surfaces   */
-  --dt-bg:            #f4f6f8;   /* page background — cooler neutral L0      */
+  --dt-bg:            #f3f4f6;   /* page background — cooler neutral L0      */
   --dt-card:          #ffffff;   /* primary card / panel L1                  */
   --dt-card-alt:      #f8fafc;   /* secondary card (slightly tinted) L2      */
 
@@ -27,8 +27,8 @@
 
   /* ── Typography ── */
   --dt-text:          #1a1b1e;   /* maximum contrast for light bg */
-  --dt-text-2:        #5a5f6b;   /* secondary labels                         */
-  --dt-text-3:        #9ca3af;   /* muted / placeholder                      */
+  --dt-text-2:        #4b5563;   /* secondary labels (improved readability) */
+  --dt-text-3:        #6b7280;   /* muted / placeholder (improved contrast) */
 
   /* ── Accent — Cyan/Teal (optimized for light bg readability) ── */
   --dt-accent:        #0891b2;

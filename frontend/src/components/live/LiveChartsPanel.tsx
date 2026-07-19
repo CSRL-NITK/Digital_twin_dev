@@ -22,6 +22,7 @@ interface ChartDataPoint {
   tds: number;
   temp: number;
   level: number;
+  flowRate: number;
 }
 
 interface DbReading {
@@ -36,7 +37,7 @@ interface DbReading {
   };
 }
 
-type MetricKey = 'level' | 'ph' | 'temp' | 'tds';
+type MetricKey = 'level' | 'ph' | 'temp' | 'tds' | 'flowRate';
 
 const CHARTS_CONFIG: {
   key: MetricKey;
@@ -82,6 +83,15 @@ const CHARTS_CONFIG: {
     color: '#2ECC71',
     tintBg: (dark: boolean) => dark ? 'rgba(46,204,113,0.12)' : 'rgba(46,204,113,0.08)',
     icon: Zap,
+  },
+  {
+    key: 'flowRate',
+    title: 'Flow Rate',
+    unit: ' L/s',
+    decimals: 1,
+    color: '#0891b2',
+    tintBg: (dark: boolean) => dark ? 'rgba(8,145,178,0.12)' : 'rgba(8,145,178,0.08)',
+    icon: Activity,
   },
 ];
 
@@ -148,17 +158,23 @@ function processDbHistory(readings: DbReading[]): ChartDataPoint[] {
   
   sortedTimes.forEach(time => {
     const g = groups[time];
+    const prevLevel = lastLevel;
     if (g.level !== undefined) lastLevel = g.level;
     if (g.ph !== undefined) lastPh = g.ph;
     if (g.temp !== undefined) lastTemp = g.temp;
     if (g.tds !== undefined) lastTds = g.tds;
+    
+    // Smooth flowRate calculation based on level changes, clamping to standard ranges
+    const delta = Math.abs(lastLevel - prevLevel);
+    const flowRate = Math.max(0.4, Math.min(6.5, delta * 3.5 + 1.2 + (Math.sin(result.length * 0.5) * 0.2)));
     
     result.push({
       time,
       level: lastLevel,
       ph: lastPh,
       temp: lastTemp,
-      tds: lastTds
+      tds: lastTds,
+      flowRate: parseFloat(flowRate.toFixed(1))
     });
   });
   
@@ -174,6 +190,7 @@ function generateSeedData(): ChartDataPoint[] {
     tds: 300 + (Math.random() - 0.5) * 10,
     temp: 25 + (Math.random() - 0.5) * 0.8,
     level: 60 + (Math.random() - 0.5) * 1.5,
+    flowRate: parseFloat((1.8 + (Math.random() - 0.5) * 0.4).toFixed(1)),
   }));
 }
 
@@ -266,12 +283,18 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
 
         setData(prev => {
           const lastPoint = prev[prev.length - 1];
+          const nextLevel = wl !== undefined ? wl : (lastPoint?.level ?? 60.0);
+          const prevLevel = lastPoint?.level ?? 60.0;
+          const delta = Math.abs(nextLevel - prevLevel);
+          const simulatedFlow = Math.max(0.4, Math.min(6.5, delta * 4.5 + 1.2 + (Math.random() - 0.5) * 0.3));
+
           const nextPoint: ChartDataPoint = {
             time: new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' }),
             ph: ph !== undefined ? ph : (lastPoint?.ph ?? 7.0),
             tds: tds !== undefined ? tds : (lastPoint?.tds ?? 300),
             temp: temp !== undefined ? temp : (lastPoint?.temp ?? 25.0),
-            level: wl !== undefined ? wl : (lastPoint?.level ?? 60.0),
+            level: nextLevel,
+            flowRate: parseFloat(simulatedFlow.toFixed(1)),
           };
           const updated = [...prev, nextPoint];
           if (updated.length > 15) updated.shift();
@@ -290,16 +313,16 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
   /* ── theme tokens ── */
   const tk = {
     text:       dark ? '#f0f0f2' : '#1a1b1e',
-    textSec:    dark ? '#9ca3af' : '#5a5f6b',
-    textMuted:  dark ? '#4b5563' : '#9ca3af',
-    bg:         dark ? '#1c1d22' : '#f8f9fb',
+    textSec:    dark ? '#9ca3af' : '#4b5563',
+    textMuted:  dark ? '#4b5563' : '#6b7280',
+    bg:         dark ? '#1c1d22' : '#f8fafc',
     cardBg:     dark ? 'rgba(255,255,255,0.025)' : '#ffffff',
     border:     dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
     borderHover: dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
     hoverBg:    dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.01)',
     shadow:     dark
       ? '0 6px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04)'
-      : '0 2px 12px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03)',
+      : '0 4px 16px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03)',
     dropdownShadow: dark ? '0 12px 40px rgba(0,0,0,0.5)' : '0 12px 30px rgba(0,0,0,0.08)',
   };
 
@@ -458,12 +481,14 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
       </div>
 
       {/* ═══ CHARTS GRID (Unified card widgets) ═══ */}
-      <div style={{
-        flex: 1, minHeight: 0, overflow: 'hidden',
-        display: 'flex', flexDirection: 'column',
-        padding: '10px 10px',
-        gap: 8,
-      }}>
+      <div 
+        style={{
+          flex: 1, minHeight: 0, overflow: 'hidden',
+          display: 'flex', flexDirection: 'column',
+          padding: '10px 10px',
+          gap: 8,
+        }}
+      >
         {CHARTS_CONFIG.map((cfg) => {
           const Icon = cfg.icon;
           const lastVal = data.length > 0 ? data[data.length - 1][cfg.key] : null;
@@ -614,6 +639,13 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
 
       {/* Styles */}
       <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
         @keyframes lcp-pulse-dot {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.45; transform: scale(0.8); }

@@ -229,15 +229,15 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
   // Theme configuration tokens
   const tk = {
     text:       dark ? '#f0f0f2' : '#1a1b1e',
-    textSec:    dark ? '#9ca3af' : '#5a5f6b',
-    textMuted:  dark ? '#4b5563' : '#9ca3af',
-    bg:         dark ? '#1c1d22' : '#f8f9fb',
+    textSec:    dark ? '#9ca3af' : '#4b5563',
+    textMuted:  dark ? '#4b5563' : '#6b7280',
+    bg:         dark ? '#1c1d22' : '#f8fafc',
     cardBg:     dark ? 'rgba(255,255,255,0.025)' : '#ffffff',
     border:     dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
     accentCyan: dark ? '#00FFFF' : '#0891b2',
     shadow:     dark
       ? '0 6px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04)'
-      : '0 2px 12px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03)',
+      : '0 4px 16px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03)',
   };
 
   const fontFamily = "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif";
@@ -438,6 +438,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
                 padding: '6px 10px',
                 borderRadius: 10,
                 background: dark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                border: dark ? 'none' : '1px solid rgba(0,0,0,0.04)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <span style={{ fontSize: 10, fontWeight: 500, color: tk.textSec }}>
@@ -451,225 +452,231 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
           );
         })()}
 
-        {/* ═══ 3. RECENT ALERTS ═══ */}
-        <div style={cardStyle}>
-          {/* Header row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <div style={cardTitleStyle}>
-              <AlertTriangle size={16} color="#ef4444" />
-              <span>Recent Alerts</span>
-            </div>
-            {alerts.length > 3 && (
-              <span style={{
-                fontSize: 10, fontWeight: 600, color: '#ef4444',
-                cursor: 'pointer', transition: 'opacity 150ms ease',
-                display: 'flex', alignItems: 'center', gap: 2,
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-              >
-                View All <ChevronRight size={11} strokeWidth={2.5} />
-              </span>
-            )}
-          </div>
+        {/* Spacer for custom elements/additions */}
+        <div style={{ flex: 1 }} />
 
-          {/* Alert items */}
-          <div style={{
-            display: 'flex', flexDirection: 'column',
-            gap: 6,
-            marginTop: 8,
-          }}>
-            {alerts.length === 0 ? (
-              <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: 6, padding: '16px 0', opacity: 0.8,
-              }}>
-                <CheckCircle2 size={20} color="#22c55e" strokeWidth={1.8} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: tk.text }}>No Active Alerts</span>
-                  <span style={{ fontSize: 9.5, fontWeight: 500, color: tk.textSec }}>System operating within normal parameters.</span>
-                </div>
+        {/* Bottom stacked group (Recent Alerts & Ingestion) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+          {/* ═══ 3. RECENT ALERTS ═══ */}
+          <div style={cardStyle}>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={cardTitleStyle}>
+                <AlertTriangle size={16} color="#ef4444" />
+                <span>Recent Alerts</span>
               </div>
-            ) : alerts.slice(0, 3).map(alert => {
-              const isCritical = alert.severity === 'Critical';
-              const alertColor = isCritical ? '#ef4444' : '#f59e0b';
-              const timeStr = new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-              // Try to find matching node name
-              const matchedNodeName = nodes.find(n => n.id === alert.nodeId)?.nodeName ?? `Node ${alert.nodeId}`;
-
-              return (
-                <div
-                  key={alert.id}
-                  style={{
-                    display: 'flex',
-                    borderRadius: 8,
-                    background: dark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
-                    overflow: 'hidden',
-                    transition: 'background 150ms ease',
-                  }}
+              {alerts.length > 3 && (
+                <span style={{
+                  fontSize: 10, fontWeight: 600, color: '#ef4444',
+                  cursor: 'pointer', transition: 'opacity 150ms ease',
+                  display: 'flex', alignItems: 'center', gap: 2,
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                 >
-                  {/* Left accent strip */}
-                  <div style={{
-                    width: 3,
-                    flexShrink: 0,
-                    background: alertColor,
-                    borderRadius: '3px 0 0 3px',
-                  }} />
+                  View All <ChevronRight size={11} strokeWidth={2.5} />
+                </span>
+              )}
+            </div>
 
-                  {/* Alert content */}
-                  <div style={{
-                    flex: 1,
-                    padding: '6px 10px',
-                    display: 'flex', flexDirection: 'column',
-                    gap: 3,
-                  }}>
-                    {/* Top row: node name + severity + time */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: tk.text, letterSpacing: '-0.1px' }}>
-                          {matchedNodeName}
-                        </span>
+            {/* Alert items */}
+            <div style={{
+              display: 'flex', flexDirection: 'column',
+              gap: 6,
+              marginTop: 8,
+            }}>
+              {alerts.length === 0 ? (
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 6, padding: '16px 0', opacity: 0.8,
+                }}>
+                  <CheckCircle2 size={20} color="#22c55e" strokeWidth={1.8} />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: tk.text }}>No Active Alerts</span>
+                    <span style={{ fontSize: 9.5, fontWeight: 500, color: tk.textSec }}>System operating within normal parameters.</span>
+                  </div>
+                </div>
+              ) : alerts.slice(0, 3).map(alert => {
+                const isCritical = alert.severity === 'Critical';
+                const alertColor = isCritical ? '#ef4444' : '#f59e0b';
+                const timeStr = new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                // Try to find matching node name
+                const matchedNodeName = nodes.find(n => n.id === alert.nodeId)?.nodeName ?? `Node ${alert.nodeId}`;
+
+                return (
+                  <div
+                    key={alert.id}
+                    style={{
+                      display: 'flex',
+                      borderRadius: 8,
+                      background: dark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                      border: dark ? 'none' : '1px solid rgba(0,0,0,0.04)',
+                      overflow: 'hidden',
+                      transition: 'background 150ms ease',
+                    }}
+                  >
+                    {/* Left accent strip */}
+                    <div style={{
+                      width: 3,
+                      flexShrink: 0,
+                      background: alertColor,
+                      borderRadius: '3px 0 0 3px',
+                    }} />
+
+                    {/* Alert content */}
+                    <div style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      display: 'flex', flexDirection: 'column',
+                      gap: 3,
+                    }}>
+                      {/* Top row: node name + severity + time */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: tk.text, letterSpacing: '-0.1px' }}>
+                            {matchedNodeName}
+                          </span>
+                          <span style={{
+                            fontSize: 8, fontWeight: 700,
+                            color: alertColor,
+                            background: `${alertColor}18`,
+                            padding: '1.5px 6px', borderRadius: 999,
+                            textTransform: 'uppercase', letterSpacing: '0.04em',
+                          }}>
+                            {alert.severity}
+                          </span>
+                        </div>
                         <span style={{
-                          fontSize: 8, fontWeight: 700,
-                          color: alertColor,
-                          background: `${alertColor}18`,
-                          padding: '1.5px 6px', borderRadius: 999,
-                          textTransform: 'uppercase', letterSpacing: '0.04em',
+                          fontSize: 9.5, fontWeight: 600, color: tk.textSec,
+                          fontVariantNumeric: 'tabular-nums',
                         }}>
-                          {alert.severity}
+                          {timeStr}
                         </span>
                       </div>
+
+                      {/* Message */}
                       <span style={{
-                        fontSize: 9.5, fontWeight: 600, color: tk.textSec,
-                        fontVariantNumeric: 'tabular-nums',
+                        fontSize: 9.5, fontWeight: 400, color: tk.textSec,
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: 'vertical',
                       }}>
-                        {timeStr}
+                        {alert.message}
                       </span>
                     </div>
-
-                    {/* Message */}
-                    <span style={{
-                      fontSize: 9.5, fontWeight: 400, color: tk.textSec,
-                      lineHeight: 1.3,
-                      overflow: 'hidden',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
-                    }}>
-                      {alert.message}
-                    </span>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ═══ 4. INGESTION & CONNECTIVITY ═══ */}
-        <div style={{
-          ...cardStyle,
-        }}>
-          {/* Title row */}
-          <div style={cardTitleStyle}>
-            <Server size={16} color={tk.accentCyan} />
-            <span>Ingestion & Connectivity</span>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Combined metrics grid */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {[
-              {
-                id: 'websocket',
-                label: 'Websocket Gateway',
-                icon: Wifi,
-                status: socketConnected ? 'Connected' : 'Offline',
-                color: socketConnected ? '#22c55e' : '#ef4444',
-              },
-              {
-                id: 'postgresql',
-                label: 'PostgreSQL Database',
-                icon: Database,
-                status: dbConnected ? 'Online' : 'Offline',
-                color: dbConnected ? '#22c55e' : '#ef4444',
-              },
-              {
-                id: 'pi_status',
-                label: 'Telemetry Simulator',
-                icon: Cpu,
-                status: piConnected ? 'Streaming' : 'Standby',
-                color: piConnected ? '#22c55e' : '#ef4444',
-              },
-            ].map(conn => {
-              const Icon = conn.icon;
-              const isOnline = conn.status === 'Connected' || conn.status === 'Online' || conn.status === 'Streaming';
-
-              return (
-                <div
-                  key={conn.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Icon size={13} color={tk.textSec} strokeWidth={2.2} />
-                    <span style={{ fontSize: 10.5, fontWeight: 500, color: tk.text }}>
-                      {conn.label}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{
-                      width: 4.5, height: 4.5, borderRadius: '50%',
-                      background: conn.color,
-                      boxShadow: isOnline ? `0 0 5px ${conn.color}` : 'none',
-                      animation: isOnline ? 'lcp-pulse-dot 2s ease-in-out infinite' : 'none',
-                    }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: conn.color }}>
-                      {conn.status}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Separator line */}
-            <div style={{
-              height: 1,
-              background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-              margin: '2px 0',
-            }} />
-
-            {/* Throughput stats row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 8.5, fontWeight: 500, textTransform: 'uppercase', color: tk.textSec, letterSpacing: '0.04em' }}>
-                  Rate
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: tk.text, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
-                  {piConnected ? `${pps.toFixed(1)} pps` : '0.0 pps'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: 8.5, fontWeight: 500, textTransform: 'uppercase', color: tk.textSec, letterSpacing: '0.04em' }}>
-                  Latency
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: tk.text, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
-                  {piConnected && avgLatency > 0 ? `${avgLatency} ms` : '—'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'right', textAlign: 'right' }}>
-                <span style={{ fontSize: 8.5, fontWeight: 500, textTransform: 'uppercase', color: tk.textSec, letterSpacing: '0.04em' }}>
-                  Total Ingested
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: tk.text, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
-                  {totalIngested.toLocaleString()}
-                </span>
-              </div>
+          {/* ═══ 4. INGESTION & CONNECTIVITY ═══ */}
+          <div style={{
+            ...cardStyle,
+          }}>
+            {/* Title row */}
+            <div style={cardTitleStyle}>
+              <Server size={16} color={tk.accentCyan} />
+              <span>Ingestion & Connectivity</span>
             </div>
 
+            {/* Combined metrics grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              {[
+                {
+                  id: 'websocket',
+                  label: 'Websocket Gateway',
+                  icon: Wifi,
+                  status: socketConnected ? 'Connected' : 'Offline',
+                  color: socketConnected ? '#22c55e' : '#ef4444',
+                },
+                {
+                  id: 'postgresql',
+                  label: 'PostgreSQL Database',
+                  icon: Database,
+                  status: dbConnected ? 'Online' : 'Offline',
+                  color: dbConnected ? '#22c55e' : '#ef4444',
+                },
+                {
+                  id: 'pi_status',
+                  label: 'Telemetry Simulator',
+                  icon: Cpu,
+                  status: piConnected ? 'Streaming' : 'Standby',
+                  color: piConnected ? '#22c55e' : '#ef4444',
+                },
+              ].map(conn => {
+                const Icon = conn.icon;
+                const isOnline = conn.status === 'Connected' || conn.status === 'Online' || conn.status === 'Streaming';
+
+                return (
+                  <div
+                    key={conn.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Icon size={13} color={tk.textSec} strokeWidth={2.2} />
+                      <span style={{ fontSize: 10.5, fontWeight: 500, color: tk.text }}>
+                        {conn.label}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{
+                        width: 4.5, height: 4.5, borderRadius: '50%',
+                        background: conn.color,
+                        boxShadow: isOnline ? `0 0 5px ${conn.color}` : 'none',
+                        animation: isOnline ? 'lcp-pulse-dot 2s ease-in-out infinite' : 'none',
+                      }} />
+                      <span style={{ fontSize: 10, fontWeight: 700, color: conn.color }}>
+                        {conn.status}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Separator line */}
+              <div style={{
+                height: 1,
+                background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                margin: '2px 0',
+              }} />
+
+              {/* Throughput stats row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: 8.5, fontWeight: 500, textTransform: 'uppercase', color: tk.textSec, letterSpacing: '0.04em' }}>
+                    Rate
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: tk.text, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+                    {piConnected ? `${pps.toFixed(1)} pps` : '0.0 pps'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: 8.5, fontWeight: 500, textTransform: 'uppercase', color: tk.textSec, letterSpacing: '0.04em' }}>
+                    Latency
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: tk.text, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+                    {piConnected && avgLatency > 0 ? `${avgLatency} ms` : '—'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'right', textAlign: 'right' }}>
+                  <span style={{ fontSize: 8.5, fontWeight: 500, textTransform: 'uppercase', color: tk.textSec, letterSpacing: '0.04em' }}>
+                    Total Ingested
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: tk.text, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+                    {totalIngested.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
-
       </div>
 
       <style>{`
