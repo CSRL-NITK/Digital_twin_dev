@@ -120,6 +120,18 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
       });
     });
 
+    // Listen to node status updates from twin engine
+    socket.on('node:status_update', (data: { id: number; status: string }) => {
+      setNodes(prev =>
+        prev.map(node => {
+          if (node.id === data.id) {
+            return { ...node, status: data.status };
+          }
+          return node;
+        })
+      );
+    });
+
     return () => {
       socket.disconnect();
     };

@@ -458,6 +458,15 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
       }));
     });
 
+    socket.on('node:status_update', (data: { id: number; status: string }) => {
+      setNodes(prev => prev.map(node => {
+        if (node.id === data.id) {
+          return { ...node, status: data.status };
+        }
+        return node;
+      }));
+    });
+
     return () => {
       socket.disconnect();
     };
