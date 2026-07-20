@@ -152,16 +152,35 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
 
   // Compute System Health based on warning/critical alerts in the last 2 hours
   const systemHealth = useMemo(() => {
-    let score = 100;
+    if (nodes.length === 0) return 100;
+
+    const nodeAlertMap = new Map<string, string>();
     alerts.forEach(a => {
       const ageHours = (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60);
       if (ageHours < 2) {
-        if (a.severity === 'Critical') score -= 12;
-        else if (a.severity === 'Warning') score -= 5;
+        const existing = nodeAlertMap.get(a.nodeId);
+        if (existing !== 'Critical') {
+          nodeAlertMap.set(a.nodeId, a.severity);
+        }
       }
     });
-    return Math.max(50, score);
-  }, [alerts]);
+
+    let criticalCount = 0;
+    let warningCount = 0;
+    let healthyCount = 0;
+
+    nodes.forEach(n => {
+      if (n.status === 'offline') return;
+      const alertSeverity = nodeAlertMap.get(n.id);
+      if (alertSeverity === 'Critical') criticalCount++;
+      else if (alertSeverity === 'Warning') warningCount++;
+      else healthyCount++;
+    });
+
+    const total = nodes.length;
+    const score = ((healthyCount + warningCount * 0.5) / total) * 100;
+    return Math.round(score);
+  }, [nodes, alerts]);
 
   // Calculate current average water quality metrics across the system
   const averages = useMemo(() => {
