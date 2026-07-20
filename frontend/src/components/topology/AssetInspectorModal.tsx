@@ -64,7 +64,7 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const currentLiveSpeed = node.data?.status === 'Critical' ? 2450 : 2900;
-  const currentFillPct = node.data?.waterLevel ?? 65;
+  const currentFillPct = node.data?.waterLevel ?? 0;
   const currentLiveVolume = Math.round((currentFillPct / 100) * maxCapacity);
 
   const parentOptions = allNodes.filter(n => ['tank', 'central_tank', 'source_tank', 'source', 'pump'].includes(n.type));

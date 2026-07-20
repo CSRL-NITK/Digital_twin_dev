@@ -97,8 +97,8 @@ const clampPercentage = (value: number | undefined) =>
   Math.max(0, Math.min(100, value ?? 0));
 
 const deriveTankState = (data: LiveNodeData) => {
-  const fillPercentage = clampPercentage(data?.waterLevel ?? 65);
-  const temperature = data?.temperature ?? 24;
+  const fillPercentage = clampPercentage(data?.waterLevel ?? 0);
+  const temperature = data?.temperature ?? 0;
   return {
     fillPercentage,
     temperature,
@@ -1012,10 +1012,10 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   })();
 
   const configs: Record<string, { icon: any; color: string; val: string; svgName: string }> = {
-    water_level: { icon: <Gauge size={14} />, color: '#38bdf8', val: `${data?.waterLevel ?? 65}%`, svgName: 'ultrasonic' },
-    ph: { icon: <Activity size={14} />, color: '#10b981', val: `${data?.ph ?? 7.12} pH`, svgName: 'ph' },
-    tds: { icon: <Zap size={14} />, color: '#f59e0b', val: `${data?.tds ?? 210} ppm`, svgName: 'tds' },
-    temperature: { icon: <Thermometer size={14} />, color: '#ef4444', val: `${data?.temperature ?? 24.5}°C`, svgName: 'temperature' },
+    water_level: { icon: <Gauge size={14} />, color: '#38bdf8', val: `${data?.waterLevel ?? 0}%`, svgName: 'ultrasonic' },
+    ph: { icon: <Activity size={14} />, color: '#10b981', val: `${data?.ph ?? 0} pH`, svgName: 'ph' },
+    tds: { icon: <Zap size={14} />, color: '#f59e0b', val: `${data?.tds ?? 0} ppm`, svgName: 'tds' },
+    temperature: { icon: <Thermometer size={14} />, color: '#ef4444', val: `${data?.temperature ?? 0}°C`, svgName: 'temperature' },
   };
   const cfg = configs[type] || configs.water_level;
 
@@ -2269,10 +2269,10 @@ export default function TopologyCanvas() {
       setNodes((nds) => {
         if (nds.some((n) => n.id === newNode.id)) return nds;
         const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(newNode.nodeType);
-        const wl = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
-        const ph = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
-        const tds = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
-        const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 24;
+        const wl = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 0;
+        const ph = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 0;
+        const tds = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 0;
+        const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 0;
 
         const cleanNds = nds.filter((n) => !(n.id.startsWith('temp-') && n.data?.nodeName === newNode.nodeName));
         const { editMode: em, allowMoveResize: amr, allowMoveNodes: amn, allowResizeNodes: arn, allowDeleteNodes: adn, canControlPump: ccp } = interactivityRef.current;
@@ -2982,7 +2982,7 @@ export default function TopologyCanvas() {
         nodeName: targetName,
         status: 'healthy',
         nodeType: type,
-        waterLevel: 65, ph: 7.1, tds: 210, temperature: 24,
+        waterLevel: 0, ph: 0, tds: 0, temperature: 0,
         inletSwitchOffsetX: type !== 'pump' ? 68.6 : undefined,
         inletSwitchOffsetY: type !== 'pump' ? 51.2 : undefined,
         inletSwitchScale: type !== 'pump' ? 0.18 : undefined,
@@ -3021,10 +3021,10 @@ export default function TopologyCanvas() {
       });
 
       const newNode = res.data;
-      const wl = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 65;
-      const ph = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.1;
-      const tds = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 210;
-      const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 24;
+      const wl = newNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 0;
+      const ph = newNode.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 0;
+      const tds = newNode.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 0;
+      const temp = newNode.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 0;
 
       setNodes((nds) => {
         // If socket already added real ID, remove temp node

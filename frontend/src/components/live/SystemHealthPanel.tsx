@@ -344,8 +344,9 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
           });
 
           const total = nodes.length || 1;
-          const statusLabel = systemHealth > 90 ? 'Healthy' : systemHealth > 70 ? 'Degraded' : 'Critical';
-          const statusColor = systemHealth > 90 ? '#22c55e' : systemHealth > 70 ? '#f59e0b' : '#ef4444';
+          const hasNodes = nodes.length > 0;
+          const statusLabel = !hasNodes ? 'No Data' : (systemHealth > 90 ? 'Healthy' : systemHealth > 70 ? 'Degraded' : 'Critical');
+          const statusColor = !hasNodes ? (dark ? '#9ca3af' : '#6b7280') : (systemHealth > 90 ? '#22c55e' : systemHealth > 70 ? '#f59e0b' : '#ef4444');
 
           // Donut chart math — full circle segments
           const circumference = 2 * Math.PI * 36; // r=36
@@ -413,8 +414,8 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
                     alignItems: 'center', justifyContent: 'center',
                     pointerEvents: 'none',
                   }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: tk.text, letterSpacing: '-0.5px', lineHeight: 1 }}>
-                      {systemHealth}%
+                    <span style={{ fontSize: hasNodes ? 15 : 13.5, fontWeight: 800, color: tk.text, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                      {hasNodes ? `${systemHealth}%` : 'N/A'}
                     </span>
                     <span style={{ fontSize: 7.5, fontWeight: 600, color: statusColor, marginTop: 2, lineHeight: 1 }}>
                       {statusLabel}

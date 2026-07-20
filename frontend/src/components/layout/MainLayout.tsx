@@ -686,7 +686,17 @@ function MainLayoutContent() {
 }
 
 export default function MainLayout() {
-  const [globalTopologyId, setGlobalTopologyId] = useState('1');
+  const [globalTopologyId, setGlobalTopologyId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.includes('/topology/')) {
+        const parts = path.split('/');
+        const id = parts[parts.indexOf('topology') + 1];
+        if (id) return id;
+      }
+    }
+    return '1';
+  });
   return (
     <TopologyContext.Provider value={{ globalTopologyId, setGlobalTopologyId }}>
       <MainLayoutContent />

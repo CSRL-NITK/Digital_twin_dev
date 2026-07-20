@@ -236,16 +236,19 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
     }
   }, [selectedNode]);
 
-  // Fetch tanks
+  // Fetch tanks — reset state fully when topology changes
   useEffect(() => {
     if (!topologyId) return;
+    setTanks([]);
+    setSelectedTankId('');
+    setData([]);
     axios.get(`http://localhost:3001/api/topologies/${topologyId}`)
       .then(res => {
         const tankNodes = (res.data?.nodes ?? []).filter((n: any) =>
           n.nodeType?.includes('tank') || n.nodeType?.includes('source')
         );
         setTanks(tankNodes);
-        if (tankNodes.length > 0 && !selectedTankId) setSelectedTankId(tankNodes[0].id.toString());
+        if (tankNodes.length > 0) setSelectedTankId(tankNodes[0].id.toString());
       })
       .catch(console.error);
   }, [topologyId]);
