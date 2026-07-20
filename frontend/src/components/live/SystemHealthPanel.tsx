@@ -154,7 +154,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
   const systemHealth = useMemo(() => {
     if (nodes.length === 0) return 100;
 
-    const nodeAlertMap = new Map<string, string>();
+    const nodeAlertMap = new Map<number, string>();
     alerts.forEach(a => {
       const ageHours = (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60);
       if (ageHours < 2) {
@@ -170,10 +170,14 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
     let healthyCount = 0;
 
     nodes.forEach(n => {
-      if (n.status === 'offline') return;
+      const statusLower = n.status?.toLowerCase();
+      if (statusLower === 'offline') return;
       const alertSeverity = nodeAlertMap.get(n.id);
-      if (alertSeverity === 'Critical') criticalCount++;
-      else if (alertSeverity === 'Warning') warningCount++;
+      const severity = alertSeverity || n.status;
+      const severityLower = severity?.toLowerCase();
+
+      if (severityLower === 'critical') criticalCount++;
+      else if (severityLower === 'warning') warningCount++;
       else healthyCount++;
     });
 
@@ -241,7 +245,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
 
   // Node online status counts
   const onlineCount = useMemo(() => {
-    return nodes.filter(n => n.status !== 'offline').length;
+    return nodes.filter(n => n.status?.toLowerCase() !== 'offline').length;
   }, [nodes]);
 
   // Theme configuration tokens
@@ -330,16 +334,20 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
             }
           });
 
-          const offlineCount = nodes.filter(n => n.status === 'offline').length;
+          const offlineCount = nodes.filter(n => n.status?.toLowerCase() === 'offline').length;
           let criticalCount = 0;
           let warningCount = 0;
           let healthyCount = 0;
 
           nodes.forEach(n => {
-            if (n.status === 'offline') return;
+            const statusLower = n.status?.toLowerCase();
+            if (statusLower === 'offline') return;
             const alertSeverity = nodeAlertMap.get(n.id);
-            if (alertSeverity === 'Critical') criticalCount++;
-            else if (alertSeverity === 'Warning') warningCount++;
+            const severity = alertSeverity || n.status;
+            const severityLower = severity?.toLowerCase();
+
+            if (severityLower === 'critical') criticalCount++;
+            else if (severityLower === 'warning') warningCount++;
             else healthyCount++;
           });
 
