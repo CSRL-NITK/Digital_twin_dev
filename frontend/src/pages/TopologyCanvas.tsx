@@ -109,6 +109,24 @@ const deriveTankState = (data: LiveNodeData) => {
   } as const;
 };
 
+const SENSOR_RATIOS: Record<string, { pctX: number; pctY: number; w: number; h: number }> = {
+  water_level: { pctX: 0.3412, pctY: 0.1602, w: 97, h: 93 },
+  ph: { pctX: 0.5180, pctY: 0.4502, w: 162, h: 164 },
+  tds: { pctX: 0.0346, pctY: 0.4848, w: 106, h: 143 },
+  temperature: { pctX: 0.4075, pctY: 0.5411, w: 144, h: 118 },
+};
+
+const getSensorPosition = (type: string, px: number, py: number, pw: number, ph: number, flip: boolean) => {
+  const ratio = SENSOR_RATIOS[type];
+  if (!ratio) return { x: px + 10, y: py + 10 };
+  let x = px + ratio.pctX * pw;
+  if (flip) {
+    x = px + (1 - ratio.pctX) * pw - ratio.w;
+  }
+  const y = py + ratio.pctY * ph;
+  return { x: Math.round(x), y: Math.round(y) };
+};
+
 const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
   if (isSensor || ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(type)) {
     return { width: 90, height: 90 };
@@ -1585,6 +1603,10 @@ export default function TopologyCanvas() {
     }
 
     setNodes((nds) => {
+      const parentNode = nds.find(n => n.id === targetId);
+      const isTank = parentNode?.type === 'tank';
+      const parentFlip = !!parentNode?.data?.flipHorizontal;
+
       const updatedNodes = nds.map((n) => {
         if (n.id === targetId) {
           return {
@@ -1600,6 +1622,20 @@ export default function TopologyCanvas() {
         }
         return n;
       });
+
+      if (isTank) {
+        updatedNodes.forEach((n) => {
+          if (n.data?.parentAssetId === targetId && SENSOR_RATIOS[n.type]) {
+            const newPos = getSensorPosition(n.type, newX, newY, newW, newH, parentFlip);
+            n.position = newPos;
+
+            // Patch child sensor position in backend
+            axios.patch(`${BACKEND_URL}/api/nodes/${n.id}/position`, {
+              positionX: newPos.x, positionY: newPos.y
+            }).catch(console.error);
+          }
+        });
+      }
 
       axios.patch(`${BACKEND_URL}/api/nodes/${targetId}`, {
         attributes: { customWidth: newW, customHeight: newH }
@@ -2668,6 +2704,9 @@ export default function TopologyCanvas() {
       }
 
       setNodes((nds) => {
+        const targetNode = nds.find(n => n.id === nodeId);
+        const isTank = targetNode?.type === 'tank' || updatedProps.nodeType === 'tank';
+
         const updatedNodes = nds.map(n => {
           if (n.id === nodeId) {
             const parentName = updatedProps.parentAssetId
@@ -2703,6 +2742,52 @@ export default function TopologyCanvas() {
           }
           return n;
         });
+
+        // If the updated node is a tank, reposition all its child sensors
+        if (isTank) {
+          const px = targetNode?.position.x ?? 0;
+          const py = targetNode?.position.y ?? 0;
+          const pw = updatedProps.customWidth || targetNode?.data?.customWidth || 295;
+          const ph = updatedProps.customHeight || targetNode?.data?.customHeight || 376;
+          const pflip = updatedProps.flipHorizontal !== undefined ? updatedProps.flipHorizontal : !!targetNode?.data?.flipHorizontal;
+
+          updatedNodes.forEach(n => {
+            if (n.data?.parentAssetId === nodeId && SENSOR_RATIOS[n.type]) {
+              const newPos = getSensorPosition(n.type, px, py, pw, ph, pflip);
+              n.position = newPos;
+
+              // Save new sensor position to database
+              axios.patch(`${BACKEND_URL}/api/nodes/${n.id}/position`, {
+                positionX: newPos.x, positionY: newPos.y
+              }).catch(console.error);
+            }
+          });
+        }
+
+        // If the updated node is a sensor and parentAssetId was changed/set
+        const isSensor = SENSOR_RATIOS[targetNode?.type || ''];
+        if (isSensor && updatedProps.parentAssetId) {
+          const parentTank = nds.find(p => p.id === updatedProps.parentAssetId);
+          if (parentTank) {
+            const pX = parentTank.position.x;
+            const pY = parentTank.position.y;
+            const pW = parentTank.data?.customWidth || parentTank.style?.width || 295;
+            const pH = parentTank.data?.customHeight || parentTank.style?.height || 376;
+            const pFlip = !!parentTank.data?.flipHorizontal;
+            const sensorType = targetNode?.type || '';
+
+            const newPos = getSensorPosition(sensorType, pX, pY, pW, pH, pFlip);
+            const sensorIdx = updatedNodes.findIndex(n => n.id === nodeId);
+            if (sensorIdx !== -1) {
+              updatedNodes[sensorIdx].position = newPos;
+            }
+
+            // Save new sensor position to database
+            axios.patch(`${BACKEND_URL}/api/nodes/${nodeId}/position`, {
+              positionX: newPos.x, positionY: newPos.y
+            }).catch(console.error);
+          }
+        }
 
         const updatedNode = updatedNodes.find(n => n.id === nodeId);
         if (updatedNode) {
