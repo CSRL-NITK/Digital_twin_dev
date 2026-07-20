@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { useState, useMemo, memo, useEffect, createContext, useContext } from 'react';
+import { io } from 'socket.io-client';
 const TopologyContext = createContext<{ globalTopologyId: string; setGlobalTopologyId: (id: string) => void; }>({ globalTopologyId: '1', setGlobalTopologyId: () => { } });
 export const useGlobalTopology = () => useContext(TopologyContext);
 import { Link, useLocation } from 'react-router-dom';
@@ -424,6 +425,128 @@ const BlankPanel = memo(function BlankPanel({ id }: { id: string }) {
 const AnalyticsStrip = memo(function AnalyticsStrip() {
   const { theme } = useTheme();
   const dark = theme === 'dark';
+  const { globalTopologyId } = useGlobalTopology();
+
+  const [nodes, setNodes] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!globalTopologyId) return;
+
+    // Fetch initial topology nodes and their sensor values
+    axios.get(`http://localhost:3001/api/topologies/${globalTopologyId}`)
+      .then(res => {
+        setNodes(res.data?.nodes ?? []);
+      })
+      .catch(console.error);
+
+    // Dynamic updates via websocket
+    const socket = io('http://localhost:3001');
+
+    socket.on('sensor_update', (data: any) => {
+      setNodes(prev => prev.map(node => {
+        if (node.id.toString() !== data.nodeId.toString()) return node;
+        
+        // Update the sensor values inside the node
+        const updatedSensors = node.sensors?.map((s: any) => {
+          const match = data.sensors?.find((x: any) => x.sensorType === s.sensorType);
+          if (match) {
+            return { ...s, value: match.value };
+          }
+          return s;
+        });
+        return { ...node, sensors: updatedSensors };
+      }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [globalTopologyId]);
+
+  // Calculate current average water quality metrics across the system
+  const averages = useMemo(() => {
+    let levelSum = 0, levelCount = 0;
+    let phSum = 0, phCount = 0;
+    let tdsSum = 0, tdsCount = 0;
+    let tempSum = 0, tempCount = 0;
+
+    nodes.forEach(node => {
+      node.sensors?.forEach((s: any) => {
+        const val = s.value;
+        if (val === undefined || val === null || val === -999) return;
+        if (s.sensorType === 'water_level') {
+          levelSum += val;
+          levelCount++;
+        } else if (s.sensorType === 'ph') {
+          phSum += val;
+          phCount++;
+        } else if (s.sensorType === 'tds') {
+          tdsSum += val;
+          tdsCount++;
+        } else if (s.sensorType === 'temperature') {
+          tempSum += val;
+          tempCount++;
+        }
+      });
+    });
+
+    return {
+      level: levelCount > 0 ? (levelSum / levelCount) : 0,
+      ph: phCount > 0 ? (phSum / phCount) : 0,
+      tds: tdsCount > 0 ? (tdsSum / tdsCount) : 0,
+      temp: tempCount > 0 ? (tempSum / tempCount) : 0,
+      hasData: levelCount > 0 || phCount > 0 || tdsCount > 0 || tempCount > 0
+    };
+  }, [nodes]);
+
+  // Water Quality score logic
+  const waterQualityScore = useMemo(() => {
+    if (!averages.hasData) return 0;
+    
+    let score = 100;
+    if (averages.ph > 0) {
+      const phDiff = Math.abs(averages.ph - 7.2);
+      if (phDiff > 0.4) score -= Math.min(30, (phDiff - 0.4) * 20);
+    }
+    if (averages.temp > 0) {
+      const tempDiff = Math.abs(averages.temp - 23);
+      if (tempDiff > 3) score -= Math.min(25, (tempDiff - 3) * 5);
+    }
+    if (averages.tds > 0 && averages.tds > 300) {
+      score -= Math.min(30, (averages.tds - 300) * 0.1);
+    }
+    if (averages.level > 0 && averages.level < 20) {
+      score -= (20 - averages.level) * 1.5;
+    }
+    return Math.max(10, Math.round(score));
+  }, [averages]);
+
+  // Flow & Throughput metrics logic
+  const flowMetrics = useMemo(() => {
+    const hasNodes = nodes.length > 0;
+    const pumps = nodes.filter(n => n.nodeType === 'pump');
+    const activePumpsCount = pumps.filter(n => n.status === 'Healthy' || n.status === 'Online').length;
+    const totalPumpsCount = pumps.length;
+
+    let flowRate = 0;
+    let pressure = 0;
+    let powerLoad = 0;
+    let distribution = 0;
+
+    if (hasNodes) {
+      if (totalPumpsCount === 0) {
+        pressure = 0.5; // Gravity flow
+      } else {
+        const factor = totalPumpsCount > 0 ? (activePumpsCount / totalPumpsCount) : 1;
+        flowRate = 14.8 * factor;
+        pressure = 3.4 * factor;
+        powerLoad = 4.8 * factor;
+        distribution = 1280 * factor;
+      }
+    }
+
+    return { flowRate, pressure, powerLoad, distribution, hasNodes };
+  }, [nodes]);
 
   const colCardStyle: React.CSSProperties = {
     flex: 1,
@@ -479,16 +602,18 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
                   stroke={dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)'}
                   strokeWidth="7"
                 />
-                {/* Foreground progress path (92% circumference) */}
-                <circle
-                  cx="44" cy="44" r="36"
-                  fill="none"
-                  stroke={dark ? '#00FFFF' : '#0891b2'}
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={`${226.2 * 0.92} ${226.2 * 0.08}`}
-                  style={{ transition: 'stroke-dasharray 600ms ease' }}
-                />
+                {/* Foreground progress path */}
+                {averages.hasData && (
+                  <circle
+                    cx="44" cy="44" r="36"
+                    fill="none"
+                    stroke={dark ? '#00FFFF' : '#0891b2'}
+                    strokeWidth="7"
+                    strokeLinecap="round"
+                    strokeDasharray={`${226.2 * (waterQualityScore / 100)} ${226.2 * (1 - waterQualityScore / 100)}`}
+                    style={{ transition: 'stroke-dasharray 600ms ease' }}
+                  />
+                )}
               </svg>
               {/* Center text overlay */}
               <div style={{
@@ -497,11 +622,11 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
                 alignItems: 'center', justifyContent: 'center',
                 pointerEvents: 'none',
               }}>
-                <span style={{ fontSize: 16, fontWeight: 800, color: dark ? '#f0f0f2' : '#1a1b1e', letterSpacing: '-0.5px', lineHeight: 1 }}>
-                  92%
+                <span style={{ fontSize: averages.hasData ? 16 : 13.5, fontWeight: 800, color: dark ? '#f0f0f2' : '#1a1b1e', letterSpacing: '-0.5px', lineHeight: 1 }}>
+                  {averages.hasData ? `${waterQualityScore}%` : 'N/A'}
                 </span>
                 <span style={{ fontSize: 7.5, fontWeight: 700, color: dark ? '#00FFFF' : '#0891b2', marginTop: 2, lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Optimal
+                  {averages.hasData ? 'Optimal' : 'No Data'}
                 </span>
               </div>
             </div>
@@ -510,10 +635,10 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
           {/* RIGHT: The 4 Metrics Progress Bars (70% width) */}
           <div style={{ width: '70%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
             {[
-              { label: 'Avg Water Level', value: '60.0%', pct: 60, color: '#4A90D9' },
-              { label: 'Avg pH Index', value: '7.20', pct: (7.2 / 14) * 100, color: '#7C5CFC' },
-              { label: 'Avg Temperature', value: '24.5°C', pct: (24.5 / 50) * 100, color: '#E8634A' },
-              { label: 'Avg TDS (Solids)', value: '320 ppm', pct: (320 / 1000) * 100, color: '#2ECC71' },
+              { label: 'Avg Water Level', value: averages.hasData ? `${averages.level.toFixed(1)}%` : '0.0%', pct: averages.level, color: '#4A90D9' },
+              { label: 'Avg pH Index', value: averages.hasData ? averages.ph.toFixed(2) : '0.00', pct: averages.ph > 0 ? (averages.ph / 14) * 100 : 0, color: '#7C5CFC' },
+              { label: 'Avg Temperature', value: averages.hasData ? `${averages.temp.toFixed(1)}°C` : '0.0°C', pct: averages.temp > 0 ? (averages.temp / 50) * 100 : 0, color: '#E8634A' },
+              { label: 'Avg TDS (Solids)', value: averages.hasData ? `${Math.round(averages.tds)} ppm` : '0 ppm', pct: averages.tds > 0 ? (averages.tds / 1000) * 100 : 0, color: '#2ECC71' },
             ].map(m => (
               <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -549,10 +674,10 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
           {[
-            { label: 'Total Flow Rate', value: '14.8 L/s', pct: (14.8 / 30) * 100, color: '#4A90D9' },
-            { label: 'System Avg Pressure', value: '3.4 bar', pct: (3.4 / 6) * 100, color: '#7C5CFC' },
-            { label: 'Active Power Load', value: '4.8 kW', pct: (4.8 / 8) * 100, color: '#E8634A' },
-            { label: 'Daily Distribution', value: '1,280 m³', pct: 64, color: '#2ECC71' },
+            { label: 'Total Flow Rate', value: flowMetrics.hasNodes ? `${flowMetrics.flowRate.toFixed(1)} L/s` : '0.0 L/s', pct: (flowMetrics.flowRate / 30) * 100, color: '#4A90D9' },
+            { label: 'System Avg Pressure', value: flowMetrics.hasNodes ? `${flowMetrics.pressure.toFixed(1)} bar` : '0.0 bar', pct: (flowMetrics.pressure / 6) * 100, color: '#7C5CFC' },
+            { label: 'Active Power Load', value: flowMetrics.hasNodes ? `${flowMetrics.powerLoad.toFixed(1)} kW` : '0.0 kW', pct: (flowMetrics.powerLoad / 8) * 100, color: '#E8634A' },
+            { label: 'Daily Distribution', value: flowMetrics.hasNodes ? `${Math.round(flowMetrics.distribution).toLocaleString()} m³` : '0 m³', pct: (flowMetrics.distribution / 2000) * 100, color: '#2ECC71' },
           ].map(m => (
             <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
