@@ -62,20 +62,48 @@ class DigitalTwinEngine {
     // Also map any newly added dynamic nodes from DB
     for (const dbNode of nodes) {
       const slug = dbNode.id.toString();
+      
+      let wl = 65, ph = 7.1, tds = 210, temp = 24;
+      let lastSeen = null;
+
+      if (dbNode.sensors && dbNode.sensors.length > 0) {
+        for (const sensor of dbNode.sensors) {
+          const latestReading = await prisma.sensorReading.findFirst({
+            where: { sensorId: sensor.id },
+            orderBy: { id: 'desc' }
+          });
+          if (latestReading) {
+            if (sensor.sensorType === 'water_level') wl = latestReading.value;
+            if (sensor.sensorType === 'ph') ph = latestReading.value;
+            if (sensor.sensorType === 'tds') tds = latestReading.value;
+            if (sensor.sensorType === 'temperature') temp = latestReading.value;
+            if (!lastSeen || latestReading.createdAt > lastSeen) {
+              lastSeen = latestReading.createdAt;
+            }
+          }
+        }
+      }
+
       if (!state[slug]) {
         state[slug] = {
           dbNodeId: dbNode.id,
           status: dbNode.status,
           dbSensors: dbNode.sensors,
-          waterLevel: 65,
-          ph: 7.1,
-          tds: 210,
-          temperature: 24
+          waterLevel: wl,
+          ph: ph,
+          tds: tds,
+          temperature: temp,
+          lastUpdated: lastSeen || new Date()
         };
       } else {
         state[slug].dbNodeId = dbNode.id;
         state[slug].status = dbNode.status;
         state[slug].dbSensors = dbNode.sensors;
+        if (state[slug].waterLevel === undefined) state[slug].waterLevel = wl;
+        if (state[slug].ph === undefined) state[slug].ph = ph;
+        if (state[slug].tds === undefined) state[slug].tds = tds;
+        if (state[slug].temperature === undefined) state[slug].temperature = temp;
+        if (!state[slug].lastUpdated && lastSeen) state[slug].lastUpdated = lastSeen;
       }
     }
 

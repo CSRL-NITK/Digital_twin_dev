@@ -227,7 +227,29 @@ app.get('/api/topologies/:id', async (req, res) => {
   if (!topology) {
     return res.status(404).json({ error: 'Topology not found' });
   }
-  res.json(topology);
+
+  // Inject the latest database sensor reading value for each sensor
+  const nodesWithValues = await Promise.all(topology.nodes.map(async (node) => {
+    const sensorsWithValues = await Promise.all(node.sensors.map(async (sensor) => {
+      const latestReading = await prisma.sensorReading.findFirst({
+        where: { sensorId: sensor.id },
+        orderBy: { id: 'desc' }
+      });
+      return {
+        ...sensor,
+        value: latestReading ? latestReading.value : undefined
+      };
+    }));
+    return {
+      ...node,
+      sensors: sensorsWithValues
+    };
+  }));
+
+  res.json({
+    ...topology,
+    nodes: nodesWithValues
+  });
 });
 
 app.get('/api/nodes', async (req, res) => {
