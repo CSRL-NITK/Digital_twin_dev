@@ -1901,11 +1901,12 @@ export default function TopologyCanvas() {
           : (editMode && allowMoveResize && allowMoveNodes && !allowMoveSwitches);
 
         const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(n.type || '');
-        const zIndexVal = isSensor ? (editMode ? 20 : 1) : 5;
+        const zIndexVal = isSensor ? 20 : 5;
+        const pointerEventsVal = isSensor ? (editMode ? 'auto' : 'none') : 'auto';
         return {
           ...n,
           draggable: canDrag,
-          style: { ...n.style, zIndex: zIndexVal },
+          style: { ...n.style, zIndex: zIndexVal, pointerEvents: pointerEventsVal as React.CSSProperties['pointerEvents'] },
           data: {
             ...n.data,
             editMode,
@@ -2075,7 +2076,8 @@ export default function TopologyCanvas() {
             const w = cfg.customWidth || (node.width && node.height ? node.width : defDims.width);
             const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
             const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(node.nodeType);
-            const zIndexVal = isSensor ? (editMode ? 20 : 1) : 5;
+            const zIndexVal = isSensor ? 20 : 5;
+            const pointerEventsVal = isSensor ? (editMode ? 'auto' : 'none') : 'auto';
 
             const wl = node.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 0;
             const phVal = node.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 0;
@@ -2087,7 +2089,7 @@ export default function TopologyCanvas() {
               type: node.nodeType,
               position: { x: node.positionX, y: node.positionY },
               draggable: false, // locked by default; edit mode enables
-              style: { width: w, height: h, zIndex: zIndexVal },
+              style: { width: w, height: h, zIndex: zIndexVal, pointerEvents: pointerEventsVal as React.CSSProperties['pointerEvents'] },
               data: {
                 nodeName: node.nodeName,
                 status: node.status,
@@ -2980,7 +2982,7 @@ export default function TopologyCanvas() {
       type,
       position: { x: posX, y: posY },
       draggable: canDragDrop,
-      style: { width: nodeW, height: nodeH, zIndex: isSensor ? 20 : 5 },
+      style: { width: nodeW, height: nodeH, zIndex: isSensor ? 20 : 5, pointerEvents: (isSensor ? (em ? 'auto' : 'none') : 'auto') as React.CSSProperties['pointerEvents'] },
       data: {
         nodeName: targetName,
         status: 'healthy',
