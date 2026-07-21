@@ -13,6 +13,9 @@ import authRoutes from './routes/auth.routes';
 import bcrypt from 'bcrypt';
 import { twinEngine } from './services/twin.service';
 import { alertEngine } from './services/alert.service';
+import { initMqttService } from './services/mqtt.service';
+import { hydroTwinEngine } from './services/hydro-twin.service';
+import { hydroAlertEngine } from './services/hydro-alert.service';
 
 // Sync admin, operator, and viewer credentials from .env
 async function syncAdminUser() {
@@ -594,8 +597,36 @@ const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
   
-  // Initialize Twin Engine & Alert Engine
+  // Initialize Topology Twin Engine & Alert Engine
   twinEngine.setSocketServer(io);
   twinEngine.initDbMapping();
   alertEngine.setSocketServer(io);
+
+  // MQTT Broker Setup
+  const { Aedes } = require('aedes');
+  const mqttServerFactory = require('aedes-server-factory');
+  const MQTT_PORT = process.env.MQTT_PORT ? parseInt(process.env.MQTT_PORT) : 1884;
+
+  Aedes.createBroker().then((aedes: any) => {
+    aedes.on('client', (client: any) => {
+      console.log('Aedes client connected:', client ? client.id : client);
+    });
+    aedes.on('clientError', (client: any, err: any) => console.log('Aedes Client error:', client ? client.id : '', err));
+    aedes.on('connectionError', (client: any, err: any) => console.log('Aedes Connection error:', client ? client.id : '', err));
+
+    const mqttServer = mqttServerFactory.createServer(aedes);
+    mqttServer.listen(MQTT_PORT, '0.0.0.0', () => {
+      console.log(`MQTT Broker running on port ${MQTT_PORT}`);
+      
+      // Initialize Hydroponic Twin Engine & Alert Engine
+      hydroTwinEngine.setSocketServer(io);
+      hydroTwinEngine.initDbMapping();
+      hydroAlertEngine.setSocketServer(io);
+
+      // Initialize the external MQTT service pipeline
+      initMqttService(io);
+    });
+  }).catch((err: any) => {
+    console.error('Failed to start Aedes broker:', err);
+  });
 });

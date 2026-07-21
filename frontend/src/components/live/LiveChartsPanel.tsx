@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
@@ -434,7 +434,7 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
             }}>
               {tanks.length === 0 ? (
                 <div style={{ padding: '8px 10px', fontSize: 11.5, color: tk.textMuted }}>No tanks found</div>
-              ) : tanks.map((tank, i) => {
+              ) : tanks.map((tank) => {
                 const active = selectedTankId === tank.id.toString();
                 return (
                   <div

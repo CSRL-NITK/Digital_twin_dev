@@ -8,13 +8,15 @@ import {
   ChevronDown, Bell, LogOut,
   Activity, LayoutDashboard, BarChart2,
   Moon, Sun, Droplets,
-  Wifi, Server, AlertTriangle, Users, Gauge,
+  Server, Users, Gauge,
+  Zap, Sliders,
 } from 'lucide-react';
 import axios from 'axios';
 import { useTheme } from '../ThemeProvider';
 import { useAuth } from '../../hooks/useAuth';
 import LiveChartsPanel from '../live/LiveChartsPanel';
 import SystemHealthPanel from '../live/SystemHealthPanel';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from 'recharts';
 
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR
@@ -750,6 +752,156 @@ function MainLayoutContent() {
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies');
 
+  const [topology, setTopology] = useState<any>(null);
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [nodeMap, setNodeMap] = useState<Record<string, string>>({});
+  const [history, setHistory] = useState<Record<string, any[]>>({
+    T1: [], T2: [], T3: [], T4: [], CENTRAL: [], PUMP: []
+  });
+  const [liveLogs, setLiveLogs] = useState<string[]>([]);
+  const idFromUrl = pathname.startsWith('/topology/') ? pathname.split('/')[2] : null;
+
+  // Sync active topology details
+  useEffect(() => {
+    if (idFromUrl) {
+      axios.get(`http://localhost:3001/api/topologies/${idFromUrl}`)
+        .then(res => setTopology(res.data))
+        .catch(err => console.error(err));
+    } else {
+      setTopology(null);
+    }
+  }, [idFromUrl]);
+
+  // Fetch initial nodes for Hydroponic Topology
+  useEffect(() => {
+    if (topology && topology.name.toLowerCase().includes('hydroponic')) {
+      const fetchInitialData = async () => {
+        try {
+          const nodesRes = await axios.get(`http://localhost:3001/api/nodes`);
+          const hydroNodes = nodesRes.data.filter((n: any) => n.topologyId === topology.id);
+          setNodes(hydroNodes);
+
+          const mapping: Record<string, string> = {};
+          const seededHistory: Record<string, any[]> = {};
+
+          hydroNodes.forEach((node: any) => {
+            let slug = node.nodeName.toUpperCase();
+            if (slug.includes('PUMP')) slug = 'PUMP';
+            else if (slug.includes('CENTRAL')) slug = 'CENTRAL';
+            mapping[node.id] = slug;
+
+            // Generate seed data
+            const ph = node.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 6.35;
+            const tds = node.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 920;
+            const turbidity = node.sensors?.find((s: any) => s.sensorType === 'turbidity')?.value ?? 12.0;
+            const water_temp = node.sensors?.find((s: any) => s.sensorType === 'water_temp')?.value ?? 22.4;
+            const air_temp = node.sensors?.find((s: any) => s.sensorType === 'air_temp')?.value ?? 28.7;
+            const light_intensity = node.sensors?.find((s: any) => s.sensorType === 'light_intensity')?.value ?? 350;
+
+            seededHistory[slug] = generateSeedData({ ph, tds, turbidity, water_temp, air_temp, light_intensity });
+          });
+
+          setNodeMap(mapping);
+          setHistory(seededHistory);
+        } catch (err) {
+          console.error('Hydro initial fetch error:', err);
+        }
+      };
+
+      fetchInitialData();
+    }
+  }, [topology]);
+
+  // WebSocket listeners for Hydroponic Topology
+  useEffect(() => {
+    if (topology && topology.name.toLowerCase().includes('hydroponic') && Object.keys(nodeMap).length > 0) {
+      const socket = io('http://localhost:3001');
+
+      socket.on('sensor_update', (data) => {
+        setNodes(prev => prev.map(node => {
+          if (node.id === data.nodeId) {
+            return { ...node, status: data.status, sensors: data.sensors };
+          }
+          return node;
+        }));
+
+        setHistory(prev => {
+          const slug = nodeMap[data.nodeId] || data.nodeId;
+          const prevList = prev[slug] || [];
+
+          const ph = data.sensors.find((s: any) => s.sensorType === 'ph')?.value ?? 6.35;
+          const tds = data.sensors.find((s: any) => s.sensorType === 'tds')?.value ?? 920;
+          const turbidity = data.sensors.find((s: any) => s.sensorType === 'turbidity')?.value ?? 12.0;
+          const water_temp = data.sensors.find((s: any) => s.sensorType === 'water_temp')?.value ?? 22.4;
+          const air_temp = data.sensors.find((s: any) => s.sensorType === 'air_temp')?.value ?? 28.7;
+          const light_intensity = data.sensors.find((s: any) => s.sensorType === 'light_intensity')?.value ?? 350;
+
+          const nextList = [...prevList, {
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            ph, tds, turbidity, water_temp, air_temp, light_intensity
+          }].slice(-15);
+
+          return { ...prev, [slug]: nextList };
+        });
+
+        // Update selectedNode state in real-time
+        setSelectedNode((prev: any) => {
+          if (prev && prev.id === data.nodeId) {
+            const ph = data.sensors.find((s: any) => s.sensorType === 'ph')?.value;
+            const tds = data.sensors.find((s: any) => s.sensorType === 'tds')?.value;
+            const turbidity = data.sensors.find((s: any) => s.sensorType === 'turbidity')?.value;
+            const water_temp = data.sensors.find((s: any) => s.sensorType === 'water_temp')?.value;
+            const air_temp = data.sensors.find((s: any) => s.sensorType === 'air_temp')?.value;
+            const light_intensity = data.sensors.find((s: any) => s.sensorType === 'light_intensity')?.value;
+            return {
+              ...prev,
+              ph,
+              tds,
+              turbidity,
+              water_temp,
+              air_temp,
+              light_intensity,
+              status: data.status,
+              sensors: data.sensors
+            };
+          }
+          return prev;
+        });
+
+        setLiveLogs(prevLogs => {
+          const timeStr = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const slug = nodeMap[data.nodeId] || data.nodeId;
+          
+          const ph = data.sensors.find((s: any) => s.sensorType === 'ph')?.value;
+          const tds = data.sensors.find((s: any) => s.sensorType === 'tds')?.value;
+          
+          let msg = `[${timeStr}] ${slug}:`;
+          if (ph !== undefined) msg += ` pH=${Number(ph).toFixed(2)}`;
+          if (tds !== undefined) msg += ` TDS=${Number(tds).toFixed(0)}ppm`;
+          
+          if (ph === undefined && tds === undefined) {
+            msg += ` status=${data.status}`;
+          }
+          
+          return [msg, ...prevLogs].slice(0, 5);
+        });
+      });
+
+      socket.on('node:status_update', (data) => {
+        setNodes(prev => prev.map(node => {
+          if (node.id === data.id) {
+            return { ...node, status: data.status };
+          }
+          return node;
+        }));
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [topology, nodeMap]);
+
   const outletContext = useMemo(() => ({ selectedNode, setSelectedNode }), [selectedNode]);
 
   return (
@@ -777,7 +929,14 @@ function MainLayoutContent() {
         {/* Left panel — hide on full width pages */}
         {!isFullWidthPage && (
           <div style={{ width: 290, flexShrink: 0, display: 'flex' }}>
-            {pathname.startsWith('/topology') ? (
+            {topology?.name.toLowerCase().includes('hydroponic') ? (
+              <TelemetryPanel
+                selectedNode={selectedNode}
+                history={history}
+                dark={dark}
+                nodes={nodes}
+              />
+            ) : pathname.startsWith('/topology') ? (
               <LiveChartsPanel topologyId={globalTopologyId} selectedNode={selectedNode} />
             ) : (
               <BlankPanel id="left-panel" />
@@ -805,19 +964,719 @@ function MainLayoutContent() {
           </div>
 
           {/* Analytics strip — hide on full width pages */}
-          {!isFullWidthPage && <AnalyticsStrip />}
+          {!isFullWidthPage && (
+            topology?.name.toLowerCase().includes('hydroponic') ? (
+              <HydroponicAnalyticsStrip
+                dark={dark}
+                history={history}
+                selectedNode={selectedNode}
+                nodeMap={nodeMap}
+              />
+            ) : (
+              <AnalyticsStrip />
+            )
+          )}
         </div>
 
         {/* Right panel — hide on full width pages */}
         {!isFullWidthPage && (
           <div style={{ width: 290, flexShrink: 0, display: 'flex' }}>
-            <SystemHealthPanel topologyId={globalTopologyId} />
+            {topology?.name.toLowerCase().includes('hydroponic') ? (
+              <KPIDashboardPanel
+                selectedNode={selectedNode}
+                nodes={nodes}
+                dark={dark}
+                liveLogs={liveLogs}
+              />
+            ) : (
+              <SystemHealthPanel topologyId={globalTopologyId} />
+            )}
           </div>
         )}
       </div>
     </div>
   );
 }
+
+/* ════════════════════════════════════════════════════════════════
+   HYDROPONICS TELEMETRY PANEL (Left panel)
+   ════════════════════════════════════════════════════════════════ */
+interface TelemetryPanelProps {
+  selectedNode: any;
+  history: Record<string, any[]>;
+  dark: boolean;
+  nodes: any[];
+}
+
+function TelemetryPanel({ selectedNode, history, dark, nodes }: TelemetryPanelProps) {
+  const [valveOpen, setValveOpen] = useState(true);
+  const [muted, setMuted] = useState(false);
+
+  const activeNode = useMemo(() => {
+    if (selectedNode) return selectedNode;
+    return nodes.find(n => n.nodeType === 'central_tank') || nodes[0] || null;
+  }, [selectedNode, nodes]);
+
+  const slug = useMemo(() => {
+    if (!activeNode) return 'CENTRAL';
+    let s = activeNode.nodeName.toUpperCase();
+    if (s.includes('PUMP')) return 'PUMP';
+    if (s.includes('CENTRAL')) return 'CENTRAL';
+    return s;
+  }, [activeNode]);
+
+  const ph = activeNode?.ph ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 6.35;
+  const tds = activeNode?.tds ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 920;
+  const turbidity = activeNode?.turbidity ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'turbidity')?.value ?? 12.0;
+  const water_temp = activeNode?.water_temp ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'water_temp')?.value ?? 22.4;
+  const air_temp = activeNode?.air_temp ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'air_temp')?.value ?? 28.7;
+  const light_intensity = activeNode?.light_intensity ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'light_intensity')?.value ?? 350;
+
+  const chartData = history[slug] || [];
+
+  const renderSparkline = (id: string, label: string, value: string | number, dataKey: string, color: string) => {
+    return (
+      <div
+        key={id}
+        style={{
+          padding: '10px 12px',
+          borderRadius: 12,
+          background: dark ? '#22232a' : '#f9f9f9',
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          flex: 1,
+          minHeight: 70
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b' }}>{label}</span>
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: dark ? '#ffffff' : '#17181c' }}>{value}</span>
+        </div>
+        <div style={{ height: 38, width: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`gradient-${id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={color} stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey={dataKey}
+                stroke={color}
+                strokeWidth={1.5}
+                fillOpacity={1}
+                fill={`url(#gradient-${id})`}
+                isAnimationActive={false}
+              />
+              <XAxis dataKey="time" hide />
+              <YAxis domain={['auto', 'auto']} hide />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        width: '100%', height: '100%',
+        background: dark ? '#1c1d22' : '#ffffff',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
+        borderRadius: 18,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        display: 'flex', flexDirection: 'column',
+        padding: '14px 12px',
+        overflow: 'hidden'
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexShrink: 0 }}>
+        <span style={{
+          fontSize: 12, fontWeight: 850, letterSpacing: '-0.3px', color: dark ? '#f0f0f2' : '#17181c',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%'
+        }} title={activeNode ? activeNode.nodeName : 'Hydroponic System'}>
+          {activeNode ? activeNode.nodeName : 'Hydroponic System'}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>
+        {renderSparkline('ph', 'pH Level', Number(ph).toFixed(2), 'ph', '#00e5a0')}
+        {renderSparkline('tds', 'TDS Level', `${Number(tds).toFixed(0)} ppm`, 'tds', '#00aaff')}
+        {renderSparkline('turbidity', 'Turbidity', `${Number(turbidity).toFixed(1)} NTU`, 'turbidity', '#00d4c8')}
+        {renderSparkline('water_temp', 'Water Temp', `${Number(water_temp).toFixed(1)} °C`, 'water_temp', '#ffb347')}
+        {renderSparkline('air_temp', 'Air Temp', `${Number(air_temp).toFixed(1)} °C`, 'air_temp', '#c08aff')}
+        {renderSparkline('light_intensity', 'Light Intensity', `${Number(light_intensity).toFixed(0)} lux`, 'light_intensity', '#ffe066')}
+      </div>
+
+      {/* Bottom Node Diagnostics Card */}
+      <div
+        style={{
+          marginTop: 10,
+          padding: '10px 12px',
+          borderRadius: 12,
+          background: dark ? '#22232a' : '#f9f9f9',
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          flexShrink: 0
+        }}
+      >
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Node Diagnostics</span>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: dark ? '#9ca3af' : '#5a5f6b' }}>Type</span>
+            <span style={{ fontWeight: 750, color: dark ? '#ffffff' : '#17181c', textTransform: 'capitalize' }}>{activeNode?.nodeType === 'pump' ? 'System Pump' : (activeNode?.nodeType === 'central_tank' ? 'Central Reservoir' : 'Sub-Tank')}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: dark ? '#9ca3af' : '#5a5f6b' }}>Position</span>
+            <span style={{ fontWeight: 750, color: dark ? '#ffffff' : '#17181c' }}>X: {activeNode?.positionX ?? 0}, Y: {activeNode?.positionY ?? 0}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: dark ? '#9ca3af' : '#5a5f6b' }}>Link Status</span>
+            <span style={{ fontWeight: 750, color: '#22c55e', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 5px #22c55e' }} />
+              Active
+            </span>
+          </div>
+        </div>
+
+        <div style={{ borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, paddingTop: 6, marginTop: 2 }}>
+          <span style={{ fontSize: 8.5, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Actuators</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => setValveOpen(!valveOpen)}
+              style={{
+                flex: 1, fontSize: 8.5, fontWeight: 800, padding: '4px 0', borderRadius: 5, cursor: 'pointer',
+                border: 'none', background: valveOpen ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+                color: valveOpen ? '#22c55e' : '#ef4444', transition: 'all 0.12s'
+              }}
+            >
+              Valve: {valveOpen ? 'OPEN' : 'CLOSE'}
+            </button>
+            <button
+              onClick={() => setMuted(!muted)}
+              style={{
+                flex: 1, fontSize: 8.5, fontWeight: 800, padding: '4px 0', borderRadius: 5, cursor: 'pointer',
+                border: 'none', background: muted ? 'rgba(245,158,11,0.12)' : 'rgba(156,163,175,0.12)',
+                color: muted ? '#f59e0b' : (dark ? '#9ca3af' : '#5a5f6b'), transition: 'all 0.12s'
+              }}
+            >
+              Alerts: {muted ? 'MUTED' : 'LIVE'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HYDROPONICS KPI DASHBOARD PANEL (Right panel)
+   ════════════════════════════════════════════════════════════════ */
+interface KPIDashboardPanelProps {
+  selectedNode: any;
+  nodes: any[];
+  dark: boolean;
+  liveLogs: string[];
+}
+
+function KPIDashboardPanel({ selectedNode, nodes, dark, liveLogs }: KPIDashboardPanelProps) {
+  const activeNode = useMemo(() => {
+    if (selectedNode) return selectedNode;
+    return nodes.find(n => n.nodeType === 'central_tank') || nodes[0] || null;
+  }, [selectedNode, nodes]);
+
+  const pumpNode = useMemo(() => {
+    return nodes.find(n => n.nodeType === 'pump') || null;
+  }, [nodes]);
+
+  const pumpStatus = pumpNode?.status || 'Healthy';
+
+  const ph = activeNode?.ph ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 6.35;
+  const temp = activeNode?.water_temp ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'water_temp')?.value ?? 22.4;
+  const tds = activeNode?.tds ?? activeNode?.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 920;
+
+  const avgMetrics = useMemo(() => {
+    const tankNodes = nodes.filter(n => n.nodeType === 'tank' || n.nodeType === 'central_tank');
+    if (tankNodes.length === 0) return { ph: 6.35, tds: 920, temp: 22.4 };
+    
+    let sumPh = 0, sumTds = 0, sumTemp = 0, count = 0;
+    tankNodes.forEach(n => {
+      const phVal = n.ph ?? n.sensors?.find((s: any) => s.sensorType === 'ph')?.value;
+      const tdsVal = n.tds ?? n.sensors?.find((s: any) => s.sensorType === 'tds')?.value;
+      const tempVal = n.water_temp ?? n.sensors?.find((s: any) => s.sensorType === 'water_temp')?.value;
+      
+      if (phVal !== undefined) { sumPh += Number(phVal); count++; }
+      if (tdsVal !== undefined) sumTds += Number(tdsVal);
+      if (tempVal !== undefined) sumTemp += Number(tempVal);
+    });
+
+    return {
+      ph: count > 0 ? (sumPh / count) : 6.35,
+      tds: count > 0 ? (sumTds / count) : 920,
+      temp: count > 0 ? (sumTemp / count) : 22.4
+    };
+  }, [nodes]);
+
+  const waterQualityScore = useMemo(() => {
+    if (!activeNode || activeNode.nodeType === 'pump') return 95;
+    const phDiff = Math.abs(ph - 6.35);
+    const phPenalty = phDiff * 30;
+
+    const tdsDiff = Math.max(0, Math.abs(tds - 920) - 100);
+    const tdsPenalty = tdsDiff * 0.1;
+
+    const tempDiff = Math.max(0, Math.abs(temp - 22.4) - 2);
+    const tempPenalty = tempDiff * 3;
+
+    return Math.max(45, Math.round(100 - phPenalty - tdsPenalty - tempPenalty));
+  }, [activeNode, ph, tds, temp]);
+
+  const wqColor = waterQualityScore > 85 ? '#22c55e' : (waterQualityScore > 70 ? '#f59e0b' : '#ef4444');
+  const wqText = waterQualityScore > 85 ? 'Excellent' : (waterQualityScore > 70 ? 'Warning' : 'Critical');
+
+  const flowRate = useMemo(() => {
+    if (pumpStatus.toLowerCase() === 'healthy' || pumpStatus.toLowerCase() === 'online') {
+      return Number((14.6 + (Math.random() - 0.5) * 0.2).toFixed(1));
+    } else if (pumpStatus.toLowerCase() === 'warning') {
+      return Number((8.4 + (Math.random() - 0.5) * 0.3).toFixed(1));
+    } else {
+      return 0.0;
+    }
+  }, [pumpStatus]);
+
+  const pressure = flowRate > 0 ? Number((1.8 * (flowRate / 14.6)).toFixed(1)) : 0.0;
+  const efficiency = flowRate > 0 ? Math.round((flowRate / 14.6) * 83) : 0;
+  const flowStatus = flowRate > 12 ? 'Normal' : (flowRate > 0 ? 'Low' : 'Zero');
+  const flowColor = flowRate > 12 ? '#22c55e' : (flowRate > 0 ? '#f59e0b' : '#ef4444');
+
+  const nutrientIndex = useMemo(() => {
+    if (!activeNode || activeNode.nodeType === 'pump') return 92;
+    const variance = Math.max(0, Math.min(15, Math.round(Math.abs(tds - 920) / 15)));
+    return 95 - variance;
+  }, [activeNode, tds]);
+
+  const nutColor = nutrientIndex > 85 ? '#22c55e' : (nutrientIndex > 70 ? '#f59e0b' : '#ef4444');
+  const nutText = nutrientIndex > 85 ? 'Excellent' : (nutrientIndex > 70 ? 'Warning' : 'Critical');
+
+  const systemHealthMetrics = useMemo(() => {
+    const total = nodes.length || 6;
+    const healthy = nodes.filter(n => n.status?.toLowerCase() === 'healthy' || n.status?.toLowerCase() === 'online').length;
+    const warning = nodes.filter(n => n.status?.toLowerCase() === 'warning').length;
+    const critical = nodes.filter(n => n.status?.toLowerCase() === 'critical').length;
+    const offline = nodes.filter(n => n.status?.toLowerCase() === 'offline' || n.status?.toLowerCase() === 'error').length;
+    const score = Math.round((healthy / total) * 100);
+
+    return { total, healthy, warning, critical, offline, score };
+  }, [nodes]);
+
+  const renderGauge = (title: string, score: number, color: string, statusText: string, items: Array<{ name: string; val: string | number }>) => {
+    const radius = 18;
+    const circ = 2 * Math.PI * radius;
+    const offset = circ - (score / 100) * circ;
+
+    return (
+      <div
+        key={title}
+        style={{
+          padding: '10px 12px',
+          borderRadius: 12,
+          background: dark ? '#22232a' : '#f9f9f9',
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          flex: 1,
+          minHeight: 80
+        }}
+      >
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{title}</span>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: 1, marginTop: 2 }}>
+          {/* SVG Gauge */}
+          <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0 }}>
+            <svg width="44" height="44" viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r={radius} fill="transparent" stroke={dark ? '#1c1d22' : '#e6e6e6'} strokeWidth="4" />
+              <circle cx="22" cy="22" r={radius} fill="transparent" stroke={color} strokeWidth="4" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90 22 22)" style={{ transition: 'stroke-dashoffset 0.3s' }} />
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1.05 }}>
+              <span style={{ fontSize: 9, fontWeight: 800, color: dark ? '#ffffff' : '#17181c' }}>{score}%</span>
+              <span style={{ fontSize: 5.5, fontWeight: 600, textTransform: 'uppercase', color }}>{statusText}</span>
+            </div>
+          </div>
+
+          {/* Details list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+            {items.map(item => (
+              <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5 }}>
+                <span style={{ color: dark ? '#9ca3af' : '#5a5f6b', whiteSpace: 'nowrap' }}>{item.name}</span>
+                <span style={{ fontWeight: 750, color: dark ? '#f0f0f2' : '#17181c' }}>{item.val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        width: '100%', height: '100%',
+        background: dark ? '#1c1d22' : '#ffffff',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
+        borderRadius: 18,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        display: 'flex', flexDirection: 'column',
+        padding: '14px 12px',
+        overflow: 'hidden'
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexShrink: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: 850, letterSpacing: '-0.3px', color: dark ? '#f0f0f2' : '#17181c' }}>KPI Dashboards</span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+        {renderGauge('Water Quality Score', waterQualityScore, wqColor, wqText, [
+          { name: 'pH Balance', val: `${Math.round(100 - Math.abs(ph - 6.35) * 30)}%` },
+          { name: 'TDS Balance', val: `${Math.round(Math.max(50, 100 - Math.max(0, Math.abs(tds - 920) - 100) * 0.15))}%` },
+          { name: 'Temp Balance', val: `${Math.round(Math.max(50, 100 - Math.max(0, Math.abs(temp - 22.4) - 2) * 2.5))}%` }
+        ])}
+
+        <div
+          key="flow"
+          style={{
+            padding: '10px 12px',
+            borderRadius: 12,
+            background: dark ? '#22232a' : '#f9f9f9',
+            border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            flex: 1,
+            minHeight: 80
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 9.5, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Flow Analysis</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: flowColor }}>{flowRate} L/min</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4, fontSize: 9.5, flex: 1, alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', background: dark ? '#1c1d22' : '#ffffff', padding: '4px 6px', borderRadius: 6, alignItems: 'center' }}>
+              <span style={{ color: dark ? '#9ca3af' : '#5a5f6b', fontSize: 7.5 }}>Status</span>
+              <span style={{ fontWeight: 800, color: flowColor, marginTop: 1 }}>{flowStatus}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', background: dark ? '#1c1d22' : '#ffffff', padding: '4px 6px', borderRadius: 6, alignItems: 'center' }}>
+              <span style={{ color: dark ? '#9ca3af' : '#5a5f6b', fontSize: 7.5 }}>Pressure</span>
+              <span style={{ fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', marginTop: 1 }}>{pressure} bar</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', background: dark ? '#1c1d22' : '#ffffff', padding: '4px 6px', borderRadius: 6, alignItems: 'center' }}>
+              <span style={{ color: dark ? '#9ca3af' : '#5a5f6b', fontSize: 7.5 }}>Efficiency</span>
+              <span style={{ fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', marginTop: 1 }}>{efficiency}%</span>
+            </div>
+          </div>
+        </div>
+
+        {renderGauge('Nutrient Quality Index', nutrientIndex, nutColor, nutText, [
+          { name: 'pH Stability', val: `${Math.round(100 - Math.abs(ph - 6.35) * 15)}%` },
+          { name: 'TDS Level', val: `${Math.round(Math.max(50, 100 - Math.max(0, Math.abs(tds - 920) - 100) * 0.15))}%` },
+          { name: 'Water Temp', val: `${Math.round(Math.max(50, 100 - Math.max(0, Math.abs(temp - 22.4) - 2) * 2.5))}%` }
+        ])}
+
+        {renderGauge('System Health', systemHealthMetrics.score, systemHealthMetrics.score > 80 ? '#22c55e' : (systemHealthMetrics.score > 50 ? '#f59e0b' : '#ef4444'), systemHealthMetrics.score > 80 ? 'Healthy' : 'Warning', [
+          { name: 'Healthy Nodes', val: `${systemHealthMetrics.healthy}/${systemHealthMetrics.total}` },
+          { name: 'Warnings', val: systemHealthMetrics.warning },
+          { name: 'Critical/Offline', val: systemHealthMetrics.critical + systemHealthMetrics.offline }
+        ])}
+      </div>
+
+      {/* Bottom Live Logs Card */}
+      <div
+        style={{
+          marginTop: 10,
+          padding: '10px 12px',
+          borderRadius: 12,
+          background: dark ? '#22232a' : '#f9f9f9',
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          flexShrink: 0,
+          minHeight: 120
+        }}
+      >
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live Terminal Logs</span>
+        <div
+          style={{
+            flex: 1,
+            background: dark ? '#111215' : '#1e1e1e',
+            borderRadius: 8,
+            padding: '6px 8px',
+            fontFamily: 'monospace',
+            fontSize: 8.5,
+            color: '#4ade80',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            lineHeight: 1.2,
+            textAlign: 'left'
+          }}
+        >
+          {liveLogs.length > 0 ? (
+            liveLogs.map((log, idx) => (
+              <div key={idx} style={{ wordBreak: 'break-all', opacity: Math.max(0.25, 1 - idx * 0.15) }}>
+                {log}
+              </div>
+            ))
+          ) : (
+            <div style={{ color: '#888' }}>Waiting for MQTT logs...</div>
+          )}
+        </div>
+        <div style={{ borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, paddingTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 8.5, color: dark ? '#9ca3af' : '#5a5f6b' }}>
+          <span>Avg pH: <strong>{Number(avgMetrics.ph).toFixed(2)}</strong></span>
+          <span>Avg TDS: <strong>{Math.round(avgMetrics.tds)}</strong></span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HYDROPONICS ANALYTICS STRIP
+   ════════════════════════════════════════════════════════════════ */
+interface HydroponicAnalyticsStripProps {
+  dark: boolean;
+  history: Record<string, any[]>;
+  selectedNode: any;
+  nodeMap: Record<string, string>;
+}
+
+function HydroponicAnalyticsStrip({
+  dark,
+  history,
+  selectedNode,
+  nodeMap
+}: HydroponicAnalyticsStripProps) {
+  const activeSlug = selectedNode ? nodeMap[selectedNode.id] || 'CENTRAL' : 'CENTRAL';
+  const dataList = history[activeSlug] || [];
+  
+  const latest = dataList.length > 0 ? dataList[dataList.length - 1] : { ph: 6.35, tds: 920, water_temp: 22.4, light_intensity: 350, flow_rate: 14.5, pump_status: 'normal' };
+  
+  const waterConsumed = (latest.flow_rate || 14.5) * 1.1 + 2.5;
+  const nutrientDosed = (latest.tds || 920) * 0.045 + 5.2;
+  const powerUsed = (latest.light_intensity || 350) * 0.8 + 80;
+
+  return (
+    <div
+      id="hydroponic-analytics-strip"
+      style={{
+        height: 180, flexShrink: 0,
+        display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
+        background: dark ? '#1c1d22' : '#ffffff',
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
+        borderRadius: 18, overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      }}
+    >
+      {/* ── Col 1: Water Resource Monitor ── */}
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 8,
+            background: 'rgba(59,130,246,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Droplets size={13} color="#3b82f6" strokeWidth={2.2} />
+          </div>
+          <span style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: dark ? '#9ca3af' : '#5a5f6b',
+            fontFamily: 'var(--font)',
+          }}>
+            Water Resource Monitor
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11, fontWeight: 700 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Est. Daily Consumption</span>
+            <span style={{ color: dark ? '#ffffff' : '#17181c', fontFamily: 'monospace' }}>
+              {waterConsumed.toFixed(1)} L
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Telemetry Flow Rate</span>
+            <span style={{ color: dark ? '#ffffff' : '#17181c', fontFamily: 'monospace' }}>
+              {(latest.flow_rate || 14.5).toFixed(1)} L/m
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Supply Line Status</span>
+            <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981' }} />
+              Optimal
+            </span>
+          </div>
+        </div>
+
+        <div style={{ height: 24, width: '100%', marginTop: 'auto' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={dataList.slice(-10)} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="grad-water" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Area type="monotone" dataKey="water_temp" stroke="#3b82f6" strokeWidth={1.5} fillOpacity={1} fill="url(#grad-water)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '14px 0' }} />
+
+      {/* ── Col 2: Auto-Dosing Telemetry ── */}
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 8,
+            background: 'rgba(16,185,129,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Sliders size={13} color="#10b981" strokeWidth={2.2} />
+          </div>
+          <span style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: dark ? '#9ca3af' : '#5a5f6b',
+            fontFamily: 'var(--font)',
+          }}>
+            Auto-Dosing Telemetry
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11, fontWeight: 700 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Nutrients Fed Today</span>
+            <span style={{ color: dark ? '#ffffff' : '#17181c', fontFamily: 'monospace' }}>
+              {nutrientDosed.toFixed(1)} g
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>pH Regulator Dosed</span>
+            <span style={{ color: dark ? '#ffffff' : '#17181c', fontFamily: 'monospace' }}>
+              {(Math.abs(latest.ph - 6.35) * 8 + 2.1).toFixed(1)} mL
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Dosing Pumps Status</span>
+            <span style={{ color: latest.ph < 6.0 || latest.ph > 6.8 ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: latest.ph < 6.0 || latest.ph > 6.8 ? '#f59e0b' : '#10b981' }} />
+              {latest.ph < 6.0 || latest.ph > 6.8 ? 'Adjusting pH' : 'Optimal pH'}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ height: 24, width: '100%', marginTop: 'auto' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={dataList.slice(-10)} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="grad-nutrient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Area type="monotone" dataKey="tds" stroke="#10b981" strokeWidth={1.5} fillOpacity={1} fill="url(#grad-nutrient)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '14px 0' }} />
+
+      {/* ── Col 3: Utility & Energy Grid ── */}
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 8,
+            background: 'rgba(245,158,11,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Zap size={13} color="#f59e0b" strokeWidth={2.2} />
+          </div>
+          <span style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.10em',
+            textTransform: 'uppercase', color: dark ? '#9ca3af' : '#5a5f6b',
+            fontFamily: 'var(--font)',
+          }}>
+            Utility & Energy Grid
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11, fontWeight: 700 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Lighting Draw</span>
+            <span style={{ color: dark ? '#ffffff' : '#17181c', fontFamily: 'monospace' }}>
+              {powerUsed.toFixed(0)} W
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Pump Consumption</span>
+            <span style={{ color: dark ? '#ffffff' : '#17181c', fontFamily: 'monospace' }}>
+              {latest.pump_status !== 'off' ? '45 W' : '0 W'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: dark ? '#9ca3af' : '#5a5f6b' }}>
+            <span>Daily Power Usage</span>
+            <span style={{ color: dark ? '#ffffff' : '#17181c', fontFamily: 'monospace' }}>
+              {((powerUsed + (latest.pump_status !== 'off' ? 45 : 0)) * 0.024).toFixed(2)} kWh
+            </span>
+          </div>
+        </div>
+
+        <div style={{ height: 24, width: '100%', marginTop: 'auto' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={dataList.slice(-10)} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="grad-power" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Area type="monotone" dataKey="light_intensity" stroke="#f59e0b" strokeWidth={1.5} fillOpacity={1} fill="url(#grad-power)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const generateSeedData = (baseVal: { ph: number; tds: number; turbidity: number; water_temp: number; air_temp: number; light_intensity: number }) => {
+  const data = [];
+  const now = new Date();
+  for (let i = 12; i >= 0; i--) {
+    const t = new Date(now.getTime() - i * 2000);
+    data.push({
+      time: t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      ph: Number((baseVal.ph + (Math.random() - 0.5) * 0.05).toFixed(2)),
+      tds: Number((baseVal.tds + (Math.random() - 0.5) * 10).toFixed(0)),
+      turbidity: Number((baseVal.turbidity + (Math.random() - 0.5) * 1.0).toFixed(1)),
+      water_temp: Number((baseVal.water_temp + (Math.random() - 0.5) * 0.15).toFixed(1)),
+      air_temp: Number((baseVal.air_temp + (Math.random() - 0.5) * 0.2).toFixed(1)),
+      light_intensity: Number((baseVal.light_intensity + (Math.random() - 0.5) * 15).toFixed(0))
+    });
+  }
+  return data;
+};
 
 export default function MainLayout() {
   const [globalTopologyId, setGlobalTopologyId] = useState(() => {
