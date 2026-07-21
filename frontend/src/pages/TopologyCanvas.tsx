@@ -33,6 +33,7 @@ import { FloatingNodePalette } from '../components/topology/FloatingNodePalette'
 import { AssetInspectorModal } from '../components/topology/AssetInspectorModal';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../components/ThemeProvider';
+import ModelViewer from '../components/ModelViewer';
 
 /* ─── types ──────────────────────────────────────────────────────── */
 type LiveNodeData = {
@@ -1516,6 +1517,7 @@ export default function TopologyCanvas() {
   const [activeCustomizeNodeId, setActiveCustomizeNodeId] = useState<string | null>(null);
   const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
   const [isViewportReady, setIsViewportReady] = useState(false);
+  const [topologyName, setTopologyName] = useState<string>('');
   const [showConnectMenu, setShowConnectMenu] = useState(false);
   const [activeConnectNodeId, setActiveConnectNodeId] = useState<string | null>(null);
   const [showCustomizeMenu, setShowCustomizeMenu] = useState(false);
@@ -1625,7 +1627,7 @@ export default function TopologyCanvas() {
 
       if (isTank) {
         updatedNodes.forEach((n) => {
-          if (n.data?.parentAssetId === targetId && SENSOR_RATIOS[n.type]) {
+          if (n.data?.parentAssetId === targetId && n.type && SENSOR_RATIOS[n.type]) {
             const newPos = getSensorPosition(n.type, newX, newY, newW, newH, parentFlip);
             n.position = newPos;
 
@@ -2052,6 +2054,7 @@ export default function TopologyCanvas() {
     const fetchTopology = async () => {
       try {
         const { data } = await axios.get(`${BACKEND_URL}/api/topologies/${id}`);
+        setTopologyName(data.name || '');
 
         let vpConfig = { x: -500, y: -250, w: 1000, h: 500 };
         let customConfigs: Record<string, any> = {};
@@ -2755,7 +2758,7 @@ export default function TopologyCanvas() {
           const pflip = updatedProps.flipHorizontal !== undefined ? updatedProps.flipHorizontal : !!targetNode?.data?.flipHorizontal;
 
           updatedNodes.forEach(n => {
-            if (n.data?.parentAssetId === nodeId && SENSOR_RATIOS[n.type]) {
+            if (n.data?.parentAssetId === nodeId && n.type && SENSOR_RATIOS[n.type]) {
               const newPos = getSensorPosition(n.type, px, py, pw, ph, pflip);
               n.position = newPos;
 
@@ -3188,7 +3191,7 @@ export default function TopologyCanvas() {
       )}
 
       {/* Top-right admin button row */}
-      {isAdmin && (
+      {isAdmin && !topologyName.toLowerCase().includes('hydroponic') && (
         <div style={{
           position: 'absolute', top: 16, right: 16, zIndex: 20,
           display: 'flex', alignItems: 'center', gap: 6,
@@ -3484,70 +3487,72 @@ export default function TopologyCanvas() {
 
       {/* ── old screen-space crosshair removed; now inside ReactFlow as CanvasCrosshair ── */}
 
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        isValidConnection={isValidConnection}
-        onEdgesDelete={onEdgesDelete}
-        onNodeDragStart={onNodeDragStart}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
-        onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        nodesDraggable={editMode && allowMoveResize}
-        nodesConnectable={editMode}
-        onlyRenderVisibleElements={true}
-        minZoom={0.15}
-        maxZoom={3.5}
-        proOptions={{ hideAttribution: true }}
-        onInit={(instance) => {
-          setRfInstance(instance);
-        }}
-        className={`${editMode ? 'edit-mode-on' : 'edit-mode-off'}`}
-        style={{ width: '100%', height: '100%', background: dark ? '#1c1d22' : '#f8fafc', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
-      >
-        <Background gap={isFullscreen ? 36 : 28} size={1.2} color={dark ? '#3a3b44' : '#e0e0e0'} style={{ opacity: 0.8 }} />
-        <CustomControls containerRef={containerRef} onUndo={handleUndo} onRedo={handleRedo} canUndo={undoStack.length > 0} canRedo={redoStack.length > 0} />
+      {topologyName.toLowerCase().includes('hydroponic') ? (
+        <ModelViewer url="/hydroponic.glb" />
+      ) : (
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          isValidConnection={isValidConnection}
+          onEdgesDelete={onEdgesDelete}
+          onNodeDragStart={onNodeDragStart}
+          onNodeDrag={onNodeDrag}
+          onNodeDragStop={onNodeDragStop}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          nodesDraggable={editMode && allowMoveResize}
+          nodesConnectable={editMode}
+          onlyRenderVisibleElements={true}
+          minZoom={0.15}
+          maxZoom={3.5}
+          proOptions={{ hideAttribution: true }}
+          onInit={(instance) => {
+            setRfInstance(instance);
+          }}
+          className={`${editMode ? 'edit-mode-on' : 'edit-mode-off'}`}
+          style={{ width: '100%', height: '100%', background: dark ? '#1c1d22' : '#f8fafc', opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
+        >
+          <Background gap={isFullscreen ? 36 : 28} size={1.2} color={dark ? '#3a3b44' : '#e0e0e0'} style={{ opacity: 0.8 }} />
+          <CustomControls containerRef={containerRef} onUndo={handleUndo} onRedo={handleRedo} canUndo={undoStack.length > 0} canRedo={redoStack.length > 0} />
 
-        {/* Canvas crosshair — tracks real world (0,0), pans with canvas */}
-        <CanvasCrosshair show={editMode && showCrosshair} />
+          {/* Canvas crosshair — tracks real world (0,0), pans with canvas */}
+          <CanvasCrosshair show={editMode && showCrosshair} />
 
-
-
-        {/* MiniMap — only in fullscreen, bottom-right, dark themed */}
-        {isFullscreen && (
-          <MiniMap
-            position="bottom-right"
-            nodeColor={(node) => {
-              const status = node.data?.status;
-              if (status === 'Critical') return '#ef4444';
-              if (status === 'Warning') return '#f59e0b';
-              if (status === 'Offline') return '#6b7280';
-              return '#22c55e';
-            }}
-            nodeStrokeWidth={0}
-            maskColor="rgba(23,24,28,0.55)"
-            style={{
-              background: '#17181c',
-              border: '1px solid rgba(0,255,255,0.20)',
-              borderRadius: 14,
-              overflow: 'hidden',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.04)',
-              width: 200,
-              height: 130,
-              marginBottom: 8,
-              marginRight: 8,
-            }}
-          />
-        )}
-      </ReactFlow>
+          {/* MiniMap — only in fullscreen, bottom-right, dark themed */}
+          {isFullscreen && (
+            <MiniMap
+              position="bottom-right"
+              nodeColor={(node) => {
+                const status = node.data?.status;
+                if (status === 'Critical') return '#ef4444';
+                if (status === 'Warning') return '#f59e0b';
+                if (status === 'Offline') return '#6b7280';
+                return '#22c55e';
+              }}
+              nodeStrokeWidth={0}
+              maskColor="rgba(23,24,28,0.55)"
+              style={{
+                background: '#17181c',
+                border: '1px solid rgba(0,255,255,0.20)',
+                borderRadius: 14,
+                overflow: 'hidden',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.04)',
+                width: 200,
+                height: 130,
+                marginBottom: 8,
+                marginRight: 8,
+              }}
+            />
+          )}
+        </ReactFlow>
+      )}
     </div>
   );
 }

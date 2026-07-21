@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { Activity, AlertTriangle, Server, Wifi, Database, Cpu, Layers, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Activity, AlertTriangle, Server, Wifi, Database, Cpu, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useTheme } from '../ThemeProvider';
 
 interface TankNode {
@@ -166,7 +166,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
   const systemHealth = useMemo(() => {
     if (nodes.length === 0) return 100;
 
-    const nodeAlertMap = new Map<number, string>();
+    const nodeAlertMap = new Map<any, string>();
     alerts.forEach(a => {
       const ageHours = (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60);
       if (ageHours < 2) {
@@ -198,62 +198,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
     return Math.round(score);
   }, [nodes, alerts]);
 
-  // Calculate current average water quality metrics across the system
-  const averages = useMemo(() => {
-    let levelSum = 0, levelCount = 0;
-    let phSum = 0, phCount = 0;
-    let tdsSum = 0, tdsCount = 0;
-    let tempSum = 0, tempCount = 0;
 
-    nodes.forEach(node => {
-      node.sensors?.forEach(s => {
-        const val = s.value;
-        if (val === undefined || val === null || val === -999) return;
-        if (s.sensorType === 'water_level') {
-          levelSum += val;
-          levelCount++;
-        } else if (s.sensorType === 'ph') {
-          phSum += val;
-          phCount++;
-        } else if (s.sensorType === 'tds') {
-          tdsSum += val;
-          tdsCount++;
-        } else if (s.sensorType === 'temperature') {
-          tempSum += val;
-          tempCount++;
-        }
-      });
-    });
-
-    return {
-      level: levelCount > 0 ? (levelSum / levelCount) : 60,
-      ph: phCount > 0 ? (phSum / phCount) : 7.2,
-      tds: tdsCount > 0 ? (tdsSum / tdsCount) : 320,
-      temp: tempCount > 0 ? (tempSum / tempCount) : 24.5,
-    };
-  }, [nodes]);
-
-  // Evaluate the status of each metric using backend rules
-  const getMetricStatus = (key: string, value: number) => {
-    if (key === 'level') {
-      if (value < 15) return { text: 'Critical', color: '#ef4444' };
-      if (value < 30) return { text: 'Warning', color: '#f59e0b' };
-      return { text: 'Healthy', color: '#22c55e' };
-    }
-    if (key === 'ph') {
-      if (value < 6.5 || value > 8.5) return { text: 'Warning', color: '#f59e0b' };
-      return { text: 'Healthy', color: '#22c55e' };
-    }
-    if (key === 'temp') {
-      if (value > 35) return { text: 'Warning', color: '#f59e0b' };
-      return { text: 'Healthy', color: '#22c55e' };
-    }
-    if (key === 'tds') {
-      if (value > 700) return { text: 'Warning', color: '#f59e0b' };
-      return { text: 'Healthy', color: '#22c55e' };
-    }
-    return { text: 'Healthy', color: '#22c55e' };
-  };
 
   // Node online status counts
   const onlineCount = useMemo(() => {
@@ -277,8 +222,6 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
   const fontFamily = "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif";
 
   // Arc perimeter formula: Radius = 42, perimeter = PI * R = 131.95
-  const strokeLength = 131.95;
-  const strokeOffset = strokeLength - (strokeLength * (systemHealth / 100));
 
   // Shared component elements using standard 8px grid tokens
   const cardStyle: React.CSSProperties = {
