@@ -16,6 +16,7 @@ import { useTheme } from '../ThemeProvider';
 import { useAuth } from '../../hooks/useAuth';
 import LiveChartsPanel from '../live/LiveChartsPanel';
 import SystemHealthPanel from '../live/SystemHealthPanel';
+import AlertsModal, { type AlertItem } from '../live/AlertsModal';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from 'recharts';
 
 /* ════════════════════════════════════════════════════════════════
@@ -172,11 +173,39 @@ const TopBar = memo(function TopBar() {
   const [topologies, setTopologies] = useState<any[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Alerts State
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState<boolean>(false);
+
+  const unreadCount = useMemo(() => alerts.filter(a => !a.isRead).length, [alerts]);
+
   useEffect(() => {
     axios.get('http://localhost:3001/api/topologies')
       .then(res => setTopologies(res.data))
       .catch(err => console.error(err));
   }, [pathname]);
+
+  // Initial Alert Fetching
+  useEffect(() => {
+    axios.get('http://localhost:3001/api/alerts')
+      .then(res => {
+        setAlerts(res.data);
+      })
+      .catch(err => console.error('Failed to fetch initial alerts:', err));
+  }, []);
+
+  // WebSockets for Real-Time Alerts
+  useEffect(() => {
+    const socket = io('http://localhost:3001', { transports: ['websocket'] });
+
+    socket.on('alert:new', (newAlert: AlertItem) => {
+      setAlerts(prev => [{ ...newAlert, isRead: false }, ...prev]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (pathname.startsWith('/topology/')) {
@@ -200,183 +229,258 @@ const TopBar = memo(function TopBar() {
     transition: 'all 0.15s ease',
   };
 
-  return (
-    <header
-      id="topbar"
-      style={{
-        height: 70, flexShrink: 0,
-        display: 'flex', alignItems: 'center',
-        padding: '0 24px',
-        background: dark ? '#1c1d22' : '#ffffff',
-        borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-        boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
-        gap: 0,
-      }}
-    >
+  const handleOpenAlertsModal = () => {
+    setIsAlertsModalOpen(true);
+  };
 
-      {/* ══ LEFT — Logo badge + wordmark ══════════════════════════════ */}
-      <div id="logo" style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
-        {/* Icon badge */}
-        <div style={{
-          width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-          background: '#17181c',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 10px rgba(23,24,28,0.18)',
-        }}>
-          <Droplets size={18} color="#00ffff" strokeWidth={2.3} />
+  const handleClearAllAlerts = async () => {
+    try {
+      await axios.put('http://localhost:3001/api/alerts/clear');
+      setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
+    } catch (err) {
+      console.error('Failed to clear active alerts:', err);
+    }
+  };
+
+  const handleDeleteAlert = async (id: number) => {
+    try {
+      await axios.patch(`http://localhost:3001/api/alerts/${id}/read`);
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
+    } catch (err) {
+      console.error('Failed to dismiss alert:', err);
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
+  };
+
+  return (
+    <>
+      <header
+        id="topbar"
+        style={{
+          height: 70, flexShrink: 0,
+          display: 'flex', alignItems: 'center',
+          padding: '0 24px',
+          background: dark ? '#1c1d22' : '#ffffff',
+          borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+          boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
+          gap: 0,
+        }}
+      >
+
+        {/* ══ LEFT — Logo badge + wordmark ══════════════════════════════ */}
+        <div id="logo" style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
+          {/* Icon badge */}
+          <div style={{
+            width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+            background: '#17181c',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 10px rgba(23,24,28,0.18)',
+          }}>
+            <Droplets size={18} color="#00ffff" strokeWidth={2.3} />
+          </div>
+          {/* Brand text */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span style={{
+              fontSize: 17, fontWeight: 800, letterSpacing: '-0.6px', lineHeight: 1.1,
+              color: dark ? '#f0f0f2' : '#17181c',
+              fontFamily: 'var(--font)',
+            }}>
+              BrandName
+            </span>
+            <span style={{
+              fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em',
+              textTransform: 'uppercase', lineHeight: 1,
+              color: dark ? '#374151' : '#00ffff',
+              fontFamily: 'var(--font)',
+              background: dark ? 'transparent' : '#17181c',
+              padding: dark ? '0' : '1px 5px',
+              borderRadius: 4,
+            }}>
+              Digital Twin
+            </span>
+          </div>
         </div>
-        {/* Brand text */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+
+        {/* ══ CENTRE divider ════════════════════════════════════════════ */}
+        <div style={{
+          width: 1, height: 32, flexShrink: 0,
+          background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
+          margin: '0 22px',
+        }} />
+
+        {/* ══ CENTRE — Title block ══════════════════════════════════════ */}
+        <div id="title-block" style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
           <span style={{
-            fontSize: 17, fontWeight: 800, letterSpacing: '-0.6px', lineHeight: 1.1,
+            fontSize: 18, fontWeight: 800, letterSpacing: '-0.55px', lineHeight: 1.15,
             color: dark ? '#f0f0f2' : '#17181c',
             fontFamily: 'var(--font)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            BrandName
-          </span>
-          <span style={{
-            fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em',
-            textTransform: 'uppercase', lineHeight: 1,
-            color: dark ? '#374151' : '#00ffff',
-            fontFamily: 'var(--font)',
-            background: dark ? 'transparent' : '#17181c',
-            padding: dark ? '0' : '1px 5px',
-            borderRadius: 4,
-          }}>
-            Digital Twin
+            {isUserManagement ? 'System Administration & User Access Control' : 'Smart Water Distribution Testbed'}
           </span>
         </div>
-      </div>
 
-      {/* ══ CENTRE divider ════════════════════════════════════════════ */}
-      <div style={{
-        width: 1, height: 32, flexShrink: 0,
-        background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
-        margin: '0 22px',
-      }} />
+        {/* ══ RIGHT — Topology selector + actions ═══════════════════════ */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
 
-      {/* ══ CENTRE — Title block ══════════════════════════════════════ */}
-      <div id="title-block" style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
-        <span style={{
-          fontSize: 18, fontWeight: 800, letterSpacing: '-0.55px', lineHeight: 1.15,
-          color: dark ? '#f0f0f2' : '#17181c',
-          fontFamily: 'var(--font)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {isUserManagement ? 'System Administration & User Access Control' : 'Smart Water Distribution Testbed'}
-        </span>
+          {/* Topology pill — hide on user management */}
+          {!isUserManagement && (
+            <>
+              <div style={{ position: 'relative' }}>
+                <div
+                  id="topology-selector"
+                  onClick={() => {
+                    if (!menuOpen) {
+                      axios.get('http://localhost:3001/api/topologies')
+                        .then(res => setTopologies(res.data))
+                        .catch(err => console.error(err));
+                    }
+                    setMenuOpen(!menuOpen);
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
+                    border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}`,
+                    background: dark ? '#2a2b34' : '#ffffff',
+                    boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                    background: dark ? '#00ffff' : '#0891b2',
+                    boxShadow: dark ? '0 0 7px rgba(0,255,255,0.6)' : '0 0 5px rgba(8,145,178,0.4)',
+                  }} />
+                  <span style={{
+                    fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
+                    color: dark ? '#f0f0f2' : '#17181c',
+                    fontFamily: 'var(--font)',
+                  }}>
+                    {currentTopology ? currentTopology.name : 'Loading...'}
+                  </span>
+                  <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#5a5f6b'} />
+                </div>
 
-      </div>
-
-      {/* ══ RIGHT — Topology selector + actions ═══════════════════════ */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-
-        {/* Topology pill — hide on user management */}
-        {!isUserManagement && (
-          <>
-            <div style={{ position: 'relative' }}>
-              <div
-                id="topology-selector"
-                onClick={() => {
-                  if (!menuOpen) {
-                    axios.get('http://localhost:3001/api/topologies')
-                      .then(res => setTopologies(res.data))
-                      .catch(err => console.error(err));
-                  }
-                  setMenuOpen(!menuOpen);
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '9px 16px', borderRadius: 12, cursor: 'pointer',
-                  border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}`,
-                  background: dark ? '#2a2b34' : '#ffffff',
-                  boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.02)',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span style={{
-                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  background: dark ? '#00ffff' : '#0891b2',
-                  boxShadow: dark ? '0 0 7px rgba(0,255,255,0.6)' : '0 0 5px rgba(8,145,178,0.4)',
-                }} />
-                <span style={{
-                  fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.2px',
-                  color: dark ? '#f0f0f2' : '#17181c',
-                  fontFamily: 'var(--font)',
-                }}>
-                  {currentTopology ? currentTopology.name : 'Loading...'}
-                </span>
-                <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#5a5f6b'} />
+                {menuOpen && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, marginTop: 8,
+                    width: 200, borderRadius: 12, overflow: 'hidden',
+                    background: dark ? '#2a2b34' : '#ffffff',
+                    border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                    zIndex: 100, display: 'flex', flexDirection: 'column'
+                  }}>
+                    {topologies.map(t => {
+                      const isTopologyPage = pathname.startsWith('/topology/');
+                      return (
+                        <Link
+                          key={t.id}
+                          to={isTopologyPage ? `/topology/${t.id}` : pathname}
+                          onClick={(e) => {
+                            if (!isTopologyPage) {
+                              e.preventDefault();
+                              setGlobalTopologyId(t.id.toString());
+                            }
+                            setMenuOpen(false);
+                          }}
+                          style={{
+                            padding: '12px 16px', textDecoration: 'none',
+                            color: dark ? '#f0f0f2' : '#17181c',
+                            fontSize: 13.5, fontWeight: 600,
+                            borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                            background: globalTopologyId === t.id.toString() ? (dark ? 'rgba(0,255,255,0.1)' : 'rgba(0,255,255,0.15)') : 'transparent'
+                          }}
+                        >
+                          {t.name}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
-              {menuOpen && (
-                <div style={{
-                  position: 'absolute', top: '100%', right: 0, marginTop: 8,
-                  width: 200, borderRadius: 12, overflow: 'hidden',
-                  background: dark ? '#2a2b34' : '#ffffff',
-                  border: `1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                  zIndex: 100, display: 'flex', flexDirection: 'column'
-                }}>
-                  {topologies.map(t => {
-                    const isTopologyPage = pathname.startsWith('/topology/');
-                    return (
-                      <Link
-                        key={t.id}
-                        to={isTopologyPage ? `/topology/${t.id}` : pathname}
-                        onClick={(e) => {
-                          if (!isTopologyPage) {
-                            e.preventDefault();
-                            setGlobalTopologyId(t.id.toString());
-                          }
-                          setMenuOpen(false);
-                        }}
-                        style={{
-                          padding: '12px 16px', textDecoration: 'none',
-                          color: dark ? '#f0f0f2' : '#17181c',
-                          fontSize: 13.5, fontWeight: 600,
-                          borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
-                          background: globalTopologyId === t.id.toString() ? (dark ? 'rgba(0,255,255,0.1)' : 'rgba(0,255,255,0.15)') : 'transparent'
-                        }}
-                      >
-                        {t.name}
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+              {/* Divider */}
+              <div style={{
+                width: 1, height: 28,
+                background: dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)',
+              }} />
+            </>
+          )}
 
-            {/* Divider */}
-            <div style={{
-              width: 1, height: 28,
-              background: dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)',
-            }} />
-          </>
-        )}
+          {/* Theme toggle */}
+          <button
+            id="theme-toggle"
+            className="modern-header-btn"
+            style={iconBtn}
+            onClick={() => setTheme(dark ? 'light' : 'dark')}
+            title="Toggle theme"
+          >
+            {dark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+          </button>
 
-        {/* Theme toggle */}
-        <button
-          id="theme-toggle" style={iconBtn}
-          onClick={() => setTheme(dark ? 'light' : 'dark')}
-          title="Toggle theme"
-        >
-          {dark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
-        </button>
+          {/* Bell button with Notification Badge */}
+          <button
+            id="alert-bell"
+            className="modern-header-btn"
+            onClick={handleOpenAlertsModal}
+            style={{
+              ...iconBtn,
+              position: 'relative',
+              borderColor: unreadCount > 0 ? (dark ? 'rgba(234, 179, 8, 0.45)' : 'rgba(234, 179, 8, 0.35)') : iconBtn.borderColor,
+              background: unreadCount > 0 ? (dark ? 'rgba(234, 179, 8, 0.10)' : 'rgba(234, 179, 8, 0.05)') : iconBtn.background,
+            }}
+            title="System Alerts & Incident Log"
+          >
+            <Bell
+              size={17}
+              strokeWidth={2}
+              className={unreadCount > 0 ? 'animate-bell-swing' : ''}
+              color={unreadCount > 0 ? '#eab308' : (dark ? '#9ca3af' : '#5a5f6b')}
+            />
+            {unreadCount > 0 && (
+              <span
+                className="animate-badge-pulse"
+                style={{
+                  position: 'absolute',
+                  top: -5,
+                  right: -5,
+                  minWidth: 19,
+                  height: 19,
+                  padding: '0 5px',
+                  borderRadius: 999,
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  color: '#ffffff',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: `2px solid ${dark ? '#1c1d22' : '#ffffff'}`,
+                  boxShadow: '0 2px 10px rgba(239, 68, 68, 0.5)',
+                  lineHeight: 1,
+                }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
 
-        {/* Bell */}
-        <button id="alert-bell" style={{ ...iconBtn, position: 'relative' }} title="Alerts">
-          <Bell size={16} strokeWidth={2} />
-          <span style={{
-            position: 'absolute', top: 8, right: 8,
-            width: 7, height: 7, borderRadius: '50%',
-            background: '#ef4444',
-            border: '2px solid ' + (dark ? '#1c1d22' : '#ffffff'),
-            boxShadow: '0 1px 4px rgba(239,68,68,0.5)',
-          }} />
-        </button>
-      </div>
-    </header>
+      {/* Modern System Alerts Center Center-Modal */}
+      <AlertsModal
+        isOpen={isAlertsModalOpen}
+        onClose={() => setIsAlertsModalOpen(false)}
+        alerts={alerts}
+        unreadCount={unreadCount}
+        onClearAll={handleClearAllAlerts}
+        onDismissAlert={handleDeleteAlert}
+        onMarkAllRead={handleMarkAllRead}
+      />
+    </>
   );
 });
 

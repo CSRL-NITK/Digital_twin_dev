@@ -176,7 +176,7 @@ class HydroDigitalTwinEngine {
         });
 
         // Insert Alert only when needed (status transition)
-        hydroAlertEngine.triggerAlert(state.dbNodeId, slug, currentStatus, `Hydroponic Node ${slug} transitioned to ${currentStatus} due to anomalies.`);
+        hydroAlertEngine.triggerAlert(state.dbNodeId, slug, currentStatus, `System status transitioned to ${currentStatus} due to anomalies.`);
       }
 
       // Insert sensor readings for every packet

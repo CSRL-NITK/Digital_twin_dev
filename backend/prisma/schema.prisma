@@ -108,6 +108,7 @@ model Alert {
   alertType String   @map("alert_type") @db.VarChar(50)
   severity  String   @db.VarChar(20)
   message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@index([nodeId])

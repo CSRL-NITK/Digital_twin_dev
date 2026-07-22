@@ -220,7 +220,7 @@ class DigitalTwinEngine {
         });
 
         // Insert Alert only when needed (status transition)
-        alertEngine.triggerAlert(state.dbNodeId, slug, currentStatus, `Node ${slug} transitioned to ${currentStatus} due to sensor anomalies.`);
+        alertEngine.triggerAlert(state.dbNodeId, slug, currentStatus, `System status transitioned to ${currentStatus} due to sensor anomalies.`);
       }
 
       // Insert sensor readings for every packet

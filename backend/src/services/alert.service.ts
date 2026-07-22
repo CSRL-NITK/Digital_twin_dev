@@ -58,22 +58,38 @@ class AlertEngine {
     if (severity === 'Healthy' || severity === 'Offline') return;
 
     try {
-      // 1. Store DB
+      // 1. Store DB with node relation
       const alert = await prisma.alert.create({
         data: {
           nodeId,
           alertType: severity === 'Critical' ? 'System Critical' : 'Sensor Warning',
           severity,
           message
+        },
+        include: {
+          node: {
+            select: {
+              id: true,
+              nodeName: true,
+              nodeType: true,
+              topologyId: true,
+              topology: { select: { id: true, name: true } }
+            }
+          }
         }
       });
 
+      const fullAlert = {
+        ...alert,
+        nodeName: alert.node?.nodeName || nodeSlug,
+        nodeType: alert.node?.nodeType,
+        topologyId: alert.node?.topologyId,
+        topologyName: alert.node?.topology?.name || 'System Network'
+      };
+
       // 2. Emit Socket
       if (this.io) {
-        this.io.emit('alert:new', {
-          ...alert,
-          nodeName: nodeSlug
-        });
+        this.io.emit('alert:new', fullAlert);
       }
       
       console.log(`AlertEngine: Triggered ${severity} alert for ${nodeSlug}`);

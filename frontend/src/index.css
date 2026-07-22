@@ -77,6 +77,7 @@
   --radius-card:         var(--r-lg);
   --radius-button:       var(--r-sm);
   --font-inter:          var(--font);
+  --dt-viewer-bg:        #f8fafc;
 }
 
 /* ── DARK MODE ─────────────────────────────────────────────────── */
@@ -104,6 +105,7 @@
   --color-border:     rgba(255,255,255,0.06);
   --color-text:       var(--dt-text);
   --color-text-muted: var(--dt-text-2);
+  --dt-viewer-bg:     #1c1d22;
 }
 
 /* ── GLOBAL RESET ──────────────────────────────────────────────── */
@@ -255,6 +257,69 @@ h3 { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: -0.2px
   outline: none !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+/* ── SYNCHRONIZED THEME TRANSITION SYSTEM ─────────────────────── */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              background-color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              border-color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              opacity 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              stroke 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              fill 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              -webkit-backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              filter 300ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              text-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ── NOTIFICATION BELL ANIMATIONS ──────────────────────────────── */
+@keyframes badgePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes bellSwing {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(10deg); }
+  40%, 80% { transform: rotate(-10deg); }
+}
+
+.animate-bell-swing {
+  animation: bellSwing 0.6s ease-in-out;
+  transform-origin: top center;
+}
+
+.animate-badge-pulse {
+  animation: badgePulse 1.8s infinite;
+}
+
+/* ── MODERN BUTTON MICRO-INTERACTIONS ──────────────────────────── */
+.modern-header-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.modern-header-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+.dark .modern-header-btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.modern-header-btn:active {
+  transform: translateY(0) scale(0.96);
 }
 
 

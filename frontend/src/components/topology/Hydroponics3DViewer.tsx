@@ -226,9 +226,7 @@ export default function Hydroponics3DViewer() {
   const controlsRef = useRef<any>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
 
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     THREE.DefaultLoadingManager.onProgress = (_url, itemsLoaded, itemsTotal) => {
@@ -261,7 +259,7 @@ export default function Hydroponics3DViewer() {
     <div
       ref={containerRef}
       className="relative w-full h-full"
-      style={{ background: isDark ? '#1c1d22' : '#f8fafc', height: '100%', minHeight: '450px' }}
+      style={{ background: 'var(--dt-viewer-bg)', height: '100%', minHeight: '450px' }}
     >
       {loading && <GLTFLoaderIndicator progress={progress} />}
 
@@ -272,8 +270,6 @@ export default function Hydroponics3DViewer() {
           cameraRef.current = camera as THREE.PerspectiveCamera;
         }}
       >
-        {/* Set background to fit theme */}
-        <color attach="background" args={[isDark ? '#1c1d22' : '#f8fafc']} />
 
         {/* Ambient Lights */}
         <hemisphereLight color="#ffffff" groundColor="#444444" intensity={isDark ? 0.6 : 0.8} />

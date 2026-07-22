@@ -9,12 +9,14 @@ type ThemeProviderProps = {
 }
 
 type ThemeProviderState = {
-  theme: Theme
+  theme: "dark" | "light"
+  rawTheme: Theme
   setTheme: (theme: Theme) => void
 }
 
 const initialState: ThemeProviderState = {
-  theme: "system",
+  theme: "light",
+  rawTheme: "system",
   setTheme: () => null,
 }
 
@@ -26,33 +28,69 @@ export function ThemeProvider({
   storageKey = "dt-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
+  const [rawTheme, setRawTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
+    const initialTheme = (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    if (initialTheme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    }
+    return initialTheme === "dark" ? "dark" : "light"
+  })
 
   useEffect(() => {
     const root = window.document.documentElement
 
+    root.classList.add("theme-transitioning")
     root.classList.remove("light", "dark")
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
+    let activeTheme: "light" | "dark" = "light"
+    if (rawTheme === "system") {
+      activeTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light"
-
-      root.classList.add(systemTheme)
-      return
+    } else {
+      activeTheme = rawTheme === "dark" ? "dark" : "light"
     }
 
-    root.classList.add(theme)
-  }, [theme])
+    root.classList.add(activeTheme)
+    setResolvedTheme(activeTheme)
+
+    const timer = setTimeout(() => {
+      root.classList.remove("theme-transitioning")
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [rawTheme])
+
+  useEffect(() => {
+    if (rawTheme !== "system") return
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const handleChange = (e: MediaQueryListEvent) => {
+      const root = window.document.documentElement
+      root.classList.add("theme-transitioning")
+      root.classList.remove("light", "dark")
+      const activeTheme = e.matches ? "dark" : "light"
+      root.classList.add(activeTheme)
+      setResolvedTheme(activeTheme)
+
+      setTimeout(() => {
+        root.classList.remove("theme-transitioning")
+      }, 300)
+    }
+
+    mediaQuery.addEventListener("change", handleChange)
+    return () => mediaQuery.removeEventListener("change", handleChange)
+  }, [rawTheme])
 
   const value = {
-    theme,
+    theme: resolvedTheme,
+    rawTheme,
     setTheme: (theme: Theme) => {
       localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+      setRawTheme(theme)
     },
   }
 

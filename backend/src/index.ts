@@ -508,15 +508,73 @@ app.delete('/api/edges/:id', async (req, res) => {
 });
 
 app.get('/api/alerts', async (req, res) => {
-  const take = req.query.take ? parseInt(req.query.take as string, 10) : 50;
-  const skip = req.query.skip ? parseInt(req.query.skip as string, 10) : 0;
-  
-  const alerts = await prisma.alert.findMany({
-    orderBy: { createdAt: 'desc' },
-    take,
-    skip
-  });
-  res.json(alerts);
+  try {
+    const take = req.query.take ? parseInt(req.query.take as string, 10) : 100;
+    const skip = req.query.skip ? parseInt(req.query.skip as string, 10) : 0;
+    
+    const alerts = await prisma.alert.findMany({
+      include: {
+        node: {
+          select: {
+            id: true,
+            nodeName: true,
+            nodeType: true,
+            topologyId: true,
+            topology: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      skip
+    });
+
+    const formatted = alerts.map(a => ({
+      ...a,
+      nodeName: a.node?.nodeName || `Node #${a.nodeId}`,
+      nodeType: a.node?.nodeType,
+      topologyId: a.node?.topologyId,
+      topologyName: a.node?.topology?.name || 'System Network'
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error('Error fetching alerts:', err);
+    res.status(500).json({ error: 'Failed to fetch alerts' });
+  }
+});
+
+app.put('/api/alerts/clear', async (req, res) => {
+  try {
+    await prisma.alert.updateMany({
+      where: { isRead: false },
+      data: { isRead: true }
+    });
+    res.json({ message: 'All active alerts marked as read and cleared' });
+  } catch (err) {
+    console.error('Error clearing active alerts:', err);
+    res.status(500).json({ error: 'Failed to clear active alerts' });
+  }
+});
+
+app.patch('/api/alerts/:id/read', async (req, res) => {
+  try {
+    const alertId = parseInt(req.params.id, 10);
+    if (isNaN(alertId)) return res.status(400).json({ error: 'Invalid alert ID' });
+    await prisma.alert.update({
+      where: { id: alertId },
+      data: { isRead: true }
+    });
+    res.json({ message: 'Alert marked as read' });
+  } catch (err) {
+    console.error('Error marking alert as read:', err);
+    res.status(500).json({ error: 'Failed to mark alert as read' });
+  }
 });
 
 // Endpoint to update topology viewport / custom asset configs (saved as JSON in description)

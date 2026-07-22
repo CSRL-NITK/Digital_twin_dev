@@ -84,15 +84,31 @@ class HydroAlertEngine {
           alertType: severity === 'Critical' ? 'System Critical' : 'Sensor Warning',
           severity,
           message
+        },
+        include: {
+          node: {
+            select: {
+              id: true,
+              nodeName: true,
+              nodeType: true,
+              topologyId: true,
+              topology: { select: { id: true, name: true } }
+            }
+          }
         }
       });
 
+      const fullAlert = {
+        ...alert,
+        nodeName: alert.node?.nodeName || nodeSlug,
+        nodeType: alert.node?.nodeType,
+        topologyId: alert.node?.topologyId,
+        topologyName: alert.node?.topology?.name || 'Hydroponic Network'
+      };
+
       // 2. Emit Socket
       if (this.io) {
-        this.io.emit('alert:new', {
-          ...alert,
-          nodeName: nodeSlug
-        });
+        this.io.emit('alert:new', fullAlert);
       }
       
       console.log(`HydroAlertEngine: Triggered ${severity} alert for ${nodeSlug}`);
