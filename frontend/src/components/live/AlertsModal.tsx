@@ -176,7 +176,7 @@ export default function AlertsModal({
         {/* ── HEADER ── */}
         <div
           style={{
-            padding: '20px 24px',
+            padding: '12px 18px',
             borderBottom: `1px solid ${dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.07)'}`,
             background: dark
               ? 'linear-gradient(180deg, rgba(28, 30, 38, 0.9) 0%, rgba(21, 23, 29, 0.9) 100%)'
@@ -184,49 +184,49 @@ export default function AlertsModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 16,
+            gap: 12,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
                 position: 'relative',
-                width: 44,
-                height: 44,
-                borderRadius: 14,
+                width: 34,
+                height: 34,
+                borderRadius: 10,
                 background: unreadCount > 0
                   ? 'linear-gradient(135deg, #ef4444, #dc2626)'
                   : dark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: unreadCount > 0 ? '0 4px 14px rgba(239, 68, 68, 0.4)' : 'none',
+                boxShadow: unreadCount > 0 ? '0 4px 10px rgba(239, 68, 68, 0.3)' : 'none',
               }}
             >
-              <Bell size={22} color={unreadCount > 0 ? '#ffffff' : dark ? '#9ca3af' : '#475569'} strokeWidth={2.2} />
+              <Bell size={18} color={unreadCount > 0 ? '#ffffff' : dark ? '#9ca3af' : '#475569'} strokeWidth={2.2} />
               {unreadCount > 0 && (
                 <span
                   style={{
                     position: 'absolute',
-                    top: -2,
-                    right: -2,
-                    width: 12,
-                    height: 12,
+                    top: -1,
+                    right: -1,
+                    width: 10,
+                    height: 10,
                     borderRadius: '50%',
                     background: '#22c55e',
-                    border: '2px solid ' + (dark ? '#15171d' : '#ffffff'),
+                    border: '1.5px solid ' + (dark ? '#15171d' : '#ffffff'),
                   }}
                 />
               )}
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <h2
                   style={{
-                    fontSize: 18,
+                    fontSize: 15,
                     fontWeight: 800,
                     color: dark ? '#f8fafc' : '#0f172a',
-                    letterSpacing: '-0.3px',
+                    letterSpacing: '-0.2px',
                     margin: 0,
                   }}
                 >
@@ -236,33 +236,33 @@ export default function AlertsModal({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 5,
-                    fontSize: 11,
+                    gap: 4,
+                    fontSize: 10,
                     fontWeight: 700,
                     color: '#22c55e',
                     backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                    padding: '2px 8px',
+                    padding: '1.5px 6px',
                     borderRadius: 999,
                     border: '1px solid rgba(34, 197, 94, 0.2)',
                   }}
                 >
-                  <Radio size={10} className="animate-pulse" /> LIVE SOCKET
+                  <Radio size={9} className="animate-pulse" /> LIVE SOCKET
                 </span>
               </div>
-              <p style={{ fontSize: 12, color: dark ? '#94a3b8' : '#64748b', margin: '3px 0 0 0' }}>
+              <p style={{ fontSize: 11, color: dark ? '#94a3b8' : '#64748b', margin: '1px 0 0 0' }}>
                 Real-time anomaly monitoring, warning logs, and system safety alerts
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Close Button */}
             <button
               onClick={onClose}
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
+                width: 30,
+                height: 30,
+                borderRadius: 8,
                 border: `1px solid ${dark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.08)'}`,
                 backgroundColor: dark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
                 color: dark ? '#94a3b8' : '#475569',
@@ -274,33 +274,33 @@ export default function AlertsModal({
               }}
               title="Close modal"
             >
-              <X size={18} />
+              <X size={15} />
             </button>
           </div>
         </div>
         {/* ── TOOLBAR & FILTERS ── */}
         <div
           style={{
-            padding: '16px 24px',
+            padding: '8px 18px',
             borderBottom: `1px solid ${dark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)'}`,
             backgroundColor: dark ? '#1a1c23' : '#f8fafc',
             display: 'flex',
             flexDirection: 'column',
-            gap: 14,
+            gap: 8,
           }}
         >
           {/* Row 1: Switcher Capsule (Left) & Clear Button (Right) */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 8 }}>
             {/* View Scope Segment Switcher Capsule */}
             <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                padding: 4,
-                borderRadius: 14,
+                padding: 3,
+                borderRadius: 10,
                 backgroundColor: dark ? '#12141a' : '#e2e8f0',
                 border: `1px solid ${dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
-                gap: 4,
+                gap: 3,
               }}
             >
               <button
@@ -308,25 +308,25 @@ export default function AlertsModal({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 7,
-                  padding: '7px 16px',
-                  borderRadius: 10,
-                  fontSize: 12.5,
+                  gap: 5,
+                  padding: '5px 12px',
+                  borderRadius: 7,
+                  fontSize: 11.5,
                   fontWeight: 800,
                   border: 'none',
                   cursor: 'pointer',
                   backgroundColor: viewScope === 'active' ? (dark ? '#252834' : '#ffffff') : 'transparent',
                   color: viewScope === 'active' ? (dark ? '#00ffff' : '#0284c7') : (dark ? '#8e96a4' : '#64748b'),
-                  boxShadow: viewScope === 'active' ? (dark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 6px rgba(0,0,0,0.08)') : 'none',
+                  boxShadow: viewScope === 'active' ? (dark ? '0 2px 6px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.06)') : 'none',
                   transition: 'all 0.18s ease-in-out',
                 }}
               >
                 <span>Active Alerts</span>
                 <span
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 9.5,
                     fontWeight: 800,
-                    padding: '1px 7px',
+                    padding: '1px 6px',
                     borderRadius: 99,
                     backgroundColor: viewScope === 'active' ? (dark ? 'rgba(0, 255, 255, 0.2)' : 'rgba(2, 132, 199, 0.12)') : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
                     color: viewScope === 'active' ? (dark ? '#00ffff' : '#0284c7') : (dark ? '#8e96a4' : '#64748b'),
@@ -341,25 +341,25 @@ export default function AlertsModal({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 7,
-                  padding: '7px 16px',
-                  borderRadius: 10,
-                  fontSize: 12.5,
+                  gap: 5,
+                  padding: '5px 12px',
+                  borderRadius: 7,
+                  fontSize: 11.5,
                   fontWeight: 800,
                   border: 'none',
                   cursor: 'pointer',
                   backgroundColor: viewScope === 'history' ? (dark ? '#252834' : '#ffffff') : 'transparent',
                   color: viewScope === 'history' ? (dark ? '#f8fafc' : '#0f172a') : (dark ? '#8e96a4' : '#64748b'),
-                  boxShadow: viewScope === 'history' ? (dark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 6px rgba(0,0,0,0.08)') : 'none',
+                  boxShadow: viewScope === 'history' ? (dark ? '0 2px 6px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.06)') : 'none',
                   transition: 'all 0.18s ease-in-out',
                 }}
               >
                 <span>History alerts</span>
                 <span
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 9.5,
                     fontWeight: 700,
-                    padding: '1px 7px',
+                    padding: '1px 6px',
                     borderRadius: 99,
                     backgroundColor: viewScope === 'history' ? (dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)') : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
                     color: viewScope === 'history' ? (dark ? '#f8fafc' : '#0f172a') : (dark ? '#8e96a4' : '#64748b'),
@@ -378,30 +378,30 @@ export default function AlertsModal({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
-                  fontSize: 12.5,
+                  gap: 5,
+                  fontSize: 11,
                   fontWeight: 700,
                   color: dark ? '#00ffff' : '#0284c7',
                   backgroundColor: dark ? 'rgba(0, 255, 255, 0.10)' : 'rgba(2, 132, 199, 0.08)',
                   border: `1px solid ${dark ? 'rgba(0, 255, 255, 0.25)' : 'rgba(2, 132, 199, 0.2)'}`,
-                  padding: '8px 16px',
-                  borderRadius: 12,
+                  padding: '5px 12px',
+                  borderRadius: 8,
                   cursor: 'pointer',
                   opacity: isClearing ? 0.6 : 1,
                   transition: 'all 0.15s ease',
-                  boxShadow: dark ? '0 4px 12px rgba(0,255,255,0.15)' : '0 2px 8px rgba(2,132,199,0.1)',
+                  boxShadow: dark ? '0 2px 8px rgba(0,255,255,0.1)' : '0 1px 4px rgba(2,132,199,0.06)',
                 }}
                 title="Clear active alerts"
               >
-                <CheckCheck size={14} /> {isClearing ? 'Clearing...' : 'Clear Active Log'}
+                <CheckCheck size={12} /> {isClearing ? 'Clearing...' : 'Clear Active Log'}
               </button>
             )}
           </div>
 
           {/* Row 2: Severity Tabs (Left) & Search Input (Right) */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, width: '100%' }}>
             {/* Left: Severity Tabs */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               {[
                 { id: 'all', label: 'All', count: scopedAlerts.length, color: '#3b82f6' },
                 { id: 'critical', label: 'Critical', count: criticalCount, color: '#ef4444' },
@@ -416,10 +416,10 @@ export default function AlertsModal({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 6,
-                      padding: '6px 12px',
+                      gap: 5,
+                      padding: '4px 10px',
                       borderRadius: 999,
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: active ? 700 : 600,
                       border: active
                         ? `1.5px solid ${tab.color}`
@@ -435,9 +435,9 @@ export default function AlertsModal({
                     <span>{tab.label}</span>
                     <span
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 9.5,
                         fontWeight: 800,
-                        padding: '1px 6px',
+                        padding: '1px 5px',
                         borderRadius: 99,
                         backgroundColor: active ? tab.color : dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
                         color: active ? '#ffffff' : dark ? '#cbd5e1' : '#475569',
@@ -456,14 +456,14 @@ export default function AlertsModal({
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
-                width: 220,
+                width: 200,
               }}
             >
               <Search
-                size={14}
+                size={13}
                 style={{
                   position: 'absolute',
-                  left: 10,
+                  left: 8,
                   color: dark ? '#64748b' : '#94a3b8',
                   pointerEvents: 'none',
                 }}
@@ -475,9 +475,9 @@ export default function AlertsModal({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '7px 28px 7px 30px',
-                  fontSize: 12,
-                  borderRadius: 10,
+                  padding: '5px 22px 5px 25px',
+                  fontSize: 11.5,
+                  borderRadius: 8,
                   border: `1px solid ${dark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.10)'}`,
                   backgroundColor: dark ? '#121318' : '#ffffff',
                   color: dark ? '#f8fafc' : '#0f172a',
@@ -486,11 +486,11 @@ export default function AlertsModal({
               />
               {searchQuery && (
                 <X
-                  size={13}
+                  size={12}
                   onClick={() => setSearchQuery('')}
                   style={{
                     position: 'absolute',
-                    right: 8,
+                    right: 6,
                     cursor: 'pointer',
                     color: dark ? '#94a3b8' : '#64748b',
                   }}

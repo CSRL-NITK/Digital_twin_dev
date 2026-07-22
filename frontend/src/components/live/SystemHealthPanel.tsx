@@ -19,6 +19,7 @@ interface TankNode {
 interface AlertItem {
   id: number;
   nodeId: number;
+  nodeName?: string;
   alertType: string;
   severity: string;
   message: string;
@@ -484,7 +485,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
                 const timeStr = new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 // Try to find matching node name
-                const matchedNodeName = nodes.find(n => n.id === alert.nodeId)?.nodeName ?? `Node ${alert.nodeId}`;
+                const matchedNodeName = alert.nodeName || nodes.find(n => n.id === alert.nodeId)?.nodeName || `Node ${alert.nodeId}`;
 
                 return (
                   <div
