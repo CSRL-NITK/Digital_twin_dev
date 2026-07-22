@@ -750,7 +750,7 @@ function MainLayoutContent() {
   const { globalTopologyId } = useGlobalTopology();
   const dark = theme === 'dark';
   const [selectedNode, setSelectedNode] = useState<any>(null);
-  const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies');
+  const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies') || pathname.startsWith('/analytics');
 
   const [topology, setTopology] = useState<any>(null);
   const [nodes, setNodes] = useState<any[]>([]);
