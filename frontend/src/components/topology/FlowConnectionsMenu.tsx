@@ -122,7 +122,7 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
 
         targetInlets.forEach(inlet => {
           const inletConnsCount = edges.filter(e => e.target === node.id && (!e.targetHandle || e.targetHandle === inlet)).length;
-          let maxInletConns = isSingleActiveInlet ? 10 : 1;
+          const maxInletConns = isSingleActiveInlet ? 10 : 1;
           
           if (inletConnsCount < maxInletConns) {
             candidates.push({ nodeId: node.id, nodeName: node.data?.nodeName || node.id, portId: inlet });
@@ -246,7 +246,7 @@ const FlowConnectionsMenu: React.FC<FlowConnectionsMenuProps> = ({
              <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>No inlets available.</div>
           ) : activeNodeInlets.map(portId => {
             const conns = getPortConnections('inlet', portId);
-            let maxConns = (nodeType === 'central_tank' && activeNodeInlets.length === 1) ? 10 : 1;
+            const maxConns = (nodeType === 'central_tank' && activeNodeInlets.length === 1) ? 10 : 1;
             const isFull = conns.length >= maxConns;
             const isConnecting = candidatePort?.portId === portId && candidatePort.portType === 'inlet';
             return (

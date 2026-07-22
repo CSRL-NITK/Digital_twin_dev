@@ -259,6 +259,7 @@ h3 { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: -0.2px
   box-shadow: none !important;
 }
 
+
 /* ── SYNCHRONIZED THEME TRANSITION SYSTEM ─────────────────────── */
 .theme-transitioning,
 .theme-transitioning *,
@@ -322,4 +323,57 @@ h3 { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: -0.2px
   transform: translateY(0) scale(0.96);
 }
 
+/* ── Hydroponic Liquid Energy Wave Animation ────────────────── */
+/* ── Hydroponic Liquid Energy Wave Animation ────────────────── */
+@keyframes hydroponicLiquidWave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
 
+.animate-hydro-liquid {
+  background-size: 200% 200%;
+  animation: hydroponicLiquidWave 3s ease infinite;
+}
+
+/* ── Hydroponic Liquid Wave Flow Animation (Sine Wave Fluid Micro-interaction) ── */
+@keyframes liquidWaveFlow {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-liquid-wave {
+  animation: liquidWaveFlow 2.2s linear infinite;
+}
+
+/* ── Volumetric Laser Conduit Plasma Wave (faster, more intense energy stream) ── */
+@keyframes plasmaWaveFlow {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-plasma-wave {
+  animation: plasmaWaveFlow 1.6s linear infinite;
+}
+
+/* Spark capsule leading-edge flicker */
+@keyframes sparkFlicker {
+  0%, 100% { opacity: 1; }
+  45%       { opacity: 0.72; }
+  50%       { opacity: 1; }
+  75%       { opacity: 0.88; }
+}
+
+.animate-spark-flicker {
+  animation: sparkFlicker 1.8s ease-in-out infinite;
+}

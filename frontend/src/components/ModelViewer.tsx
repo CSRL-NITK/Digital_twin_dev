@@ -489,6 +489,8 @@ function ModelContent({ url, isFlowing }: { url: string; isFlowing: boolean }) {
 export default function ModelViewer({ url = '/test.glb' }: ModelViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFlowing, setIsFlowing] = useState(false);
+  const isHydro = url.toLowerCase().includes('hydroponic');
+  const bgColor = isHydro ? '#ebebeb' : '#2e3240';
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -504,17 +506,18 @@ export default function ModelViewer({ url = '/test.glb' }: ModelViewerProps) {
     <div 
       className={
         isFullscreen 
-          ? 'fixed inset-0 z-50 bg-[#2e3240] p-6 flex flex-col animate-in fade-in duration-200' 
-          : 'w-full h-full relative bg-[#2e3240] rounded-[24px] overflow-hidden border border-slate-700/80 shadow-sm'
+          ? 'fixed inset-0 z-50 p-6 flex flex-col animate-in fade-in duration-200' 
+          : `w-full h-full relative rounded-[24px] overflow-hidden border ${isHydro ? 'border-slate-300' : 'border-slate-700/80'} shadow-sm`
       }
+      style={{ backgroundColor: bgColor }}
     >
       {/* Title overlay in top-left corner */}
       <div className="absolute top-4 left-6 z-10 pointer-events-none select-none">
-        <h3 className="text-base font-semibold text-slate-100 tracking-wide flex items-center gap-2">
+        <h3 className={`text-base font-semibold tracking-wide flex items-center gap-2 ${isHydro ? 'text-slate-800' : 'text-slate-100'}`}>
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           3D Digital Twin View
         </h3>
-        <p className="text-xs text-slate-350 mt-0.5">Use mouse to rotate, pan, and zoom</p>
+        <p className={`text-xs mt-0.5 ${isHydro ? 'text-slate-500' : 'text-slate-350'}`}>Use mouse to rotate, pan, and zoom</p>
       </div>
 
       {/* Sleek Controls Overlay in top-right corner */}
@@ -548,7 +551,7 @@ export default function ModelViewer({ url = '/test.glb' }: ModelViewerProps) {
           gl={{ antialias: true, preserveDrawingBuffer: true }}
           camera={{ position: [0, 2.5, 9], fov: 45 }}
         >
-          <color attach="background" args={['#2e3240']} />
+          <color attach="background" args={[bgColor]} />
           
           <Suspense fallback={<Loader />}>
             <ModelContent url={url} isFlowing={isFlowing} />

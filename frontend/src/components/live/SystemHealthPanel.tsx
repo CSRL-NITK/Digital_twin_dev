@@ -28,9 +28,10 @@ interface AlertItem {
 
 interface SystemHealthPanelProps {
   topologyId: string;
+  isHydro?: boolean;
 }
 
-export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps) {
+export default function SystemHealthPanel({ topologyId, isHydro = false }: SystemHealthPanelProps) {
   const { theme } = useTheme();
   const dark = theme === 'dark';
 
@@ -329,6 +330,10 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
             { label: 'Offline', count: offlineCount, color: dark ? '#4b5563' : '#9ca3af' },
           ];
 
+          if (isHydro && window.location.pathname === '/analytics') {
+            return null;
+          }
+
           return (
             <div style={cardStyle}>
               {/* Title row */}
@@ -436,7 +441,7 @@ export default function SystemHealthPanel({ topologyId }: SystemHealthPanelProps
         })()}
 
         {/* Spacer for custom elements/additions */}
-        <div style={{ flex: 1 }} />
+        {!(isHydro && window.location.pathname === '/analytics') && <div style={{ flex: 1 }} />}
 
         {/* Bottom stacked group (Recent Alerts & Ingestion) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>

@@ -218,6 +218,10 @@ const TopBar = memo(function TopBar() {
 
   const currentTopology = topologies.find(t => t.id.toString() === globalTopologyId);
 
+  const isHydroponics = Boolean(
+    currentTopology?.name.toLowerCase().includes('hydroponic') || pathname.startsWith('/hydro')
+  );
+
   const iconBtn: React.CSSProperties = {
     width: 38, height: 38, borderRadius: 10,
     border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}`,
@@ -319,12 +323,17 @@ const TopBar = memo(function TopBar() {
             fontFamily: 'var(--font)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {isUserManagement ? 'System Administration & User Access Control' : 'Smart Water Distribution Testbed'}
+            {isUserManagement
+              ? 'System Administration & User Access Control'
+              : isHydroponics
+              ? 'Smart Hydroponic Research System'
+              : 'Smart Water Distribution Testbed'}
           </span>
         </div>
 
         {/* ══ RIGHT — Topology selector + actions ═══════════════════════ */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+
 
           {/* Topology pill — hide on user management */}
           {!isUserManagement && (
@@ -363,6 +372,7 @@ const TopBar = memo(function TopBar() {
                   </span>
                   <ChevronDown size={13} strokeWidth={2.8} color={dark ? '#6b7280' : '#5a5f6b'} />
                 </div>
+
 
                 {menuOpen && (
                   <div style={{
@@ -856,6 +866,14 @@ function MainLayoutContent() {
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies') || pathname.startsWith('/analytics');
 
+  const [topologies, setTopologies] = useState<any[]>([]);
+  useEffect(() => {
+    axios.get('http://localhost:3001/api/topologies')
+      .then(res => setTopologies(res.data))
+      .catch(err => console.error(err));
+  }, []);
+  const currentTopology = topologies.find(t => t.id.toString() === globalTopologyId);
+
   const [topology, setTopology] = useState<any>(null);
   const [nodes, setNodes] = useState<any[]>([]);
   const [nodeMap, setNodeMap] = useState<Record<string, string>>({});
@@ -1030,8 +1048,8 @@ function MainLayoutContent() {
       >
         <Sidebar />
 
-        {/* Left panel — hide on full width pages */}
-        {!isFullWidthPage && (
+        {/* Left panel — hide on full width pages or hydroponics simulation page */}
+        {!isFullWidthPage && (pathname !== '/analytics' || !currentTopology?.name.toLowerCase().includes('hydroponic')) && (
           <div style={{ width: 290, flexShrink: 0, display: 'flex' }}>
             {topology?.name.toLowerCase().includes('hydroponic') ? (
               <TelemetryPanel
@@ -1067,8 +1085,8 @@ function MainLayoutContent() {
             <Outlet context={outletContext} />
           </div>
 
-          {/* Analytics strip — hide on full width pages */}
-          {!isFullWidthPage && (
+          {/* Analytics strip — hide on full width pages or hydroponics simulation page */}
+          {!isFullWidthPage && (pathname !== '/analytics' || !currentTopology?.name.toLowerCase().includes('hydroponic')) && (
             topology?.name.toLowerCase().includes('hydroponic') ? (
               <HydroponicAnalyticsStrip
                 dark={dark}
@@ -1082,8 +1100,8 @@ function MainLayoutContent() {
           )}
         </div>
 
-        {/* Right panel — hide on full width pages */}
-        {!isFullWidthPage && (
+        {/* Right panel — hide on full width pages or hydroponics simulation page */}
+        {!isFullWidthPage && (pathname !== '/analytics' || !currentTopology?.name.toLowerCase().includes('hydroponic')) && (
           <div style={{ width: 290, flexShrink: 0, display: 'flex' }}>
             {topology?.name.toLowerCase().includes('hydroponic') ? (
               <KPIDashboardPanel
@@ -1093,7 +1111,10 @@ function MainLayoutContent() {
                 liveLogs={liveLogs}
               />
             ) : (
-              <SystemHealthPanel topologyId={globalTopologyId} />
+              <SystemHealthPanel 
+                topologyId={globalTopologyId} 
+                isHydro={currentTopology?.name.toLowerCase().includes('hydroponic')}
+              />
             )}
           </div>
         )}
@@ -1123,7 +1144,7 @@ function TelemetryPanel({ selectedNode, history, dark, nodes }: TelemetryPanelPr
 
   const slug = useMemo(() => {
     if (!activeNode) return 'CENTRAL';
-    let s = activeNode.nodeName.toUpperCase();
+    const s = activeNode.nodeName.toUpperCase();
     if (s.includes('PUMP')) return 'PUMP';
     if (s.includes('CENTRAL')) return 'CENTRAL';
     return s;

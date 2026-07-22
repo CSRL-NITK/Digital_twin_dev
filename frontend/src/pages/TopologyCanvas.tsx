@@ -221,7 +221,7 @@ const PrecisionHandle = ({
 }: {
   id: string, type: 'source' | 'target', x: number, y: number, basePosition: Position, isFlipped: boolean
 }) => {
-  let finalX = isFlipped ? (1 - x) : x;
+  const finalX = isFlipped ? (1 - x) : x;
   let finalPosition = basePosition;
   if (isFlipped) {
     if (basePosition === Position.Left) finalPosition = Position.Right;

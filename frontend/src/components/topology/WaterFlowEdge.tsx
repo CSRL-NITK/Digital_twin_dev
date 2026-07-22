@@ -399,7 +399,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
                   const dy = Math.round((currentMouse.y - startMouse.y) / 10) * 10;
                   if (dx === 0 && dy === 0) return;
                   
-                  let newPts = [...initialPts];
+                  const newPts = [...initialPts];
                   
                   if (newPts.length === 2) {
                      if (isHorizontal) {
