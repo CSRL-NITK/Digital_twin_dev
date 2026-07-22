@@ -218,7 +218,7 @@ export default function Hydroponics3DViewer() {
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  
+
   const [isFlowing, setIsFlowing] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
   const [curves, setCurves] = useState<Array<{ name: string; curve: THREE.CatmullRomCurve3 }>>([]);
@@ -249,7 +249,7 @@ export default function Hydroponics3DViewer() {
       const dist = cam.position.distanceTo(target);
       const zoomFactor = direction === 'in' ? 0.8 : 1.25;
       const newDist = Math.max(2, Math.min(60, dist * zoomFactor));
-      
+
       cam.position.copy(target).addScaledVector(dir, newDist);
       if (controlsRef.current) controlsRef.current.update();
     }
@@ -284,7 +284,7 @@ export default function Hydroponics3DViewer() {
           shadow-mapSize-height={1024}
           shadow-bias={-0.0005}
         />
-        
+
         {/* Neon blue highlights to match digital twin dashboard theme */}
         <directionalLight position={[-10, 5, -15]} color="#00d8ff" intensity={0.7} />
 
@@ -329,11 +329,10 @@ export default function Hydroponics3DViewer() {
           {/* Water Flow Animation Toggle */}
           <button
             onClick={() => setIsFlowing(!isFlowing)}
-            className={`px-3 py-1 text-xs rounded-full font-bold border transition-all duration-200 ${
-              isFlowing
-                ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800 border-transparent'
-            }`}
+            className={`px-3 py-1 text-xs rounded-full font-bold border transition-all duration-200 ${isFlowing
+              ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800 border-transparent'
+              }`}
             title={isFlowing ? 'Stop Flow Simulation' : 'Start Flow Simulation'}
           >
             {isFlowing ? 'Water Flowing' : 'Water Paused'}
@@ -344,11 +343,10 @@ export default function Hydroponics3DViewer() {
           {/* Auto Rotate Toggle */}
           <button
             onClick={() => setAutoRotate(!autoRotate)}
-            className={`p-2 rounded-full transition-all duration-200 ${
-              autoRotate
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800 border-transparent'
-            }`}
+            className={`p-2 rounded-full transition-all duration-200 ${autoRotate
+              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800 border-transparent'
+              }`}
             title={autoRotate ? 'Pause Rotation' : 'Auto Rotate'}
           >
             {autoRotate ? <Pause size={16} /> : <Play size={16} />}

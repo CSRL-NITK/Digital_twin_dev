@@ -1024,7 +1024,7 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
   const customSvgContent = catalogItem?.svgContent;
 
   return (
-    <div style={{ width: '100%', height: '100%', minWidth: 30, minHeight: 30, position: 'relative' }}>
+    <div title={name} style={{ width: '100%', height: '100%', minWidth: 30, minHeight: 30, position: 'relative' }}>
       <AdminNodeDeleteBtn id={id} nodeName={data?.nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
       {data.allowMoveResize && (
         <NodeResizer
@@ -1902,7 +1902,7 @@ export default function TopologyCanvas() {
 
         const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(n.type || '');
         const zIndexVal = isSensor ? 20 : 5;
-        const pointerEventsVal = isSensor ? (editMode ? 'auto' : 'none') : 'auto';
+        const pointerEventsVal = 'auto';
         return {
           ...n,
           draggable: canDrag,
@@ -2077,7 +2077,7 @@ export default function TopologyCanvas() {
             const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
             const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(node.nodeType);
             const zIndexVal = isSensor ? 20 : 5;
-            const pointerEventsVal = isSensor ? (editMode ? 'auto' : 'none') : 'auto';
+            const pointerEventsVal = 'auto';
 
             const wl = node.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? 0;
             const phVal = node.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 0;

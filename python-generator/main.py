@@ -16,9 +16,9 @@ import json
 DB_CONFIG = {
     "host": "localhost",
     "port": 5432,
-    "dbname": "DT-MAIN",
+    "dbname": "dummyDb_DT",
     "user": "postgres",
-    "password": "postgres123",
+    "password": "jeethu0808",
 }
 
 BACKEND_WEBHOOK = "http://localhost:3001/api/telemetry/thingsboard"
