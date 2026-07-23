@@ -1,5 +1,12 @@
 # DT-version-1
 
+env file template:
+DATABASE_URL="postgresql://postgres:pass@localhost:5432/DB-name?schema=public"
+PORT=3001
+JWT_SECRET="super-secret-dt-key-2026"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="password123"
+
 run this in backend folder for seeding hydroponic
 
 npx ts-node src/seed-hydroponic.ts
