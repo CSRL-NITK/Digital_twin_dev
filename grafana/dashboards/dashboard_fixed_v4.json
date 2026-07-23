@@ -1,0 +1,995 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Average pH",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       AVG(r.value) AS \"value\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type = 'ph'\n  AND $__timeFilter(r.created_at)\nGROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Average TDS",
+      "type": "stat",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       AVG(r.value) AS \"value\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type = 'tds'\n  AND $__timeFilter(r.created_at)\nGROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ppm",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Average Temperature",
+      "type": "stat",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       AVG(r.value) AS \"value\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type = 'temperature'\n  AND $__timeFilter(r.created_at)\nGROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "celsius",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Average Water Level",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       AVG(r.value) AS \"value\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type = 'water_level'\n  AND $__timeFilter(r.created_at)\nGROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Active Pumps",
+      "type": "stat",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS \"time\", COALESCE(SUM(CASE WHEN (n.attributes->>'pumpOn')::boolean = true THEN 1 ELSE 0 END), 0) AS \"value\" FROM nodes n WHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology') AND n.node_type = 'pump'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Active Alerts",
+      "type": "stat",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS \"time\", COUNT(*) AS \"value\" FROM nodes n WHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology') AND LOWER(n.status) IN ('critical', 'warning')",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Water Quality",
+      "type": "gauge",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 6,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  100 - (\n    ABS(AVG(CASE WHEN s.sensor_type = 'ph' THEN r.value END) - 7.0) * 10\n    + AVG(CASE WHEN s.sensor_type = 'tds' THEN r.value END) * 0.05\n    + ABS(AVG(CASE WHEN s.sensor_type = 'temperature' THEN r.value END) - 20.0) * 2\n  ) AS \"value\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND $__timeFilter(r.created_at)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100,
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      }
+    },
+    {
+      "id": 8,
+      "title": "System Health",
+      "type": "gauge",
+      "gridPos": {
+        "x": 6,
+        "y": 4,
+        "w": 6,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(r.value) AS \"value\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type IN ('ph', 'tds', 'temperature', 'water_level')\n  AND $__timeFilter(r.created_at)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100,
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      }
+    },
+    {
+      "id": 9,
+      "title": "Average Pressure",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 4,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS \"time\", AVG(r.value) * 0.05 AS \"value\" FROM sensor_readings r JOIN sensors s ON r.sensor_id = s.id JOIN nodes n ON s.node_id = n.id WHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology') AND s.sensor_type = 'water_level' AND $__timeFilter(r.created_at)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "fixedColor": "cyan",
+            "mode": "fixed"
+          },
+          "unit": "pressurebar",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 10,
+      "title": "Average Flow Rate",
+      "type": "stat",
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 4,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS \"time\", AVG(r.value) * 0.25 AS \"value\" FROM sensor_readings r JOIN sensors s ON r.sensor_id = s.id JOIN nodes n ON s.node_id = n.id WHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology') AND s.sensor_type = 'water_level' AND $__timeFilter(r.created_at)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "fixedColor": "cyan",
+            "mode": "fixed"
+          },
+          "unit": "lpm",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 11,
+      "title": "Pump Runtime",
+      "type": "stat",
+      "gridPos": {
+        "x": 20,
+        "y": 4,
+        "w": 4,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS \"time\", n.node_name AS \"metric\", CASE WHEN (n.attributes->>'pumpOn')::boolean = true THEN 1.0 ELSE 0.0 END AS \"value\" FROM nodes n WHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology') AND n.node_type = 'pump'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "h",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 12,
+      "title": "Sensor Trends",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       AVG(r.value) AS \"value\",\n       s.sensor_type AS \"metric\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type IN ('ph', 'tds', 'temperature', 'water_level')\n  AND $__timeFilter(r.created_at)\nGROUP BY 1, 3 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Leak Detection Graph",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       AVG(r.value) AS \"value\",\n       s.sensor_type AS \"metric\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type IN ('water_level', 'ph')\n  AND $__timeFilter(r.created_at)\nGROUP BY 1, 3 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "Pressure Trend",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       AVG(r.value) AS \"value\",\n       s.sensor_type AS \"metric\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type IN ('water_level', 'tds')\n  AND $__timeFilter(r.created_at)\nGROUP BY 1, 3 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "pressurebar"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Water Consumption",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "efsudp8r58f7ke"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "efsudp8r58f7ke"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(r.created_at, 10s),\n       SUM(r.value) AS \"value\",\n       n.node_name AS \"metric\"\nFROM sensor_readings r\nJOIN sensors s ON r.sensor_id = s.id\nJOIN nodes n ON s.node_id = n.id\nWHERE n.topology_id = (SELECT id FROM topologies WHERE name = '$Topology')\n  AND s.sensor_type = 'water_level'\n  AND $__timeFilter(r.created_at)\nGROUP BY 1, 3 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "Line Topology",
+          "value": "Line Topology"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "efsudp8r58f7ke"
+        },
+        "definition": "SELECT name AS __text, name AS __value FROM topologies ORDER BY name;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "Topology",
+        "options": [
+          {
+            "selected": true,
+            "text": "Line Topology",
+            "value": "Line Topology"
+          },
+          {
+            "selected": false,
+            "text": "Star Topology",
+            "value": "Star Topology"
+          },
+          {
+            "selected": false,
+            "text": "bus topology",
+            "value": "bus topology"
+          },
+          {
+            "selected": false,
+            "text": "Hydroponic Topology",
+            "value": "Hydroponic Topology"
+          }
+        ],
+        "query": "SELECT name AS __text, name AS __value FROM topologies ORDER BY name;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "SMART WATER DISTRIBUTION TESTBED",
+  "uid": "water-distribution-dt",
+  "version": 3
+}

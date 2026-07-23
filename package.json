@@ -1,5 +1,6 @@
 {
   "scripts": {
-    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\" \"cd data-generator && python main.py\""
+    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\" \"cd python-generator && python main.py\"",
+    "start:all": "docker-compose -f docker-compose.grafana.yml up -d && npm --prefix backend run dev & npm --prefix frontend run dev"
   }
 }
