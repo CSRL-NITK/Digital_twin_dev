@@ -68,7 +68,8 @@ function App() {
           <Route index element={<Navigate to="/topology/1" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="topology/:id" element={<TopologyCanvas />} />
-          <Route path="analytics" element={<Analytics />} />
+          <Route path="analytics" element={<Navigate to="/analytics/1" replace />} />
+          <Route path="analytics/:id" element={<Analytics />} />
           <Route path="alerts" element={<Alerts />} />
           <Route path="topologies" element={<TopologyManagement />} />
           <Route path="user-management" element={<UserManagement />} />

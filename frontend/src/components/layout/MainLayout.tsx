@@ -33,7 +33,7 @@ const Sidebar = memo(function Sidebar() {
   const nav = [
     { label: 'Live', to: `/topology/${globalTopologyId}`, Icon: Activity },
     { label: 'Dashboard', to: '/dashboard', Icon: LayoutDashboard },
-    { label: 'Simulation', to: '/analytics', Icon: BarChart2 },
+    { label: 'Simulation', to: `/analytics/${globalTopologyId}`, Icon: BarChart2 },
   ];
 
   const adminNav = [

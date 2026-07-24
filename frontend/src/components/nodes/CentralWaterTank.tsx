@@ -615,18 +615,18 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
 
           {/* Water Layers Gradients */}
           <linearGradient id={`waterGradientFront-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={waterColors.frontTop} stopOpacity="0.92" />
-            <stop offset="100%" stopColor={waterColors.frontBottom} stopOpacity="0.98" />
+            <stop offset="0%" stopColor={`var(--tank-water-front-top, ${waterColors.frontTop})`} stopOpacity="0.92" />
+            <stop offset="100%" stopColor={`var(--tank-water-front-bottom, ${waterColors.frontBottom})`} stopOpacity="0.98" />
           </linearGradient>
 
           <linearGradient id={`waterGradientMiddle-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={waterColors.midTop} stopOpacity="0.72" />
-            <stop offset="100%" stopColor={waterColors.midBottom} stopOpacity="0.85" />
+            <stop offset="0%" stopColor={`var(--tank-water-mid-top, ${waterColors.midTop})`} stopOpacity="0.72" />
+            <stop offset="100%" stopColor={`var(--tank-water-mid-bottom, ${waterColors.midBottom})`} stopOpacity="0.85" />
           </linearGradient>
 
           <linearGradient id={`waterGradientBack-${idSuffix}`} x1={TANK_CENTER_X} y1={Y_TOP} x2={TANK_CENTER_X} y2={Y_BOTTOM} gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={waterColors.backTop} stopOpacity="0.52" />
-            <stop offset="100%" stopColor={waterColors.backBottom} stopOpacity="0.68" />
+            <stop offset="0%" stopColor={`var(--tank-water-back-top, ${waterColors.backTop})`} stopOpacity="0.52" />
+            <stop offset="100%" stopColor={`var(--tank-water-back-bottom, ${waterColors.backBottom})`} stopOpacity="0.68" />
           </linearGradient>
 
           {/* Thermal Convection Gradient */}
@@ -646,54 +646,54 @@ export const CentralWaterTank: React.FC<WaterTankProps> = ({
 
           {/* Water Pour Stream Gradients */}
           <linearGradient id={`waterStreamGradient-${idSuffix}`} x1={INLET_CENTER_X - 4} y1="0" x2={INLET_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
+            <stop offset="0%" stopColor={`var(--tank-water-stream-start, ${waterColors.streamStart})`} stopOpacity="0.95" />
             <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
-            <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
+            <stop offset="100%" stopColor={`var(--tank-water-stream-end, ${waterColors.streamEnd})`} stopOpacity="0.95" />
           </linearGradient>
 
           <linearGradient id={`waterStreamShimmer-${idSuffix}`} x1={INLET_CENTER_X - 7} y1="0" x2={INLET_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="0%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
           </linearGradient>
 
           {/* Water Pour Stream Gradients 2 */}
           <linearGradient id={`waterStreamGradient2-${idSuffix}`} x1={INLET2_CENTER_X - 4} y1="0" x2={INLET2_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
+            <stop offset="0%" stopColor={`var(--tank-water-stream-start, ${waterColors.streamStart})`} stopOpacity="0.95" />
             <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
-            <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
+            <stop offset="100%" stopColor={`var(--tank-water-stream-end, ${waterColors.streamEnd})`} stopOpacity="0.95" />
           </linearGradient>
 
           <linearGradient id={`waterStreamShimmer2-${idSuffix}`} x1={INLET2_CENTER_X - 7} y1="0" x2={INLET2_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="0%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
           </linearGradient>
 
           {/* Water Pour Stream Gradients 3 (Inlet 3) */}
           <linearGradient id={`waterStreamGradient3-${idSuffix}`} x1={INLET3_CENTER_X - 4} y1="0" x2={INLET3_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
+            <stop offset="0%" stopColor={`var(--tank-water-stream-start, ${waterColors.streamStart})`} stopOpacity="0.95" />
             <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
-            <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
+            <stop offset="100%" stopColor={`var(--tank-water-stream-end, ${waterColors.streamEnd})`} stopOpacity="0.95" />
           </linearGradient>
 
           <linearGradient id={`waterStreamShimmer3-${idSuffix}`} x1={INLET3_CENTER_X - 7} y1="0" x2={INLET3_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="0%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
           </linearGradient>
 
           {/* Water Pour Stream Gradients 4 (Inlet 4) */}
           <linearGradient id={`waterStreamGradient4-${idSuffix}`} x1={INLET4_CENTER_X - 4} y1="0" x2={INLET4_CENTER_X + 4} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={waterColors.streamStart} stopOpacity="0.95" />
+            <stop offset="0%" stopColor={`var(--tank-water-stream-start, ${waterColors.streamStart})`} stopOpacity="0.95" />
             <stop offset="50%" stopColor="#E0F2FE" stopOpacity="0.98" />
-            <stop offset="100%" stopColor={waterColors.streamEnd} stopOpacity="0.95" />
+            <stop offset="100%" stopColor={`var(--tank-water-stream-end, ${waterColors.streamEnd})`} stopOpacity="0.95" />
           </linearGradient>
 
           <linearGradient id={`waterStreamShimmer4-${idSuffix}`} x1={INLET4_CENTER_X - 7} y1="0" x2={INLET4_CENTER_X + 7} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="0%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
             <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#A5F3FC" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--tank-water-stream-shimmer, #A5F3FC)" stopOpacity="0.35" />
           </linearGradient>
 
           {/* Gauge Dial Face Gradient */}

@@ -269,7 +269,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
             path={svgPathString}
             style={{
               ...style,
-              stroke: '#A5F3FC',
+              stroke: 'var(--water-pipe-shimmer, #A5F3FC)',
               strokeWidth: 10,
               strokeLinejoin: 'round',
               fill: 'none',
@@ -283,7 +283,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
             path={svgPathString}
             style={{
               ...style,
-              stroke: '#06B6D4',
+              stroke: 'var(--water-pipe-core, #06B6D4)',
               strokeWidth: 8,
               strokeLinejoin: 'round',
               opacity: 0.95,
@@ -297,7 +297,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
             path={svgPathString}
             style={{
               ...style,
-              stroke: '#22D3EE',
+              stroke: 'var(--water-pipe-fast1, #22D3EE)',
               strokeWidth: 2,
               strokeDasharray: '12, 16',
               strokeLinejoin: 'round',
@@ -330,7 +330,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
             path={svgPathString}
             style={{
               ...style,
-              stroke: '#0D9488',
+              stroke: 'var(--water-pipe-fast2, #0D9488)',
               strokeWidth: 2,
               strokeDasharray: '16, 20',
               strokeLinejoin: 'round',

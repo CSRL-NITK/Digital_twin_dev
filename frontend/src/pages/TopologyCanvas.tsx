@@ -2220,6 +2220,7 @@ export default function TopologyCanvas() {
     fetchTopology();
 
     socket.on('sensor_update', (data) => {
+      console.log("[TopologyCanvas] Received sensor_update event:", data);
       if (isInteractingRef.current) return;
       setNodes((nds) =>
         nds.map((node) => {

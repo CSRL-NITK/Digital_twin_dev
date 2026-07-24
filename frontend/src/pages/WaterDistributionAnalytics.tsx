@@ -12,8 +12,6 @@ import {
   Gauge,
   Activity,
   Zap,
-  Maximize2,
-  Minimize2,
 } from 'lucide-react';
 import axios from 'axios';
 import ReactFlow, { 
@@ -54,7 +52,42 @@ const deriveTankState = (data: any) => {
   } as const;
 };
 
-/* ΓöÇΓöÇΓöÇ Helper for Exact Normalized Handles matching Live digital twin ΓöÇΓöÇΓöÇ */
+const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): boolean => {
+  const getTargetId = (e: any) => e.target || e.targetNodeId?.toString();
+  const getSourceId = (e: any) => e.source || e.sourceNodeId?.toString();
+
+  const tgtNode = allNodes.find((n: any) => n.id === getTargetId(edge));
+  if (tgtNode) {
+    if (tgtNode.type === 'pump' && tgtNode.data?.pumpOn === false) return false;
+  }
+
+  const isNodeSupplied = (nodeId: string, visited = new Set<string>()): boolean => {
+    if (visited.has(nodeId)) return false;
+    visited.add(nodeId);
+
+    const node = allNodes.find((n: any) => n.id === nodeId);
+    if (!node) return false;
+
+    if (node.type === 'central_tank' || node.type === 'tank') {
+      if (node.data?.outletValveOn === false) return false;
+      const wl = node.data?.waterLevel ?? 0;
+      return wl > 1;
+    }
+
+    if (node.type === 'pump') {
+      if (node.data?.pumpOn === false) return false;
+      const incomingEdges = allEdges.filter((e: any) => getTargetId(e) === nodeId);
+      if (incomingEdges.length === 0) return true; // Assume supplied if isolated source
+      return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
+    }
+
+    return true;
+  };
+
+  return isNodeSupplied(getSourceId(edge));
+};
+
+/* ─── Helper for Exact Normalized Handles matching Live digital twin ─── */
 const PrecisionHandle = ({
   id, type, x, y, basePosition, isFlipped
 }: {
@@ -449,8 +482,13 @@ function SensorNodeView({ data }: { data: any }) {
   const configs: Record<string, { icon: any; color: string; val: string; svgName: string }> = {
     water_level: { icon: <Gauge size={14} />, color: '#38bdf8', val: `${data?.waterLevel ?? 0}%`, svgName: 'ultrasonic' },
     ph: { icon: <Activity size={14} />, color: '#10b981', val: `${data?.ph ?? 0} pH`, svgName: 'ph' },
+<<<<<<< Updated upstream
     tds: { icon: <Zap size={14} />, color: '#f59e0b', val: `${Math.round(data?.tds ?? 0)} ppm`, svgName: 'tds' },
-    temperature: { icon: <Thermometer size={14} />, color: '#ef4444', val: `${data?.temperature ?? 0}┬░C`, svgName: 'temperature' },
+    temperature: { icon: <Thermometer size={14} />, color: '#ef4444', val: `${data?.temperature ?? 0}°C`, svgName: 'temperature' },
+=======
+    tds: { icon: <Zap size={14} />, color: '#f59e0b', val: `${data?.tds ?? 0} ppm`, svgName: 'tds' },
+    temperature: { icon: <Thermometer size={14} />, color: '#ef4444', val: `${data?.temperature ?? 0}ºC`, svgName: 'temperature' },
+>>>>>>> Stashed changes
   };
   const cfg = configs[type] || configs.water_level;
 
@@ -480,6 +518,29 @@ function SensorNodeView({ data }: { data: any }) {
   );
 }
 
+function ViewportGuideNode() {
+  return (
+    <div style={{
+      width: '100%',
+      height: '100%',
+      border: '2px dashed rgba(255, 0, 119, 0.4)',
+      borderRadius: 8,
+      background: 'rgba(255, 0, 119, 0.02)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'rgba(255, 0, 119, 0.6)',
+      fontSize: 14,
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+      pointerEvents: 'none'
+    }}>
+      Viewport Guide
+    </div>
+  );
+}
+
 const nodeTypes = {
   central_tank: CentralTankNodeView,
   source_tank: SourceTankNodeView,
@@ -491,12 +552,12 @@ const nodeTypes = {
   temperature: SensorNodeView,
   sensor: SensorNodeView,
   switch: SwitchNodeView,
+  viewportGuide: ViewportGuideNode,
 };
 
 const edgeTypes = {
   waterFlow: WaterFlowEdge,
 };
-
 const getDefaultNodeDimensions = (type: string = '') => {
   if (['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(type)) {
     return { width: 90, height: 90 };
@@ -558,12 +619,24 @@ export default function WaterDistributionAnalytics() {
   const [logs, setLogs] = useState<string[]>([]);
 
   // --- ReactFlow States ---
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, _onNodesChange] = useNodesState([]);
+  const [_edges, setEdges, _onEdgesChange] = useEdgesState([]);
   const [rfInstance, setRfInstance] = useState<any>(null);
   const [initialViewportConfig, setInitialViewportConfig] = useState<any>(null);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
+
+  /* ── Sync Viewport when both ReactFlow and Topology data are ready ── */
+  useEffect(() => {
+    if (rfInstance && initialViewportConfig) {
+      setTimeout(() => {
+        rfInstance.fitBounds({
+          x: initialViewportConfig.x,
+          y: initialViewportConfig.y,
+          width: initialViewportConfig.w,
+          height: initialViewportConfig.h
+        }, { duration: 0, padding: 0 });
+      }, 50);
+    }
+  }, [rfInstance, initialViewportConfig]);
 
   // Timer Ref for simulation tick
   const tickIntervalRef = useRef<any>(null);
@@ -578,37 +651,6 @@ export default function WaterDistributionAnalytics() {
       default: return 1;
     }
   };
-
-  // --- Fullscreen toggle support exactly mirroring TopologyCanvas.tsx ---
-  useEffect(() => {
-    const onFsChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      canvasContainerRef.current?.requestFullscreen().catch(console.error);
-    } else {
-      document.exitFullscreen().catch(console.error);
-    }
-  };
-
-  // --- Viewport auto-fitting exactly matching TopologyCanvas.tsx ---
-  useEffect(() => {
-    if (rfInstance && initialViewportConfig) {
-      setTimeout(() => {
-        rfInstance.fitBounds({
-          x: initialViewportConfig.x,
-          y: initialViewportConfig.y,
-          width: initialViewportConfig.w,
-          height: initialViewportConfig.h
-        }, { duration: 0, padding: isFullscreen ? 0.20 : 0 });
-      }, 80);
-    }
-  }, [rfInstance, initialViewportConfig, isFullscreen]);
 
   // --- Fetch active topology info from backend ---
   useEffect(() => {
@@ -642,15 +684,57 @@ export default function WaterDistributionAnalytics() {
         }
         setInitialViewportConfig(vpConfig);
 
+        // Bootstrap simulation parameters from actual database levels on load
+        const centralNode = (data.nodes || []).find((n: any) => (n.nodeName || '').toLowerCase().includes('central'));
+        if (centralNode) {
+          const wl = centralNode.sensors?.find((s: any) => s.sensorType === 'water_level')?.value;
+          if (wl !== undefined && wl !== null) {
+            setInitialLevel(parseFloat(Number(wl).toFixed(1)));
+          }
+        }
+        (data.nodes || []).forEach((n: any) => {
+          const name = (n.nodeName || '').toLowerCase();
+          const wl = n.sensors?.find((s: any) => s.sensorType === 'water_level')?.value;
+          if (wl !== undefined && wl !== null) {
+            const val = parseFloat(Number(wl).toFixed(1));
+            if (name.includes('t1') || name.includes('tank - 1') || name.includes('tank 1')) setTank1Level(val);
+            else if (name.includes('t2') || name.includes('tank - 2') || name.includes('tank 2')) setTank2Level(val);
+            else if (name.includes('t3') || name.includes('tank - 3') || name.includes('tank 3')) setTank3Level(val);
+            else if (name.includes('t4') || name.includes('tank - 4') || name.includes('tank 4')) setTank4Level(val);
+          }
+        });
+
+        const anyPhSensor = (data.nodes || []).flatMap((n: any) => n.sensors || []).find((s: any) => s.sensorType === 'ph');
+        if (anyPhSensor && anyPhSensor.value !== undefined && anyPhSensor.value !== null) {
+          setPh(parseFloat(Number(anyPhSensor.value).toFixed(2)));
+        }
+
+        const anyTdsSensor = (data.nodes || []).flatMap((n: any) => n.sensors || []).find((s: any) => s.sensorType === 'tds');
+        if (anyTdsSensor && anyTdsSensor.value !== undefined && anyTdsSensor.value !== null) {
+          setTds(parseFloat(Number(anyTdsSensor.value).toFixed(1)));
+        }
+
+        const anyTempSensor = (data.nodes || []).flatMap((n: any) => n.sensors || []).find((s: any) => s.sensorType === 'temperature');
+        if (anyTempSensor && anyTempSensor.value !== undefined && anyTempSensor.value !== null) {
+          setTemperature(parseFloat(Number(anyTempSensor.value).toFixed(1)));
+        }
+
         // Map database nodes using exactly customConfigs logic of live canvas
         const formattedNodes = (data.nodes || [])
+          .filter((node: any) => node.nodeType !== 'switch')
           .map((node: any) => {
             const cfg = { ...(customConfigs[node.id] || {}), ...(node.attributes || {}) };
+            const parentNode = cfg.parentAssetId ? (data.nodes || []).find((n: any) => n.id === cfg.parentAssetId) : null;
             const defDims = getDefaultNodeDimensions(node.nodeType);
             const w = cfg.customWidth || (node.width && node.height ? node.width : defDims.width);
             const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
             const isSensor = ['water_level', 'ph', 'tds', 'temperature', 'sensor'].includes(node.nodeType);
             const zIndexVal = isSensor ? 20 : 5;
+
+            const wl = node.sensors?.find((s: any) => s.sensorType === 'water_level')?.value ?? (node.nodeType === 'central_tank' ? initialLevel : 25.0);
+            const phVal = node.sensors?.find((s: any) => s.sensorType === 'ph')?.value ?? 7.2;
+            const tdsVal = node.sensors?.find((s: any) => s.sensorType === 'tds')?.value ?? 180.0;
+            const tempVal = node.sensors?.find((s: any) => s.sensorType === 'temperature')?.value ?? 25.0;
 
             return {
               id: node.id.toString(),
@@ -660,16 +744,19 @@ export default function WaterDistributionAnalytics() {
               style: { width: w, height: h, zIndex: zIndexVal },
               data: {
                 nodeName: node.nodeName,
-                nodeType: node.nodeType,
                 status: node.status,
+                nodeType: node.nodeType,
+                waterLevel: wl,
+                ph: phVal,
+                tds: tdsVal,
+                temperature: tempVal,
                 flipHorizontal: cfg.flipHorizontal,
-                inletValveOn: cfg.inletValveOn ?? true,
-                outletValveOn: cfg.outletValveOn ?? true,
-                pumpOn: cfg.pumpOn ?? true,
-                waterLevel: node.nodeType === 'central_tank' ? initialLevel : 25.0,
-                ph: 7.2,
-                tds: 180,
-                temperature: 25.0,
+                maxCapacity: cfg.maxCapacity,
+                maxPumpOutlets: cfg.maxPumpOutlets,
+                parentAssetId: cfg.parentAssetId,
+                parentAssetName: parentNode ? parentNode.nodeName : undefined,
+                customWidth: w,
+                customHeight: h,
                 switchScale: cfg.switchScale,
                 switchOffsetX: cfg.switchOffsetX,
                 switchOffsetY: cfg.switchOffsetY,
@@ -679,6 +766,17 @@ export default function WaterDistributionAnalytics() {
                 outletSwitchOffsetX: cfg.outletSwitchOffsetX,
                 outletSwitchOffsetY: cfg.outletSwitchOffsetY,
                 outletSwitchScale: cfg.outletSwitchScale,
+                inletValveOn: cfg.inletValveOn ?? true,
+                outletValveOn: cfg.outletValveOn ?? true,
+                hideSwitch: cfg.hideSwitch,
+                inletHideSwitch: cfg.inletHideSwitch,
+                outletHideSwitch: cfg.outletHideSwitch,
+                pumpOn: cfg.pumpOn ?? true,
+                waveHeightCalm: cfg.waveHeightCalm,
+                waveHeightNormal: cfg.waveHeightNormal,
+                waveHeightActive: cfg.waveHeightActive,
+                tempThreshold: cfg.tempThreshold,
+                tempMaxThreshold: cfg.tempMaxThreshold,
                 inlet1On: cfg.inlet1On,
                 inlet2On: cfg.inlet2On,
                 inlet3On: cfg.inlet3On,
@@ -719,22 +817,39 @@ export default function WaterDistributionAnalytics() {
             };
           });
 
-        // Map database edges to WaterFlowEdge
-        const formattedEdges = (data.edges || []).map((edge: any) => ({
-          id: edge.id.toString(),
-          source: edge.sourceNodeId.toString(),
-          target: edge.targetNodeId.toString(),
-          sourceHandle: edge.sourcePortId,
-          targetHandle: edge.targetPortId,
-          type: 'waterFlow',
-          animated: false,
+        const viewportNode = {
+          id: 'viewport-box',
+          type: 'viewportGuide',
+          position: { x: vpConfig.x, y: vpConfig.y },
+          style: { width: vpConfig.w, height: vpConfig.h, zIndex: 9999 },
+          hidden: true,
+          draggable: false,
           data: {
-            isFlowing: false,
-            customPoints: edge.attributes?.customPoints || [],
-          }
-        }));
+            allowMoveResize: false,
+          },
+        };
 
-        setNodes(formattedNodes);
+        // Map database edges to WaterFlowEdge
+        const formattedEdges = (data.edges || []).map((edge: any) => {
+          const isFlowing = evaluateEdgeFlow(edge, data.edges || [], formattedNodes);
+          const edgeCfg = customConfigs[`edge-${edge.id}`] || {};
+          return {
+            id: edge.id.toString(),
+            source: edge.sourceNodeId.toString(),
+            target: edge.targetNodeId.toString(),
+            sourceHandle: edge.sourcePortId,
+            targetHandle: edge.targetPortId,
+            type: 'waterFlow',
+            zIndex: isFlowing ? 10 : 0,
+            data: {
+              isFlowing,
+              ...(edge.attributes || {}),
+              ...edgeCfg
+            }
+          };
+        });
+
+        setNodes([...formattedNodes, viewportNode]);
         setEdges(formattedEdges);
       })
       .catch(() => {
@@ -746,6 +861,7 @@ export default function WaterDistributionAnalytics() {
   useEffect(() => {
     setNodes(prevNodes => 
       prevNodes.map(node => {
+        if (node.id === 'viewport-box') return node;
         const name = (node.data?.nodeName || '').toLowerCase();
         const isCentral = node.type === 'central_tank' || name.includes('central');
         const isT1 = name.includes('t1') || name.includes('tank - 1') || name.includes('tank 1');
@@ -770,7 +886,9 @@ export default function WaterDistributionAnalytics() {
             tds: tds,
             temperature: temperature,
             status: isPump ? (isSimulating ? 'Healthy' : 'Offline') : node.data.status,
-            pumpOn: isPump ? isSimulating : node.data.pumpOn,
+            pumpOn: isPump ? (isSimulating ? true : (node.data.pumpOn ?? true)) : (node.data.pumpOn ?? true),
+            inletValveOn: isSimulating ? true : (node.data.inletValveOn ?? true),
+            outletValveOn: isSimulating ? true : (node.data.outletValveOn ?? true),
             vibration: isPump ? (isSimulating ? 1.8 : 0.0) : undefined,
           }
         };
@@ -781,16 +899,20 @@ export default function WaterDistributionAnalytics() {
   // --- Dynamic flow edge animation updates ---
   useEffect(() => {
     setEdges(prevEdges => 
-      prevEdges.map(edge => ({
-        ...edge,
-        data: {
-          ...edge.data,
-          isFlowing: isSimulating,
-        },
-        animated: isSimulating,
-      }))
+      prevEdges.map(edge => {
+        const isFlowing = isSimulating && evaluateEdgeFlow(edge, prevEdges, nodes);
+        return {
+          ...edge,
+          zIndex: isFlowing ? 10 : 0,
+          data: {
+            ...edge.data,
+            isFlowing,
+          },
+          animated: isFlowing,
+        };
+      })
     );
-  }, [isSimulating, setEdges]);
+  }, [isSimulating, nodes, setEdges]);
 
   // --- Handle Simulation Ticks ---
   useEffect(() => {
@@ -1285,23 +1407,21 @@ export default function WaterDistributionAnalytics() {
             <RotateCcw size={16} />
           </button>
         </div>
-
       </div>
 
       {/* =================================================================
-         MIDDLE COLUMN ΓÇö INDEPENDENT PHYSICS SIMULATION CANVAS
+         MIDDLE COLUMN — INDEPENDENT PHYSICS SIMULATION CANVAS & LOGS
          ================================================================= */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', minHeight: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', minHeight: 0, flex: 1 }}>
         
         {/* Schematic Canvas */}
         <div 
-          ref={canvasContainerRef}
           style={{
             flex: 1, background: dark ? '#1c1d22' : '#ffffff',
             border: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
-            borderRadius: isFullscreen ? 0 : 18, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            borderRadius: 18, display: 'flex', flexDirection: 'column', overflow: 'hidden',
             boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.04)',
-            height: isFullscreen ? '100vh' : '100%', width: isFullscreen ? '100vw' : '100%'
+            height: '100%', width: '100%'
           }}
         >
           
@@ -1314,27 +1434,13 @@ export default function WaterDistributionAnalytics() {
             <span style={{ fontSize: 12, fontWeight: 700, color: dark ? '#f0f0f2' : '#5a5f6b' }}>Physical Topology Canvas</span>
             
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button 
-                onClick={toggleFullscreen}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', 
-                  background: dark ? '#22232a' : '#f8fafc',
-                  border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)'}`, 
-                  borderRadius: 8, fontSize: 11.5, fontWeight: 700, 
-                  color: dark ? '#e2e8f0' : '#4b5563', cursor: 'pointer',
-                  transition: 'background 0.15s, border-color 0.15s'
-                }}
-              >
-                {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen View'}</span>
-              </button>
               <button style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'transparent',
                 border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, borderRadius: 8,
                 fontSize: 11.5, fontWeight: 600, color: dark ? '#9ca3af' : '#5a5f6b', cursor: 'not-allowed'
               }}>
                 <Sliders size={12} />
-                Read-Only Sim
+                Independent Sim
               </button>
             </div>
           </div>
@@ -1344,15 +1450,15 @@ export default function WaterDistributionAnalytics() {
             <ReactFlowProvider>
               <ReactFlow
                 nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                edges={_edges}
+                onNodesChange={_onNodesChange}
+                onEdgesChange={_onEdgesChange}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 onInit={setRfInstance}
                 nodesConnectable={false}
                 nodesDraggable={false}
-                elementsSelectable={false}
+
                 zoomOnScroll={true}
                 panOnDrag={true}
                 preventScrolling={true}
@@ -1366,48 +1472,44 @@ export default function WaterDistributionAnalytics() {
 
         </div>
 
-        {/* Telemetry Console Outline */}
-        {!isFullscreen && (
+        {/* Telemetry Console Outline (Neat bottom position) */}
+        <div style={{
+          height: 180, background: '#111215', border: `1px solid ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)'}`,
+          borderRadius: 18, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16,
+          fontFamily: 'monospace', boxShadow: 'inset 0 4px 10px rgba(0,0,0,0.40)', flexShrink: 0
+        }}>
+          {/* Console Header */}
           <div style={{
-            height: 180, background: '#111215', border: `1px solid ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)'}`,
-            borderRadius: 18, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16,
-            fontFamily: 'monospace', boxShadow: 'inset 0 4px 10px rgba(0,0,0,0.40)'
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 6
           }}>
-            {/* Console Header */}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 6
-            }}>
-              <span style={{ fontSize: 9.5, color: '#00ffff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                &gt;_ SIMULATION TELEMETRY CONSOLE
-              </span>
-              <span style={{ fontSize: 8.5, color: '#6b7280' }}>{logs.length} events logged</span>
-            </div>
-
-            {/* Console content: Live Logs */}
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {logs.length > 0 ? (
-                logs.map((log, idx) => (
-                  <div key={idx} style={{ fontSize: 11, color: '#a7f3d0', whiteSpace: 'nowrap' }}>
-                    {log}
-                  </div>
-                ))
-              ) : (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 16px' }}>
-                  <span style={{ fontSize: 10.5, color: '#9ca3af', lineHeight: 1.6 }}>
-                    Simulation idle. Enter Initial Central Tank Water Level (%) and click "Start Simulation" to begin real-time telemetry streaming...
-                  </span>
-                </div>
-              )}
-            </div>
-
+            <span style={{ fontSize: 9.5, color: '#00ffff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+              &gt;_ SIMULATION TELEMETRY CONSOLE
+            </span>
+            <span style={{ fontSize: 8.5, color: '#6b7280' }}>{logs.length} events logged</span>
           </div>
-        )}
 
+          {/* Console content: Live Logs */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {logs.length > 0 ? (
+              logs.map((log, idx) => (
+                <div key={idx} style={{ fontSize: 11, color: '#a7f3d0', whiteSpace: 'nowrap' }}>
+                  {log}
+                </div>
+              ))
+            ) : (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 16px' }}>
+                <span style={{ fontSize: 10.5, color: '#9ca3af', lineHeight: 1.6 }}>
+                  Simulation idle. Enter Initial Central Tank Water Level (%) and click "Start Simulation" to begin real-time telemetry streaming...
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* =================================================================
-         RIGHT COLUMN ΓÇö METRICS & ALERTS
+         RIGHT COLUMN — METRICS & ALERTS
          ================================================================= */}
       <div style={cardStyle}>
         

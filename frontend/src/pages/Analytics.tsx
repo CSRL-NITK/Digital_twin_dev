@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams } from 'react-router-dom';
 import { useGlobalTopology } from '../components/layout/MainLayout';
 import HydroponicsSimulation from './hydro/Analytics';
-import WaterDistributionAnalytics from './WaterDistributionAnalytics';
+import WaterDistributionLiveAnalytics from './WaterDistributionLiveAnalytics';
 
 export default function Analytics() {
+  const { id } = useParams();
   const { globalTopologyId } = useGlobalTopology();
+  const activeTopologyId = id || globalTopologyId;
   const [isHydro, setIsHydro] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!globalTopologyId) {
-      // Defer so we don't call setState synchronously at effect entry
+    if (!activeTopologyId) {
       const t = setTimeout(() => setIsHydro(false), 0);
       return () => clearTimeout(t);
     }
     let cancelled = false;
-    axios.get(`http://localhost:3001/api/topologies/${globalTopologyId}`)
+    axios.get(`http://localhost:3001/api/topologies/${activeTopologyId}`)
       .then(res => {
         if (!cancelled) setIsHydro(res.data.name.toLowerCase().includes('hydroponic'));
       })
@@ -24,7 +26,7 @@ export default function Analytics() {
         if (!cancelled) setIsHydro(false);
       });
     return () => { cancelled = true; };
-  }, [globalTopologyId]);
+  }, [activeTopologyId]);
 
   if (isHydro === null) {
     return (
@@ -44,6 +46,6 @@ export default function Analytics() {
     return <HydroponicsSimulation />;
   }
 
-  // Render the original water distribution simulation page for other topologies:
-  return <WaterDistributionAnalytics />;
+  // Render the water distribution live analytics page:
+  return <WaterDistributionLiveAnalytics globalTopologyId={activeTopologyId} />;
 }
