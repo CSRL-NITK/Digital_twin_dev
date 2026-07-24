@@ -336,25 +336,17 @@ export default function ControlsPanel({
             )}
           </button>
           <button
-            onClick={onResetNormalInputs || onResetNutrients}
-            className={`px-2.5 py-2 border rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[10px] font-black uppercase ${
-              isDark ? "border-slate-800 bg-slate-900 text-emerald-400 hover:bg-slate-850" : "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shadow-sm"
-            }`}
-            title="Reset all climate sliders, reservoir EC/pH, and nutrient amounts back to normal required plant baseline"
-            id="btn-reset-normal-inputs"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Normal</span>
-          </button>
-          <button
             onClick={onReset}
-            className={`p-2 border rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-              isDark ? "border-slate-800 bg-slate-900 text-slate-400 hover:text-white" : "border-slate-300 bg-white text-slate-600 hover:text-slate-900 shadow-sm"
+            className={`px-3 py-2 border rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider ${
+              isDark 
+                ? "border-slate-800 bg-slate-900 text-emerald-400 hover:bg-slate-850 hover:border-emerald-500/50" 
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shadow-sm"
             }`}
-            title="Reset Sim Clock"
+            title="Reset simulation time and metrics back to Day 0 for the current active scenario"
             id="btn-reset-sim"
           >
             <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Day 0</span>
           </button>
         </div>
 

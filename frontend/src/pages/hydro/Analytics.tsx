@@ -27,11 +27,10 @@ function hexToRgba(hex: string, alpha: number = 1): string {
 
 const getTimelineProgressPercent = (age: number): number => {
   if (age <= 0) return 0;
-  if (age <= 5) return (age / 5) * 15;
-  if (age <= 14) return 15 + ((age - 5) / (14 - 5)) * 20;
-  if (age <= 28) return 35 + ((age - 14) / (28 - 14)) * 25;
-  if (age <= 48) return 60 + ((age - 28) / (48 - 28)) * 25;
-  if (age <= 70) return 85 + ((age - 48) / (70 - 48)) * 15;
+  if (age <= 5) return (age / 5) * 25;
+  if (age <= 14) return 25 + ((age - 5) / 9) * 25;
+  if (age <= 28) return 50 + ((age - 14) / 14) * 25;
+  if (age <= 70) return 75 + ((age - 28) / 42) * 25;
   return 100;
 };
 
@@ -1054,7 +1053,7 @@ export default function Analytics() {
     ]);
   };
 
-  // Reset Simulation
+  // Reset Simulation back to Day 0 for the current active scenario
   const handleReset = () => {
     setSimMinutes(0);
     setWaterUptake(1.0);
@@ -1062,46 +1061,13 @@ export default function Analytics() {
     prevHourRef.current = 0;
     lastRoutineLogRef.current = "";
     
-    // Reset reservoir stats
-    setReservoir({
-      volume: 95.0,
-      maxVolume: 100.0,
-      pH: 6.0,
-      ec: 1.4,
-      tds: 900,
-      nutrientPercentage: 100,
-      waterConsumptionToday: 0.05,
-      predictedRefillDays: 24,
-      predictedNutrientRefillDays: 30,
-    });
+    // Synchronize Day 0 state for current active scenario
+    handleAgeChange(0);
 
-    // Reset plant metrics to Germination Day 0
-    setMetrics({
-      age: 0,
-      stage: "Germination",
-      height: 0.5,
-      leafCount: 2,
-      leafAreaIndex: 0.02,
-      rootLength: 1.2,
-      freshBiomass: 0.1,
-      dryBiomass: 0.01,
-      estimatedHarvestWeight: 0.1,
-      health: 100,
-      growthRate: 2.1,
-      photosynthesisRate: 0.1,
-      waterConsumption: 0.01,
-      nutrientConsumption: 5.0,
-    });
-
-    // Reset macronutrient solution recipe
-    setNutrients({ ...LETTUCE_REFERENCE_RECIPE });
-
-    setGrowthStage("Germination");
-    setScenario("Normal Growth");
-
-    setTimeline([
-      "[00:00] Simulation clock reset. Re-calibrating physical models...",
-      "[00:00] Hydroponic parameters established at baseline configurations (95.0 L, 350 PPFD, 3/4-strength reference solution)."
+    const clockLabel = formattedClock;
+    setTimeline((prev) => [
+      ...prev,
+      `[${clockLabel}] 🔄 Simulation reset to Day 0. Active scenario (${scenario}) retained.`
     ]);
   };
 
@@ -1806,54 +1772,16 @@ export default function Analytics() {
                         className="flex flex-col items-center group focus:outline-none cursor-pointer"
                       >
                         <div className={`w-5.5 h-5.5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold z-10 transition-all ${
-                          metrics.age >= 28 && metrics.age < 35 
-                            ? "bg-[#a3e635] text-slate-950 border-[#a3e635] scale-110 shadow-[0_0_8px_rgba(163,230,53,0.4)]"
-                            : metrics.age >= 35
-                            ? isDark ? "bg-slate-900 text-emerald-400 border-emerald-500" : "bg-emerald-100 text-emerald-700 border-emerald-500"
-                            : isDark ? "bg-slate-900 text-slate-500 border-slate-800" : "bg-slate-100 text-slate-400 border-slate-300"
-                        }`}>
-                          28
-                        </div>
-                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 28 && metrics.age < 35 ? (isDark ? "text-[#a3e635]" : "text-emerald-700 font-black") : isDark ? "text-slate-500" : "text-slate-900"}`}>
-                          Mature
-                        </span>
-                      </button>
-
-                      {/* Day 35 */}
-                      <button 
-                        onClick={() => handleAgeChange(35)}
-                        className="flex flex-col items-center group focus:outline-none cursor-pointer"
-                      >
-                        <div className={`w-5.5 h-5.5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold z-10 transition-all ${
-                          metrics.age >= 35 && metrics.age < 50
-                            ? "bg-[#a3e635] text-slate-950 border-[#a3e635] scale-110 shadow-[0_0_8px_rgba(163,230,53,0.4)]"
-                            : metrics.age >= 50
-                            ? isDark ? "bg-slate-900 text-emerald-400 border-emerald-500" : "bg-emerald-100 text-emerald-700 border-emerald-500"
-                            : isDark ? "bg-slate-900 text-slate-500 border-slate-800" : "bg-slate-100 text-slate-400 border-slate-300"
-                        }`}>
-                          35
-                        </div>
-                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 35 && metrics.age < 50 ? (isDark ? "text-[#a3e635]" : "text-emerald-700 font-black") : isDark ? "text-slate-500" : "text-slate-900"}`}>
-                          Anoxia
-                        </span>
-                      </button>
-
-                      {/* Day 50 */}
-                      <button 
-                        onClick={() => handleAgeChange(50)}
-                        className="flex flex-col items-center group focus:outline-none cursor-pointer"
-                      >
-                        <div className={`w-5.5 h-5.5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold z-10 transition-all ${
-                          metrics.age >= 50 && metrics.age < 70
+                          metrics.age >= 28 && metrics.age < 70 
                             ? "bg-[#a3e635] text-slate-950 border-[#a3e635] scale-110 shadow-[0_0_8px_rgba(163,230,53,0.4)]"
                             : metrics.age >= 70
                             ? isDark ? "bg-slate-900 text-emerald-400 border-emerald-500" : "bg-emerald-100 text-emerald-700 border-emerald-500"
                             : isDark ? "bg-slate-900 text-slate-500 border-slate-800" : "bg-slate-100 text-slate-400 border-slate-300"
                         }`}>
-                          50
+                          28
                         </div>
-                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 50 && metrics.age < 70 ? (isDark ? "text-[#a3e635]" : "text-emerald-700 font-black") : isDark ? "text-slate-500" : "text-slate-900"}`}>
-                          Dry Pump
+                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 28 && metrics.age < 70 ? (isDark ? "text-[#a3e635]" : "text-emerald-700 font-black") : isDark ? "text-slate-500" : "text-slate-900"}`}>
+                          Mature
                         </span>
                       </button>
 
