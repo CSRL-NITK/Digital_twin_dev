@@ -31,4 +31,7 @@ def main():
         time.sleep(config.TICK_INTERVAL_SECONDS)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n[INFO] Hydroponics Virtual Sensor Network stopped cleanly.")
