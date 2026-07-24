@@ -108,7 +108,7 @@ export default function NutrientsPanel({ currentTDS, scenario }: NutrientsPanelP
           </span>
         </div>
         <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${isDark ? "text-slate-400 bg-slate-900/60 border-slate-850" : "text-slate-700 bg-slate-100 border-slate-300"}`}>
-          TDS: <span className={`font-extrabold ${isDark ? "text-white" : "text-slate-900"}`}>{currentTDS} ppm</span>
+          TDS: <span className={`font-extrabold ${isDark ? "text-white" : "text-slate-900"}`}>{Math.round(currentTDS)} ppm</span>
         </div>
       </div>
 

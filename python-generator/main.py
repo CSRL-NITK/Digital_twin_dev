@@ -12,13 +12,16 @@ import json
 # ==========================================
 # Flow: Python Generator -> PostgreSQL (direct) + Backend Webhook (for live Socket.IO)
 
+import os
+from urllib.parse import urlparse
+
 # ── Config ──────────────────────────────────────────────
 DB_CONFIG = {
     "host": "localhost",
     "port": 5432,
     "dbname": "DT-MAIN",
     "user": "postgres",
-    "password": "postgres",
+    "password": "postgres123",
 }
 
 BACKEND_WEBHOOK = "http://localhost:3001/api/telemetry/thingsboard"

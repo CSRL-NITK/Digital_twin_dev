@@ -42,11 +42,12 @@ export interface ReservoirStats {
   waterConsumptionToday: number; // Liters
   predictedRefillDays: number; // Days until empty
   predictedNutrientRefillDays: number; // Days until nutrients depleted
+  do?: number;             // Dissolved Oxygen in mg/L
 }
 
 export interface LettuceMetrics {
   age: number;               // Days
-  stage: "Germination" | "Seedling" | "Vegetative" | "Mature" | "Ready for Harvest";
+  stage: "Germination" | "Seedling" | "Vegetative" | "Mature" | "Ready for Harvest" | "Decaying";
   height: number;            // cm
   leafCount: number;         // count
   leafAreaIndex: number;     // ratio
@@ -59,6 +60,12 @@ export interface LettuceMetrics {
   photosynthesisRate: number;// µmol CO2/m²/s
   waterConsumption: number;  // Liters/day
   nutrientConsumption: number;// mg/day
+  dissolvedOxygen?: number;   // mg/L
+  rootHealthIndex?: number;  // 0.0 to 1.0
+  pythiumRootRot?: boolean;   // boolean
+  feAvailability?: number;   // ppm available Fe
+  phaseName?: string;        // Decay phase description
+  growthPotential?: number;  // 0 to 100%
 }
 
 export interface LettuceEnvironmentalStats {

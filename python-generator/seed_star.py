@@ -5,13 +5,29 @@ and all edges + sensors directly in PostgreSQL.
 import psycopg2
 import psycopg2.extras
 
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "dbname": "dummyDb_DT",
-    "user": "postgres",
-    "password": "jeethu0808",
-}
+import os
+from urllib.parse import urlparse
+
+def get_db_config():
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        result = urlparse(db_url)
+        return {
+            "host": result.hostname or "localhost",
+            "port": result.port or 5432,
+            "dbname": result.path.lstrip("/").split("?")[0] or "DT-MAIN",
+            "user": result.username or "postgres",
+            "password": result.password or "postgres123",
+        }
+    return {
+        "host": os.getenv("DB_HOST", "localhost"),
+        "port": int(os.getenv("DB_PORT", 5432)),
+        "dbname": os.getenv("DB_NAME", "DT-MAIN"),
+        "user": os.getenv("DB_USER", "postgres"),
+        "password": os.getenv("DB_PASSWORD", "postgres123"),
+    }
+
+DB_CONFIG = get_db_config()
 
 def seed():
     conn = psycopg2.connect(**DB_CONFIG)

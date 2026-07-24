@@ -449,7 +449,7 @@ function SensorNodeView({ data }: { data: any }) {
   const configs: Record<string, { icon: any; color: string; val: string; svgName: string }> = {
     water_level: { icon: <Gauge size={14} />, color: '#38bdf8', val: `${data?.waterLevel ?? 0}%`, svgName: 'ultrasonic' },
     ph: { icon: <Activity size={14} />, color: '#10b981', val: `${data?.ph ?? 0} pH`, svgName: 'ph' },
-    tds: { icon: <Zap size={14} />, color: '#f59e0b', val: `${data?.tds ?? 0} ppm`, svgName: 'tds' },
+    tds: { icon: <Zap size={14} />, color: '#f59e0b', val: `${Math.round(data?.tds ?? 0)} ppm`, svgName: 'tds' },
     temperature: { icon: <Thermometer size={14} />, color: '#ef4444', val: `${data?.temperature ?? 0}┬░C`, svgName: 'temperature' },
   };
   const cfg = configs[type] || configs.water_level;

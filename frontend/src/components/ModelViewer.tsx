@@ -5,8 +5,12 @@ import * as THREE from 'three';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import curvesData from '../curves.json';
 
+import { useHydroState } from '../lib/hydro/hydroStateContext';
+
 interface ModelViewerProps {
   url?: string;
+  isPumpOn?: boolean;
+  onPumpToggle?: (on: boolean) => void;
 }
 
 // Configuration of frame ratios for each water flow path based on Blender's keyframes
@@ -486,11 +490,26 @@ function ModelContent({ url, isFlowing }: { url: string; isFlowing: boolean }) {
   );
 }
 
-export default function ModelViewer({ url = '/test.glb' }: ModelViewerProps) {
+export default function ModelViewer({ url = '/test.glb', isPumpOn: propIsPumpOn, onPumpToggle }: ModelViewerProps) {
+  const hydroState = useHydroState();
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isFlowing, setIsFlowing] = useState(false);
+  const [internalFlowing, setInternalFlowing] = useState(false);
   const isHydro = url.toLowerCase().includes('hydroponic');
   const bgColor = isHydro ? '#ebebeb' : '#2e3240';
+
+  const isFlowing = propIsPumpOn !== undefined 
+    ? propIsPumpOn 
+    : (isHydro ? hydroState.isPumpOn : internalFlowing);
+
+  const handlePumpToggle = () => {
+    if (onPumpToggle) {
+      onPumpToggle(!isFlowing);
+    } else if (isHydro) {
+      hydroState.togglePump(!isFlowing);
+    } else {
+      setInternalFlowing(!internalFlowing);
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -523,16 +542,16 @@ export default function ModelViewer({ url = '/test.glb' }: ModelViewerProps) {
       {/* Sleek Controls Overlay in top-right corner */}
       <div className="absolute top-4 right-6 z-20 flex gap-2">
         <button
-          onClick={() => setIsFlowing(!isFlowing)}
+          onClick={handlePumpToggle}
           className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-800 shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer font-bold text-xs ${
             isFlowing
-              ? 'bg-red-500 hover:bg-red-600 text-white border-transparent'
-              : 'bg-[#14151b] hover:bg-[#1f2029] text-slate-200 hover:text-white border-slate-800'
+              ? 'bg-[#14151b] hover:bg-[#1f2029] text-emerald-400 border-emerald-800/80 shadow-[0_0_12px_rgba(34,197,94,0.3)]'
+              : 'bg-red-950/80 hover:bg-red-900/90 text-red-200 border-red-800/80'
           }`}
           title={isFlowing ? "Stop Water Pump" : "Start Water Pump"}
         >
-          {isFlowing && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>}
-          {isFlowing ? '🛑 Stop Flow' : '⚡ Pump ON'}
+          {isFlowing && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>}
+          {isFlowing ? '⚡ Pump ON' : '🛑 Pump OFF'}
         </button>
 
         <button

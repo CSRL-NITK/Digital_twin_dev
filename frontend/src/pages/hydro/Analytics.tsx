@@ -4,6 +4,13 @@ import ControlsPanel from "../../components/hydro/ControlsPanel";
 import PlantVisualizer from "../../components/hydro/PlantVisualizer";
 import type { LettuceEnvironmentalStats, ReservoirStats, LettuceMetrics, NutrientSolution } from "../../types";
 import { assessLettuceConditions, LETTUCE_REFERENCE_RECIPE } from "../../lib/hydro/lettuceModel";
+import { getUnattendedDecayState } from "../../lib/hydro/decaySimulation";
+import { getAlgaeBloomState } from "../../lib/hydro/algaeSimulation";
+import { getNormalGrowthState } from "../../lib/hydro/normalGrowthSimulation";
+import { getUnmonitoredState } from "../../lib/hydro/unmonitoredSimulation";
+import { getPumpFailureState } from "../../lib/hydro/pumpFailureSimulation";
+import { getTipburnState } from "../../lib/hydro/tipburnSimulation";
+import { getStageTargetForDay, executeAutoDoseTelemetry } from "../../lib/hydro/autoDoser";
 import { useTheme } from "../../components/ThemeProvider";
 
 function hexToRgba(hex: string, alpha: number = 1): string {
@@ -20,39 +27,20 @@ function hexToRgba(hex: string, alpha: number = 1): string {
 
 const getTimelineProgressPercent = (age: number): number => {
   if (age <= 0) return 0;
-  if (age <= 5) return (age / 5) * 25;
-  if (age <= 14) return 25 + ((age - 5) / (14 - 5)) * 25;
-  if (age <= 28) return 50 + ((age - 14) / (28 - 14)) * 25;
-  if (age <= 35) return 75 + ((age - 28) / (35 - 28)) * 25;
+  if (age <= 5) return (age / 5) * 15;
+  if (age <= 14) return 15 + ((age - 5) / (14 - 5)) * 20;
+  if (age <= 28) return 35 + ((age - 14) / (28 - 14)) * 25;
+  if (age <= 48) return 60 + ((age - 28) / (48 - 28)) * 25;
+  if (age <= 70) return 85 + ((age - 48) / (70 - 48)) * 15;
   return 100;
 };
 
 const getBiometricsForAge = (age: number) => {
-  if (age <= 5) {
-    const ratio = age / 5;
-    return {
-      leafCount: Math.round(2 + ratio * (6 - 2)),
-      rootLength: 1.2 + ratio * (4.1 - 1.2),
-    };
-  } else if (age <= 14) {
-    const ratio = (age - 5) / 9;
-    return {
-      leafCount: Math.round(6 + ratio * (16 - 6)),
-      rootLength: 4.1 + ratio * (10.5 - 4.1),
-    };
-  } else if (age <= 28) {
-    const ratio = (age - 14) / 14;
-    return {
-      leafCount: Math.round(16 + ratio * (28 - 16)),
-      rootLength: 10.5 + ratio * (18.0 - 10.5),
-    };
-  } else {
-    const ratio = Math.min(1.0, (age - 28) / 7);
-    return {
-      leafCount: Math.round(28 + ratio * (34 - 28)),
-      rootLength: 18.0 + ratio * (21.0 - 18.0),
-    };
-  }
+  const norm = getNormalGrowthState(age);
+  return {
+    leafCount: norm.leafCount,
+    rootLength: norm.rootLength,
+  };
 };
 
 export default function Analytics() {
@@ -282,21 +270,68 @@ export default function Analytics() {
 
   // Active deficiencies evaluation
   const activeDeficiencies = useMemo(() => {
+    if (autoCorrect || scenario === "Normal Growth") return [];
     const issues: string[] = [];
-    // Thresholds aligned to real recipe minimums so healthy values never trigger false alarms
-    if (nutrients.nitrogen   < 100) issues.push("Nitrogen Deficient (slow growth)");
-    if (nutrients.nitrogen   > 200) issues.push("Nitrogen Toxic (salt stress)");
-    if (nutrients.phosphorus <  20) issues.push("Phosphorus Deficient (stunted roots)");
-    if (nutrients.potassium  < 150) issues.push("Potassium Deficient (chlorotic margins)");
-    if (nutrients.calcium    <  60) issues.push("Calcium Deficient (Tipburn risk!)");
-    if (nutrients.magnesium  <  15) issues.push("Magnesium Deficient (interveinal yellowing)");
-    if (nutrients.sulfur     <  20) issues.push("Sulfur Deficient (young-leaf chlorosis)");
+    if (nutrients.nitrogen   < 50) issues.push("Nitrogen Deficient");
+    if (nutrients.nitrogen   > 220) issues.push("Nitrogen Toxic");
+    if (nutrients.phosphorus < 10) issues.push("Phosphorus Deficient");
+    if (nutrients.potassium  < 50) issues.push("Potassium Deficient");
+    if (nutrients.calcium    < 30) issues.push("Calcium Deficient");
+    if (nutrients.magnesium  < 10) issues.push("Magnesium Deficient");
     return issues;
-  }, [nutrients]);
+  }, [nutrients, autoCorrect, scenario]);
 
   // Real-time concise simulation alerts for ControlsPanel slot
   const activeAlerts = useMemo(() => {
     const alerts: { id: string; type: "critical" | "warning" | "info"; message: string }[] = [];
+
+    if (scenario === "Algae Bloom") {
+      const age = metrics.age;
+      if (age <= 4) {
+        alerts.push({ id: "algae-phase1", type: "info", message: "Nominal: Incubation & Spore Activation (Days 0-4)" });
+      } else if (age <= 10) {
+        alerts.push({ id: "algae-phase2", type: "warning", message: "Warning: Exponential Algae Bloom (Days 5-10)" });
+      } else if (age <= 18) {
+        alerts.push({ id: "algae-phase3", type: "critical", message: "Critical: Root Choking & Lockout Crisis (Days 11-18)" });
+      } else if (age <= 35) {
+        alerts.push({ id: "algae-phase4", type: "critical", message: "Decay: Plant Necrosis & Algae Crash (Days 19-35)" });
+      } else if (age <= 55) {
+        alerts.push({ id: "algae-phase5", type: "critical", message: "Decomposition: Deep Microbial Decomposition (Days 36-55)" });
+      } else {
+        alerts.push({ id: "algae-phase6", type: "critical", message: "Stasis: System Desiccation & Chemical Stasis (Days 56-70)" });
+      }
+
+      if (reservoir.pH > 7.5) {
+        alerts.push({ id: "fe-lockout-algae", type: "critical", message: "Severe Chlorosis / Iron Lockout" });
+      }
+      if ((reservoir.do ?? metrics.dissolvedOxygen ?? 8.0) < 3.0) {
+        alerts.push({ id: "anoxia-algae", type: "critical", message: "Root Anoxia Warning" });
+      }
+
+      return alerts;
+    }
+
+    if (scenario === "Unattended System Decay (70 Days)") {
+      const age = metrics.age;
+      if (age <= 14) {
+        alerts.push({ id: "decay-nominal", type: "info", message: "Nominal: System operating under initial baseline (Days 0-14)" });
+      } else if (age <= 30) {
+        alerts.push({ id: "decay-warning", type: "warning", message: "Warning: High Alkaline Drift & Iron Lockout" });
+      } else if (age <= 50) {
+        alerts.push({ id: "decay-critical", type: "critical", message: "Critical: Root Hypoxia & Submersible Pump Cavitation" });
+      } else {
+        alerts.push({ id: "decay-collapse", type: "critical", message: "System Collapse: Total Crop Loss" });
+      }
+
+      if (reservoir.pH > 7.2) {
+        alerts.push({ id: "fe-lockout-alert", type: "warning", message: "ALERT: Micronutrient Lockout (Iron & Manganese precipitate out)" });
+      }
+      if (reservoir.volume <= 14.0) {
+        alerts.push({ id: "pump-hazard-alert", type: "critical", message: "ALERT: Pump Sucking Air / Dry Run Hazard" });
+      }
+
+      return alerts;
+    }
 
     // Reservoir pH
     if (reservoir.pH < 5.5) {
@@ -347,7 +382,7 @@ export default function Analytics() {
     if (nutrients.sulfur < 20) alerts.push({ id: "s-low", type: "warning", message: `S low (${nutrients.sulfur} ppm)` });
 
     return alerts;
-  }, [reservoir, environmentalStats, nutrients]);
+  }, [reservoir, environmentalStats, nutrients, scenario, metrics.age]);
 
 
 
@@ -435,62 +470,174 @@ export default function Analytics() {
     const clockLabel = formattedClock;
 
     if (newScen === "Normal Growth") {
-      setEnvironmentalStats((prev) => ({
+      const normState = getNormalGrowthState(0);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        normState.stage === "Germination" ? "Germination"
+        : normState.stage === "Seedling" ? "Seedling"
+        : normState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
         ...prev,
-        waterTemp: 21.0,
-        airTemp: 23.0,
-        humidity: 60,
-        ledIntensity: 350,
-        flowRate: 1.5,
-        pumpSpeed: 100,
-        targetEC: 1.4,
-        targetPH: 6.0,
+        age: 0,
+        stage: normState.stage,
+        health: normState.health,
+        height: normState.height,
+        leafCount: normState.leafCount,
+        rootLength: normState.rootLength,
+        freshBiomass: normState.freshBiomass,
+        dissolvedOxygen: normState.doVal,
+        growthRate: normState.growthRate,
+        phaseName: normState.phaseName,
       }));
-      setReservoir((prev) => ({ ...prev, pH: 6.0, ec: 1.4, tds: 900 }));
+      setReservoir((prev) => ({ ...prev, volume: 50.0, maxVolume: 50.0, pH: normState.pH, ec: normState.ec, tds: normState.tds, do: normState.doVal }));
+      setEnvironmentalStats((prev) => ({ ...prev, waterTemp: normState.waterTemp, airTemp: normState.airTemp, humidity: normState.humidity, ledIntensity: normState.ledIntensity, flowRate: 1.5, pumpSpeed: 100 }));
       setTurbidity(4.2);
+      setSimMinutes(0);
       setTimeline((prev) => [
         ...prev,
-        `[${clockLabel}] Scenario changed: Normal Growth loaded. Hydroponic variables restored to homeostasis.`
+        `[${clockLabel}] Scenario changed: Normal Growth research baseline (28 Days) loaded. Physiology synchronized.`
       ]);
     } else if (newScen === "Tipburn Risk") {
-      setEnvironmentalStats((prev) => ({
+      const tbState = getTipburnState(0);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        tbState.stage === "Germination" ? "Germination"
+        : tbState.stage === "Seedling" ? "Seedling"
+        : tbState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
         ...prev,
-        waterTemp: 22.0,
-        airTemp: 31.0,
-        humidity: 30,
-        ledIntensity: 350,
-        flowRate: 1.5,
-        pumpSpeed: 100,
-        targetEC: 1.8,
+        age: 0,
+        stage: tbState.stage,
+        health: tbState.health,
+        height: tbState.height,
+        leafCount: tbState.leafCount,
+        rootLength: tbState.rootLength,
+        freshBiomass: tbState.freshBiomass,
+        dissolvedOxygen: tbState.doVal,
+        growthRate: tbState.growthRate,
+        tipburnSeverity: tbState.tipburnSeverity,
+        phaseName: tbState.phaseName,
       }));
+      setReservoir((prev) => ({ ...prev, volume: 50.0, maxVolume: 50.0, pH: tbState.pH, ec: tbState.ec, tds: tbState.tds, do: tbState.doVal }));
+      setEnvironmentalStats((prev) => ({ ...prev, waterTemp: tbState.waterTemp, airTemp: tbState.airTemp, humidity: tbState.humidity, ledIntensity: tbState.ledIntensity, flowRate: 1.5, pumpSpeed: 100 }));
       setTurbidity(4.2);
+      setSimMinutes(0);
       setTimeline((prev) => [
         ...prev,
-        `[${clockLabel}] WARNING: Scenario set to Tipburn Risk. Cabin heat at 31°C, humidity dropped to 30%.`
+        `[${clockLabel}] WARNING: Tipburn Risk scenario loaded. Excessive LED intensity (380 PPFD) Ca transport deficit active.`
       ]);
     } else if (newScen === "Algae Bloom") {
-      setEnvironmentalStats((prev) => ({
+      const algaeState = getAlgaeBloomState(0);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        algaeState.stage === "Germination" ? "Germination"
+        : algaeState.stage === "Seedling" ? "Seedling"
+        : algaeState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
         ...prev,
-        waterTemp: 26.0,
-        airTemp: 25.0,
-        humidity: 65,
-        ledIntensity: 380,
+        age: 0,
+        stage: algaeState.stage,
+        health: algaeState.health,
+        height: algaeState.height,
+        leafCount: algaeState.leafCount,
+        rootLength: algaeState.rootLength,
+        freshBiomass: algaeState.freshBiomass,
+        dissolvedOxygen: algaeState.doVal,
+        growthPotential: algaeState.growthPotential,
+        phaseName: algaeState.phaseName,
       }));
-      setTurbidity(4.2);
-      setTimeline((prev) => [
-        ...prev,
-        `[${clockLabel}] WARNING: Algae Bloom scenario loaded. Solution temperature elevated to 26°C with excess light.`
+      setReservoir((prev) => ({ ...prev, volume: algaeState.waterVol, maxVolume: 50.0, pH: algaeState.pH, ec: algaeState.ec, tds: algaeState.tds, do: algaeState.doVal }));
+      setEnvironmentalStats((prev) => ({ ...prev, waterTemp: algaeState.waterTemp, airTemp: algaeState.airTemp, humidity: algaeState.humidity, ledIntensity: algaeState.ledIntensity }));
+      setTurbidity(algaeState.turbidity);
+      setSimMinutes(0);
+      setTimeline([
+        `[${clockLabel}] Simulation clock reset. Re-calibrating physical models...`,
+        `[${clockLabel}] WARNING: Algae Bloom research scenario loaded (Day 0). Stray light and elevated temperature active.`
       ]);
-    } else if (newScen === "Pump Failure") {
-      setEnvironmentalStats((prev) => ({
+    } else if (newScen.startsWith("Pump Failure")) {
+      const pfState = getPumpFailureState(0);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        pfState.stage === "Germination" ? "Germination"
+        : pfState.stage === "Seedling" ? "Seedling"
+        : pfState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
         ...prev,
-        flowRate: 0.0,
-        pumpSpeed: 0,
+        age: 0,
+        stage: pfState.stage,
+        health: pfState.health,
+        height: pfState.height,
+        leafCount: pfState.leafCount,
+        rootLength: pfState.rootLength,
+        freshBiomass: pfState.freshBiomass,
+        dissolvedOxygen: pfState.doVal,
+        growthRate: pfState.growthRate,
+        failureStage: pfState.failureStage,
+        phaseName: pfState.phaseName,
       }));
+      setReservoir((prev) => ({ ...prev, volume: pfState.waterVol, maxVolume: 50.0, pH: pfState.pH, ec: pfState.ec, tds: pfState.tds, do: pfState.doVal }));
+      setEnvironmentalStats((prev) => ({ ...prev, pumpSpeed: pfState.pumpSpeed, flowRate: pfState.flowRate, waterTemp: pfState.waterTemp, airTemp: pfState.airTemp, humidity: pfState.humidity, ledIntensity: pfState.ledIntensity }));
       setTurbidity(4.2);
+      setSimMinutes(0);
       setTimeline((prev) => [
         ...prev,
-        `[${clockLabel}] CRITICAL: Recirculating pump mechanics decoupled. Fluid film flow rate collapsed!`
+        `[${clockLabel}] WARNING: Pump Failure scenario loaded. Pump operates Day 0-9; mechanical failure scheduled at Day 10.`
+      ]);
+    } else if (newScen === "Unattended System Decay (70 Days)" || newScen.toLowerCase().includes("unmonitored")) {
+      const initUnmonitored = getUnmonitoredState(0);
+      setTankVolume(50.0);
+      setAutoCorrect(false);
+      setEnvironmentalStats((prev) => ({
+        ...prev,
+        waterTemp: initUnmonitored.waterTemp,
+        airTemp: initUnmonitored.airTemp,
+        humidity: initUnmonitored.humidity,
+        ledIntensity: initUnmonitored.ledIntensity,
+        photoperiod: 16,
+        flowRate: 1.5,
+        pumpSpeed: 100,
+      }));
+      setReservoir((prev) => ({
+        ...prev,
+        volume: initUnmonitored.waterVol,
+        maxVolume: 50.0,
+        pH: initUnmonitored.pH,
+        ec: initUnmonitored.ec,
+        tds: initUnmonitored.tds,
+        do: initUnmonitored.doVal,
+      }));
+      setNutrients((prev) => ({
+        ...prev,
+        nitrogen: initUnmonitored.n,
+        phosphorus: initUnmonitored.p,
+        potassium: initUnmonitored.k,
+        calcium: initUnmonitored.ca,
+        magnesium: initUnmonitored.mg,
+        sulfur: initUnmonitored.s,
+        iron: initUnmonitored.fe,
+      }));
+      setMetrics((prev) => ({
+        ...prev,
+        age: 0,
+        stage: "Germination",
+        health: 100,
+        height: initUnmonitored.height,
+        leafCount: initUnmonitored.leafCount,
+        rootLength: initUnmonitored.rootLength,
+        freshBiomass: initUnmonitored.freshBiomass,
+        dissolvedOxygen: initUnmonitored.doVal,
+        pythiumRootRot: false,
+        feAvailability: initUnmonitored.fe,
+        phaseName: initUnmonitored.phaseName,
+      }));
+      setSimMinutes(0);
+      setTimeline((prev) => [
+        ...prev,
+        `[${clockLabel}] SCENARIO LOADED: Unmonitored System (28 Days + 70-day desiccation). Auto-correct disabled.`
       ]);
     }
   };
@@ -565,79 +712,291 @@ export default function Analytics() {
 
   // Handle Plant Age Change (Direct Day Interpolation)
   const handleAgeChange = (newAge: number) => {
-    // Determine growth stage based on age
-    let stage: "Germination" | "Seedling" | "Vegetative" | "Mature" = "Germination";
-    if (newAge > 28) stage = "Mature";
-    else if (newAge > 14) stage = "Vegetative";
-    else if (newAge > 5) stage = "Seedling";
-
-    setGrowthStage(stage);
-
-    // Piecewise linear interpolation of biological parameters based on newAge (0 to 35 days)
-    let height = 0.5;
-    let leafCount = 2;
-    let leafAreaIndex = 0.02;
-    let rootLength = 1.2;
-    let freshBiomass = 0.1;
-    let growthRate = 2.1;
-
-    if (newAge <= 5) {
-      // Interpolate Germination (0) to Seedling (5)
-      const ratio = newAge / 5;
-      height = 0.5 + ratio * (3.2 - 0.5);
-      leafCount = Math.round(2 + ratio * (6 - 2));
-      leafAreaIndex = 0.02 + ratio * (0.25 - 0.02);
-      rootLength = 1.2 + ratio * (4.1 - 1.2);
-      freshBiomass = 0.1 + ratio * (2.8 - 0.1);
-      growthRate = 2.1 + ratio * (1.95 - 2.1);
-    } else if (newAge <= 14) {
-      // Interpolate Seedling (5) to Vegetative (14)
-      const ratio = (newAge - 5) / 9;
-      height = 3.2 + ratio * (12.5 - 3.2);
-      leafCount = Math.round(6 + ratio * (16 - 6));
-      leafAreaIndex = 0.25 + ratio * (1.25 - 0.25);
-      rootLength = 4.1 + ratio * (10.5 - 4.1);
-      freshBiomass = 2.8 + ratio * (18.0 - 2.8);
-      growthRate = 1.95 + ratio * (1.80 - 1.95);
-    } else if (newAge <= 28) {
-      // Interpolate Vegetative (14) to Mature (28)
-      const ratio = (newAge - 14) / 14;
-      height = 12.5 + ratio * (22.0 - 12.5);
-      leafCount = Math.round(16 + ratio * (28 - 16));
-      leafAreaIndex = 1.25 + ratio * (2.85 - 1.25);
-      rootLength = 10.5 + ratio * (18.0 - 10.5);
-      freshBiomass = 18.0 + ratio * (145.0 - 18.0);
-      growthRate = 1.80 + ratio * (1.25 - 1.80);
-    } else {
-      // Interpolate Mature (28) to Harvest Day (35)
-      const ratio = Math.min(1.0, (newAge - 28) / 7);
-      height = 22.0 + ratio * (26.0 - 22.0);
-      leafCount = Math.round(28 + ratio * (34 - 28));
-      leafAreaIndex = 2.85 + ratio * (3.30 - 2.85);
-      rootLength = 18.0 + ratio * (21.0 - 18.0);
-      freshBiomass = 145.0 + ratio * (195.0 - 145.0);
-      growthRate = 1.25 + ratio * (0.95 - 1.25);
+    if (scenario === "Algae Bloom") {
+      const algaeState = getAlgaeBloomState(newAge);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        algaeState.stage === "Germination" ? "Germination"
+        : algaeState.stage === "Seedling" ? "Seedling"
+        : algaeState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      const bio = getBiometricsForAge(algaeState.t);
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
+        ...prev,
+        age: algaeState.t,
+        stage: algaeState.stage,
+        health: algaeState.health,
+        freshBiomass: algaeState.freshBiomass,
+        dissolvedOxygen: algaeState.doVal,
+        feAvailability: algaeState.fe,
+        growthPotential: algaeState.growthPotential,
+        phaseName: algaeState.phaseName,
+        leafCount: bio.leafCount,
+        rootLength: bio.rootLength,
+      }));
+      setReservoir((prev) => ({
+        ...prev,
+        volume: algaeState.waterVol,
+        pH: algaeState.pH,
+        ec: algaeState.ec,
+        tds: algaeState.tds,
+        do: algaeState.doVal,
+      }));
+      setEnvironmentalStats((prev) => ({
+        ...prev,
+        waterTemp: algaeState.waterTemp,
+        airTemp: algaeState.airTemp,
+      }));
+      setTurbidity(algaeState.turbidity);
+      setNutrients((prev) => ({
+        ...prev,
+        nitrogen: algaeState.n,
+        phosphorus: algaeState.p,
+        potassium: algaeState.k,
+        calcium: algaeState.ca,
+        magnesium: algaeState.mg,
+        sulfur: algaeState.s,
+        iron: algaeState.fe,
+      }));
+      setSimMinutes(Math.round(newAge * 1440));
+      const clockLabel = formattedClock;
+      setTimeline((prev) => [
+        ...prev,
+        `[${clockLabel}] Time Jump: Algae Bloom state updated to Day ${newAge.toFixed(1)} (${algaeState.phaseName}). Dynamics synchronized.`
+      ]);
+      return;
     }
 
-    setMetrics((prev) => ({
-      ...prev,
-      age: parseFloat(newAge.toFixed(2)),
-      stage,
-      height: parseFloat(height.toFixed(1)),
-      leafCount,
-      leafAreaIndex: parseFloat(leafAreaIndex.toFixed(2)),
-      rootLength: parseFloat(rootLength.toFixed(1)),
-      freshBiomass: parseFloat(freshBiomass.toFixed(1)),
-      growthRate: parseFloat(growthRate.toFixed(2)),
-    }));
+    if (scenario === "Unattended System Decay (70 Days)" || scenario.toLowerCase().includes("unmonitored")) {
+      const uState = getUnmonitoredState(newAge);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        uState.stage === "Germination" ? "Germination"
+        : uState.stage === "Seedling" ? "Seedling"
+        : uState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
+        ...prev,
+        age: uState.t,
+        stage: uState.stage,
+        health: uState.health,
+        height: uState.height,
+        leafCount: uState.leafCount,
+        rootLength: uState.rootLength,
+        freshBiomass: uState.freshBiomass,
+        dissolvedOxygen: uState.doVal,
+        growthRate: uState.growthRate,
+        pythiumRootRot: uState.pythiumRootRot,
+        feAvailability: uState.fe,
+        phaseName: uState.phaseName,
+      }));
+      setReservoir((prev) => ({
+        ...prev,
+        volume: uState.waterVol,
+        maxVolume: 50.0,
+        pH: uState.pH,
+        ec: uState.ec,
+        tds: uState.tds,
+        do: uState.doVal,
+      }));
+      setEnvironmentalStats((prev) => ({
+        ...prev,
+        waterTemp: uState.waterTemp,
+        airTemp: uState.airTemp,
+        humidity: uState.humidity,
+        ledIntensity: uState.ledIntensity,
+      }));
+      setNutrients((prev) => ({
+        ...prev,
+        nitrogen: uState.n,
+        phosphorus: uState.p,
+        potassium: uState.k,
+        calcium: uState.ca,
+        magnesium: uState.mg,
+        sulfur: uState.s,
+        iron: uState.fe,
+      }));
+      setSimMinutes(Math.round(newAge * 1440));
+      const clockLabel = formattedClock;
+      setTimeline((prev) => [
+        ...prev,
+        `[${clockLabel}] Time Jump: Unmonitored state updated to Day ${newAge.toFixed(1)} (${uState.phaseName}). Dynamics synchronized.`
+      ]);
+      return;
+    }
 
-    setSimMinutes(Math.round(newAge * 1440));
+    if (scenario.startsWith("Pump Failure")) {
+      const pfState = getPumpFailureState(newAge);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        pfState.stage === "Germination" ? "Germination"
+        : pfState.stage === "Seedling" ? "Seedling"
+        : pfState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
+        ...prev,
+        age: pfState.t,
+        stage: pfState.stage,
+        health: pfState.health,
+        height: pfState.height,
+        leafCount: pfState.leafCount,
+        rootLength: pfState.rootLength,
+        freshBiomass: pfState.freshBiomass,
+        dissolvedOxygen: pfState.doVal,
+        growthRate: pfState.growthRate,
+        failureStage: pfState.failureStage,
+        phaseName: pfState.phaseName,
+      }));
+      setReservoir((prev) => ({
+        ...prev,
+        volume: pfState.waterVol,
+        maxVolume: 50.0,
+        pH: pfState.pH,
+        ec: pfState.ec,
+        tds: pfState.tds,
+        do: pfState.doVal,
+      }));
+      setEnvironmentalStats((prev) => ({
+        ...prev,
+        pumpSpeed: pfState.pumpSpeed,
+        flowRate: pfState.flowRate,
+        waterTemp: pfState.waterTemp,
+        airTemp: pfState.airTemp,
+        humidity: pfState.humidity,
+        ledIntensity: pfState.ledIntensity,
+      }));
+      setNutrients((prev) => ({
+        ...prev,
+        nitrogen: pfState.n,
+        phosphorus: pfState.p,
+        potassium: pfState.k,
+        calcium: pfState.ca,
+        magnesium: pfState.mg,
+        sulfur: pfState.s,
+        iron: pfState.fe,
+      }));
+      setSimMinutes(Math.round(newAge * 1440));
+      const clockLabel = formattedClock;
+      setTimeline((prev) => [
+        ...prev,
+        `[${clockLabel}] Time Jump: Pump Failure state updated to Day ${newAge.toFixed(1)} (${pfState.phaseName}). Dynamics synchronized.`
+      ]);
+      return;
+    }
 
-    const clockLabel = formattedClock;
-    setTimeline((prev) => [
-      ...prev,
-      `[${clockLabel}] Time Jump: Crop age manually updated to Day ${newAge.toFixed(1)} (${stage} stage). Physiology synchronized.`
-    ]);
+    if (scenario === "Tipburn Risk") {
+      const tbState = getTipburnState(newAge);
+      const safeStage: "Germination" | "Seedling" | "Vegetative" | "Mature" =
+        tbState.stage === "Germination" ? "Germination"
+        : tbState.stage === "Seedling" ? "Seedling"
+        : tbState.stage === "Vegetative" ? "Vegetative"
+        : "Mature";
+      setGrowthStage(safeStage);
+      setMetrics((prev) => ({
+        ...prev,
+        age: tbState.t,
+        stage: tbState.stage,
+        health: tbState.health,
+        height: tbState.height,
+        leafCount: tbState.leafCount,
+        rootLength: tbState.rootLength,
+        freshBiomass: tbState.freshBiomass,
+        dissolvedOxygen: tbState.doVal,
+        growthRate: tbState.growthRate,
+        tipburnSeverity: tbState.tipburnSeverity,
+        phaseName: tbState.phaseName,
+      }));
+      setReservoir((prev) => ({
+        ...prev,
+        volume: 50.0,
+        maxVolume: 50.0,
+        pH: tbState.pH,
+        ec: tbState.ec,
+        tds: tbState.tds,
+        do: tbState.doVal,
+      }));
+      setEnvironmentalStats((prev) => ({
+        ...prev,
+        waterTemp: tbState.waterTemp,
+        airTemp: tbState.airTemp,
+        humidity: tbState.humidity,
+        ledIntensity: tbState.ledIntensity,
+      }));
+      setNutrients((prev) => ({
+        ...prev,
+        nitrogen: tbState.n,
+        phosphorus: tbState.p,
+        potassium: tbState.k,
+        calcium: tbState.ca,
+        magnesium: tbState.mg,
+        sulfur: tbState.s,
+        iron: tbState.fe,
+      }));
+      setSimMinutes(Math.round(newAge * 1440));
+      const clockLabel = formattedClock;
+      setTimeline((prev) => [
+        ...prev,
+        `[${clockLabel}] Time Jump: Tipburn Risk state updated to Day ${newAge.toFixed(1)} (${tbState.phaseName}). Dynamics synchronized.`
+      ]);
+      return;
+    }
+
+    if (scenario === "Normal Growth") {
+      const normState = getNormalGrowthState(newAge);
+      setGrowthStage(normState.stage);
+      setMetrics((prev) => ({
+        ...prev,
+        age: normState.t,
+        stage: normState.stage,
+        health: normState.health,
+        height: normState.height,
+        leafCount: normState.leafCount,
+        rootLength: normState.rootLength,
+        freshBiomass: normState.freshBiomass,
+        dissolvedOxygen: normState.doVal,
+        growthRate: normState.growthRate,
+        phaseName: normState.phaseName,
+      }));
+      setReservoir((prev) => ({
+        ...prev,
+        volume: 50.0,
+        maxVolume: 50.0,
+        pH: normState.pH,
+        ec: normState.ec,
+        tds: normState.tds,
+        do: normState.doVal,
+      }));
+      setEnvironmentalStats((prev) => ({
+        ...prev,
+        waterTemp: normState.waterTemp,
+        airTemp: normState.airTemp,
+        humidity: normState.humidity,
+        ledIntensity: normState.ledIntensity,
+      }));
+      setNutrients((prev) => ({
+        ...prev,
+        nitrogen: normState.n,
+        phosphorus: normState.p,
+        potassium: normState.k,
+        calcium: normState.ca,
+        magnesium: normState.mg,
+        sulfur: normState.s,
+        iron: normState.fe,
+        manganese: normState.mn,
+        zinc: normState.zn,
+        copper: normState.cu,
+        boron: normState.b,
+        molybdenum: normState.mo,
+
+      }));
+      setSimMinutes(Math.round(newAge * 1440));
+      const clockLabel = formattedClock;
+      setTimeline((prev) => [
+        ...prev,
+        `[${clockLabel}] Time Jump: Normal Growth updated to Day ${newAge.toFixed(1)} (${normState.phaseName}). Physiology synchronized.`
+      ]);
+      return;
+    }
   };
 
   // Handle Crop Variety Change
@@ -761,6 +1120,163 @@ export default function Analytics() {
   // Instantaneous Fast Growth Time Warp Jump
   const handleTimeJump = useCallback((hours: number) => {
     const clockLabel = formattedClock;
+
+    if (scenario === "Unattended System Decay (70 Days)") {
+      setSimMinutes((prevMinutes) => {
+        const nextMinutes = prevMinutes + hours * 60;
+        const prevAge = prevMinutes / 1440;
+        const nextAge = parseFloat((nextMinutes / 1440).toFixed(2));
+        const decayState = getUnattendedDecayState(nextAge);
+
+        const milestones = [
+          { day: 15, log: "[Day 15.0] Milestone: Rapid Vegetative Growth & Alkaline Drift initialized. Nitrate uptake releasing OH- (pH rising to 7.20)." },
+          { day: 23, log: "[Day 23.0] Milestone: Critical Lockout & Salt Spike. Micronutrients precipitated; tipburn marginal leaf necrosis starting." },
+          { day: 35, log: "[Day 35.0] Milestone: Anoxia & Pythium Root Rot outbreak. DO dropped to < 4.0 mg/L. Roots brown, slimy, disintegrating." },
+          { day: 48, log: "[Day 48.0] Milestone: Submersible pump level breach (Vol <= 14.0 L). Pump flow 0.0 L/min. Channels desiccating." },
+          { day: 55, log: "[Day 55.0] Milestone: System Collapse & Liquefaction. Crop biomass decomposed into stagnant organic rot acids." },
+        ];
+
+        const newMilestoneLogs: string[] = [];
+        milestones.forEach((m) => {
+          if (prevAge < m.day && nextAge >= m.day) {
+            newMilestoneLogs.push(m.log);
+          }
+        });
+
+        setMetrics((prev) => ({
+          ...prev,
+          age: decayState.t,
+          stage: decayState.stage,
+          health: decayState.health,
+          height: decayState.height,
+          leafCount: decayState.leafCount,
+          rootLength: decayState.rootLength,
+          freshBiomass: decayState.freshBiomass,
+          dissolvedOxygen: decayState.doVal,
+          rootHealthIndex: decayState.rootHealthIndex,
+          pythiumRootRot: decayState.pythiumRootRot,
+          feAvailability: decayState.feAvailability,
+          phaseName: decayState.phaseName,
+        }));
+
+        setReservoir((prev) => ({
+          ...prev,
+          volume: decayState.waterVol,
+          maxVolume: 50.0,
+          pH: decayState.pH,
+          ec: decayState.ec,
+          tds: decayState.tds,
+          do: decayState.doVal,
+        }));
+
+        setEnvironmentalStats((prev) => ({
+          ...prev,
+          pumpSpeed: decayState.pumpSpeed,
+          flowRate: decayState.pumpFlow,
+          waterTemp: decayState.waterTemp,
+          airTemp: decayState.airTemp,
+          humidity: decayState.humidity,
+        }));
+
+        setNutrients((prev) => ({
+          ...prev,
+          nitrogen: decayState.n,
+          phosphorus: decayState.p,
+          potassium: decayState.k,
+          calcium: decayState.ca,
+          magnesium: decayState.mg,
+          sulfur: decayState.s,
+          iron: decayState.feAvailability,
+          manganese: decayState.mnAvailability,
+        }));
+
+        setTimeline((prevLogs) => [
+          ...prevLogs,
+          `[${clockLabel}] ⚡ TIME WARP: Advanced simulation by ${hours} Hours (+${hours * 60} mins). Crop age: Day ${decayState.t.toFixed(1)} (${decayState.phaseName}).`,
+          ...newMilestoneLogs,
+        ]);
+
+        return nextMinutes;
+      });
+      return;
+    }
+
+    if (scenario === "Algae Bloom") {
+      setSimMinutes((prevMinutes) => {
+        const nextMinutes = prevMinutes + hours * 60;
+        const prevAge = prevMinutes / 1440;
+        const nextAge = parseFloat((nextMinutes / 1440).toFixed(2));
+        const algaeState = getAlgaeBloomState(nextAge);
+
+        const milestones = [
+          { day: 8.8, log: "[Day 8.8] WARNING: pH exceeded 7.5. Iron lockout initiated." },
+          { day: 9.7, log: "[Day 9.7] CRITICAL: Nighttime DO dropped below 3.0 mg/L. Root respiration halted." },
+          { day: 11.0, log: "[Day 11.0] Milestone: Root Choking & Lockout Crisis initialized. Algae density maxed. Growth potential collapsed to 0%." },
+          { day: 19.0, log: "[Day 19.0] Milestone: Plant Necrosis & Algae Crash. Roots black and slimy, tissue liquefaction initiated." },
+          { day: 36.0, log: "[Day 36.0] Milestone: Deep Microbial Decomposition. Total anoxia reached." },
+          { day: 56.0, log: "[Day 56.0] Milestone: System Desiccation & Chemical Stasis. Reservoir mud/sludge stasis reached." },
+        ];
+
+        const newMilestoneLogs: string[] = [];
+        milestones.forEach((m) => {
+          if (prevAge < m.day && nextAge >= m.day) {
+            newMilestoneLogs.push(m.log);
+          }
+        });
+
+        const bio = getBiometricsForAge(algaeState.t);
+        setMetrics((prev) => ({
+          ...prev,
+          age: algaeState.t,
+          stage: algaeState.stage,
+          health: algaeState.health,
+          freshBiomass: algaeState.freshBiomass,
+          dissolvedOxygen: algaeState.doVal,
+          feAvailability: algaeState.fe,
+          growthPotential: algaeState.growthPotential,
+          phaseName: algaeState.phaseName,
+          leafCount: bio.leafCount,
+          rootLength: bio.rootLength,
+        }));
+
+        setReservoir((prev) => ({
+          ...prev,
+          volume: algaeState.waterVol,
+          pH: algaeState.pH,
+          ec: algaeState.ec,
+          tds: algaeState.tds,
+          do: algaeState.doVal,
+        }));
+
+        setEnvironmentalStats((prev) => ({
+          ...prev,
+          waterTemp: algaeState.waterTemp,
+          airTemp: algaeState.airTemp,
+        }));
+
+        setTurbidity(algaeState.turbidity);
+
+        setNutrients((prev) => ({
+          ...prev,
+          nitrogen: algaeState.n,
+          phosphorus: algaeState.p,
+          potassium: algaeState.k,
+          calcium: algaeState.ca,
+          magnesium: algaeState.mg,
+          sulfur: algaeState.s,
+          iron: algaeState.fe,
+        }));
+
+        setTimeline((prevLogs) => [
+          ...prevLogs,
+          `[${clockLabel}] ⚡ TIME WARP: Advanced Algae Bloom simulation by ${hours} Hours (+${hours * 60} mins). Crop age: Day ${algaeState.t.toFixed(1)} (${algaeState.phaseName}).`,
+          ...newMilestoneLogs,
+        ]);
+
+        return nextMinutes;
+      });
+      return;
+    }
     
     setSimMinutes((prevMinutes) => {
       let currentMinutes = prevMinutes;
@@ -825,27 +1341,68 @@ export default function Analytics() {
           healthDelta -= (environmentalStats.ledIntensity - 320) * 0.01;
         }
 
-        const minHealth = nextAge > 70 ? 0 : 5;
-        nextHealth = Math.max(minHealth, Math.min(100, nextHealth + healthDelta));
+        // Unmonitored drift stress penalties when Auto Dosing is OFF
+        let unmonitoredStressPenalty = 0;
+        if (!autoCorrect) {
+          // pH Stress & Alkaline Nutrient Lockout (Iron/Manganese precipitate at pH > 6.5)
+          if (tempReservoir.pH > 8.5) {
+            unmonitoredStressPenalty += 2.8; // Severe alkaline lockout (e.g. pH 9.50)
+          } else if (tempReservoir.pH > 7.2) {
+            unmonitoredStressPenalty += 1.5;
+          } else if (tempReservoir.pH > 6.5) {
+            unmonitoredStressPenalty += 0.6;
+          } else if (tempReservoir.pH < 5.0) {
+            unmonitoredStressPenalty += 1.5;
+          }
 
-        // Macronutrient penalties — thresholds must match deficiency alert thresholds exactly
-        // so auto-dosing (which keeps nutrients at target) prevents ALL penalty blocks
-        let activePenalty = 0;
-        if (nutrients.nitrogen   < 100) activePenalty += 0.8;
-        if (nutrients.calcium    <  60) activePenalty += 1.5;
-        if (nutrients.potassium  < 150) activePenalty += 0.4;
-        if (nutrients.magnesium  <  15) activePenalty += 0.4;
-        if (nutrients.sulfur     <  20) activePenalty += 0.3;
+          // Water Level & Low Reservoir Stress
+          if (tempReservoir.volume <= 12.0) {
+            unmonitoredStressPenalty += 2.0; // Severe water depletion
+          } else if (tempReservoir.volume <= 20.0) {
+            unmonitoredStressPenalty += 1.0;
+          }
 
-        if (activePenalty > 0) {
-          nextHealth = Math.max(minHealth, nextHealth - activePenalty);
+          // EC / TDS Out of Target Range
+          if (tempReservoir.ec < 0.6) {
+            unmonitoredStressPenalty += 1.0;
+          } else if (tempReservoir.ec > 2.2) {
+            unmonitoredStressPenalty += 1.2;
+          }
+
+          // Macronutrient Deficiencies
+          if (nutrients.nitrogen < 50) unmonitoredStressPenalty += 0.8;
+          if (nutrients.calcium < 30) unmonitoredStressPenalty += 1.2;
+          if (nutrients.potassium < 50) unmonitoredStressPenalty += 0.6;
+          if (nutrients.magnesium < 10) unmonitoredStressPenalty += 0.4;
         }
 
-        let growthMultiplier = nextHealth / 100;
-        growthMultiplier *= lettuceAssessment.growthFactor * 1.2;
+        const isPumpFailed = environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure");
 
-        if (environmentalStats.airTemp > 28) {
-          growthMultiplier *= Math.max(0.2, 1 - (environmentalStats.airTemp - 28) * 0.05);
+        if (isPumpFailed) {
+          // Pump failure total flow cutoff: zero nutrient delivery causes rapid desiccation decay
+          nextHealth = Math.max(0, nextHealth - 14.2);
+        } else if (nextAge > 70) {
+          const senescenceDecay = (nextAge - 70) * 3.8;
+          nextHealth = Math.max(0, 100.0 - senescenceDecay);
+        } else if (autoCorrect) {
+          nextHealth = 100.0;
+        } else {
+          // When Auto-Dosing is OFF, apply unmonitored stress penalty
+          nextHealth = Math.max(0, Math.min(100.0, nextHealth - unmonitoredStressPenalty));
+        }
+
+        // Milestone log when crossing Day 70 threshold
+        if (tempMetrics.age <= 70 && nextAge > 70) {
+          newTimelineLogs.push("[Day 70.0] 🥀 Senescence Threshold Reached: Crop surpassed maximum 70-day harvest window in Normal Growth. Natural tissue senescence and over-mature leaf decay initiated.");
+        }
+
+        let growthMultiplier = isPumpFailed ? 0 : (nextHealth / 100);
+        if (!isPumpFailed) {
+          growthMultiplier *= lettuceAssessment.growthFactor * 1.2;
+
+          if (environmentalStats.airTemp > 28) {
+            growthMultiplier *= Math.max(0.2, 1 - (environmentalStats.airTemp - 28) * 0.05);
+          }
         }
 
         const sizeInc = 0.05 * growthMultiplier;
@@ -881,40 +1438,73 @@ export default function Analytics() {
         }
 
         if (autoCorrect) {
-          // pH correction
-          if (nextPH > 6.2) {
-            nextPH = 6.0;
-            newTimelineLogs.push(`Auto dosing: Injected pH Down. Corrected pH to 6.0.`);
-          } else if (nextPH < 5.8) {
-            nextPH = 6.0;
-            newTimelineLogs.push(`Auto dosing: Injected pH Up. Corrected pH to 6.0.`);
+          const stageTarget = getStageTargetForDay(nextAge);
+          
+          // 1. pH Auto-Dose
+          if (nextPH > stageTarget.maxPH) {
+            newTimelineLogs.push(`[Auto-Dose] pH Exceeded Target (${nextPH.toFixed(2)} > ${stageTarget.maxPH.toFixed(1)}). Injected pH Down (Phosphoric Acid) -> Restored to pH ${stageTarget.targetPH.toFixed(1)}.`);
+            nextPH = stageTarget.targetPH;
+          } else if (nextPH < stageTarget.minPH) {
+            newTimelineLogs.push(`[Auto-Dose] pH Dropped Below Target (${nextPH.toFixed(2)} < ${stageTarget.minPH.toFixed(1)}). Injected pH Up (KOH) -> Restored to pH ${stageTarget.targetPH.toFixed(1)}.`);
+            nextPH = stageTarget.targetPH;
           }
-          // EC / TDS correction
-          if (nextEC < environmentalStats.targetEC) {
-            nextEC = environmentalStats.targetEC;
+
+          // 2. EC / PPM Auto-Dose & RO Dilution
+          if (nextEC > stageTarget.targetEC + 0.1) {
+            newTimelineLogs.push(`[Auto-Dose] EC Spike (${nextEC.toFixed(2)} mS/cm > ${stageTarget.targetEC.toFixed(1)} target). Triggered RO Fresh Water Dilution -> Restored to ${stageTarget.totalPPM} PPM (${stageTarget.targetEC} mS/cm).`);
+            nextEC = stageTarget.targetEC;
+          } else if (nextEC < stageTarget.targetEC - 0.1) {
             tempNutrientsFed += 0.8;
-            newTimelineLogs.push(`Auto dosing: Nutrient pump active. Realigned EC to target ${environmentalStats.targetEC} mS/cm.`);
+            newTimelineLogs.push(`[Auto-Dose] EC Deficit (${nextEC.toFixed(2)} mS/cm < ${stageTarget.targetEC.toFixed(1)} target). Dosed Stock Part A & Part B -> Restored to ${stageTarget.totalPPM} PPM (${stageTarget.targetEC} mS/cm).`);
+            nextEC = stageTarget.targetEC;
           }
-          // Water-level correction
-          if (nextVol < 80.0) {
-            nextVol = 95.0;
-            newTimelineLogs.push(`Auto-Refill Valve: Reservoir fell below 80L. Automatically topped off water to 95.0 L.`);
+
+          // 3. Water Refill
+          if (nextVol < 40.0) {
+            nextVol = 50.0;
+            newTimelineLogs.push(`[Auto-Refill] Reservoir level low (${nextVol.toFixed(1)} L). Automatically topped off RO water to 50.0 L.`);
           }
-          // *** Critical fix: top-up individual nutrient ppm so health-penalty blocks never fire ***
-          // When auto-dosing is on the system should maintain the reference recipe concentrations.
-          setNutrients((prevNutrients) => {
-            let changed = false;
-            const patched = { ...prevNutrients };
-            if (patched.nitrogen   < 100) { patched.nitrogen   = LETTUCE_REFERENCE_RECIPE.nitrogen;   changed = true; }
-            if (patched.phosphorus <  20) { patched.phosphorus = LETTUCE_REFERENCE_RECIPE.phosphorus; changed = true; }
-            if (patched.potassium  < 150) { patched.potassium  = LETTUCE_REFERENCE_RECIPE.potassium;  changed = true; }
-            if (patched.calcium    <  60) { patched.calcium    = LETTUCE_REFERENCE_RECIPE.calcium;    changed = true; }
-            if (patched.magnesium  <  15) { patched.magnesium  = LETTUCE_REFERENCE_RECIPE.magnesium;  changed = true; }
-            if (patched.sulfur     <  20) { patched.sulfur     = LETTUCE_REFERENCE_RECIPE.sulfur;     changed = true; }
-            if (changed) {
-              newTimelineLogs.push(`Auto dosing: Nutrient levels low — topped up N/P/K/Ca/Mg/S to reference recipe.`);
+
+          // 4. Dissolved Oxygen & Nutrient Concentration Auto-Correction
+          setReservoir((prev) => ({ ...prev, do: stageTarget.do }));
+          setNutrients({
+            nitrogen: stageTarget.n,
+            phosphorus: stageTarget.p,
+            potassium: stageTarget.k,
+            calcium: stageTarget.ca,
+            magnesium: stageTarget.mg,
+            sulfur: 32,
+            iron: stageTarget.micros * 0.5,
+            manganese: stageTarget.micros * 0.2,
+            zinc: stageTarget.micros * 0.1,
+            boron: stageTarget.micros * 0.1,
+            copper: 0.023,
+            molybdenum: 0.024,
+            chlorine: 4.9,
+            calciumNitrate: 22.7,
+            potassiumNitrate: 11.9,
+            monoammoniumPhosphate: 3.0,
+            epsomSalts: 6.5,
+            ironChelate: 1.0,
+            traceMicronutrientBlend: 0.5,
+            phosphoricAcid: 5.3,
+            nitricAcid: 4.0,
+            potassiumHydroxide: 4.0,
+            bacillusAmyloliquefaciens: 19.8,
+            hypochlorousAcid: 39.6,
+          });
+
+          // Check milestone logging for key days (Day 0, Day 3, Day 7, Day 14, Day 21, Day 30)
+          const autoMilestoneDays = [0, 3, 7, 14, 21, 30];
+          autoMilestoneDays.forEach((mDay) => {
+            if (Math.floor(tempMetrics.age) < mDay && Math.floor(nextAge) >= mDay) {
+              const report = executeAutoDoseTelemetry(mDay);
+              newTimelineLogs.push(`━━━ [AUTO-DOSE TELEMETRY REPORT: DAY ${mDay}] ━━━`);
+              newTimelineLogs.push(`1. Pre-Correction Raw Drift: pH ${report.preCorrectionDrift.ph}, EC ${report.preCorrectionDrift.ec} mS/cm (${report.preCorrectionDrift.totalPPM} PPM), DO ${report.preCorrectionDrift.do} mg/L (${report.preCorrectionDrift.driftReason})`);
+              newTimelineLogs.push(`2. Interventions Triggered: ${report.interventions.join(", ")}`);
+              newTimelineLogs.push(`3. Post-Correction Final: pH ${report.postCorrectionFinal.ph}, EC ${report.postCorrectionFinal.ec} mS/cm (${report.postCorrectionFinal.totalPPM} PPM | N:${report.postCorrectionFinal.n} P:${report.postCorrectionFinal.p} K:${report.postCorrectionFinal.k} Ca:${report.postCorrectionFinal.ca} Mg:${report.postCorrectionFinal.mg} Micros:${report.postCorrectionFinal.micros}), DO ${report.postCorrectionFinal.do} mg/L`);
+              newTimelineLogs.push(`4. Anti-Gravity Impact: ${report.antiGravityImpact}`);
             }
-            return changed ? patched : prevNutrients;
           });
         } else {
           nextPH = Math.max(3.8, Math.min(9.5, nextPH));
@@ -1081,18 +1671,18 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div style={{ height: 'calc(100% - 50px)' }} className="grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 flex-1 overflow-hidden animate-fade-in" id="tab-twin-content">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 flex-1 overflow-hidden animate-fade-in" id="tab-twin-content">
               
               {/* Center Column: Crop Species, Visualizer & Charts */}
-              <div className="lg:col-span-8 flex flex-col space-y-3.5 min-h-0 h-full">
+              <div className="lg:col-span-8 flex flex-col space-y-3 min-h-0 h-full overflow-y-auto pr-1">
                 
                 {/* Crop Species Selector Card */}
-                <div className={`border-2 rounded-lg p-3 flex flex-col space-y-2 shrink-0 ${isDark ? "bg-[#12141c]/60 border-slate-700" : "bg-white border-slate-300 shadow-md"}`}>
+                <div className={`border-2 rounded-lg p-2.5 flex flex-col space-y-1.5 shrink-0 ${isDark ? "bg-[#12141c]/60 border-slate-700" : "bg-white border-slate-300 shadow-md"}`}>
                   <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-slate-500" : "text-slate-900"}`}>Crop Species</span>
                   <select
                     value={cropType}
                     onChange={(e) => handleCropChange(e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500 text-sm font-black ${isDark ? "bg-[#14151c] text-slate-100 border-slate-800" : "bg-slate-50 text-slate-900 border-slate-300 focus:bg-white"}`}
+                    className={`w-full border rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500 text-xs font-black ${isDark ? "bg-[#14151c] text-slate-100 border-slate-800" : "bg-slate-50 text-slate-900 border-slate-300 focus:bg-white"}`}
                     id="select-crop-type-center"
                   >
                     <option value="Lettuce">Green Coral Lettuce (L. sativa)</option>
@@ -1102,7 +1692,7 @@ export default function Analytics() {
                 {/* Twin Biological Specs Card */}
                 <div className={`flex flex-col border-2 rounded-lg overflow-hidden shrink-0 ${isDark ? "border-slate-700 bg-[#12141c]/40 shadow-md" : "border-slate-300 bg-white shadow-md"}`} id="twin-biological-specs">
                   {/* Visualizer Frame */}
-                  <div className={`w-full h-[280px] p-3.5 flex flex-col justify-between relative ${isDark ? "bg-slate-950/40" : "bg-slate-50/80"}`}>
+                  <div className={`w-full h-[240px] p-3 flex flex-col justify-between relative ${isDark ? "bg-slate-950/40" : "bg-slate-50/80"}`}>
                     <div className="flex items-center justify-between">
                       <span className={`text-xs font-extrabold uppercase tracking-wide ${isDark ? "text-yellow-500" : "text-amber-700"}`}>
                         Digital Twin Model
@@ -1114,6 +1704,7 @@ export default function Analytics() {
                     </div>
                     <div className="flex-1 w-full flex items-center justify-center">
                       <PlantVisualizer
+                        scenario={scenario}
                         stats={environmentalStats}
                         metrics={metrics}
                         reservoirLevel={(reservoir.volume / reservoir.maxVolume) * 100}
@@ -1234,14 +1825,52 @@ export default function Analytics() {
                         className="flex flex-col items-center group focus:outline-none cursor-pointer"
                       >
                         <div className={`w-5.5 h-5.5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold z-10 transition-all ${
-                          metrics.age >= 35 
+                          metrics.age >= 35 && metrics.age < 50
                             ? "bg-[#a3e635] text-slate-950 border-[#a3e635] scale-110 shadow-[0_0_8px_rgba(163,230,53,0.4)]"
+                            : metrics.age >= 50
+                            ? isDark ? "bg-slate-900 text-emerald-400 border-emerald-500" : "bg-emerald-100 text-emerald-700 border-emerald-500"
                             : isDark ? "bg-slate-900 text-slate-500 border-slate-800" : "bg-slate-100 text-slate-400 border-slate-300"
                         }`}>
                           35
                         </div>
-                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 35 ? (isDark ? "text-[#a3e635]" : "text-emerald-700 font-black") : isDark ? "text-slate-500" : "text-slate-900"}`}>
-                          Harvest
+                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 35 && metrics.age < 50 ? (isDark ? "text-[#a3e635]" : "text-emerald-700 font-black") : isDark ? "text-slate-500" : "text-slate-900"}`}>
+                          Anoxia
+                        </span>
+                      </button>
+
+                      {/* Day 50 */}
+                      <button 
+                        onClick={() => handleAgeChange(50)}
+                        className="flex flex-col items-center group focus:outline-none cursor-pointer"
+                      >
+                        <div className={`w-5.5 h-5.5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold z-10 transition-all ${
+                          metrics.age >= 50 && metrics.age < 70
+                            ? "bg-[#a3e635] text-slate-950 border-[#a3e635] scale-110 shadow-[0_0_8px_rgba(163,230,53,0.4)]"
+                            : metrics.age >= 70
+                            ? isDark ? "bg-slate-900 text-emerald-400 border-emerald-500" : "bg-emerald-100 text-emerald-700 border-emerald-500"
+                            : isDark ? "bg-slate-900 text-slate-500 border-slate-800" : "bg-slate-100 text-slate-400 border-slate-300"
+                        }`}>
+                          50
+                        </div>
+                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 50 && metrics.age < 70 ? (isDark ? "text-[#a3e635]" : "text-emerald-700 font-black") : isDark ? "text-slate-500" : "text-slate-900"}`}>
+                          Dry Pump
+                        </span>
+                      </button>
+
+                      {/* Day 70 */}
+                      <button 
+                        onClick={() => handleAgeChange(70)}
+                        className="flex flex-col items-center group focus:outline-none cursor-pointer"
+                      >
+                        <div className={`w-5.5 h-5.5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold z-10 transition-all ${
+                          metrics.age >= 70
+                            ? "bg-red-500 text-white border-red-500 scale-110 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                            : isDark ? "bg-slate-900 text-slate-500 border-slate-800" : "bg-slate-100 text-slate-400 border-slate-300"
+                        }`}>
+                          70
+                        </div>
+                        <span className={`text-[9.5px] font-black mt-1.5 transition-colors ${metrics.age >= 70 ? "text-red-400 font-black" : isDark ? "text-slate-500" : "text-slate-900"}`}>
+                          Decay
                         </span>
                       </button>
                     </div>
@@ -1263,28 +1892,98 @@ export default function Analytics() {
                 </div>
 
                 {/* Real-time Solutes Dashboard */}
-                <div className={`border-2 rounded-lg p-3.5 flex flex-col space-y-3 flex-1 ${isDark ? "bg-[#12141c]/60 border-slate-700 shadow-md" : "bg-white border-slate-300 shadow-md"}`}>
-                  <div className="flex flex-col space-y-2 shrink-0">
-                    <span className={`text-xs font-extrabold uppercase tracking-wider flex items-center justify-between ${isDark ? "text-yellow-500" : "text-amber-700"}`}>
-                      <span>Solutes Recipe Status</span>
-                      <span className={`text-[10px] ${isDark ? "text-slate-400" : "text-slate-900 font-black"}`}>TDS: {reservoir.tds} ppm</span>
-                    </span>
+                <div className={`relative border-2 rounded-lg p-3.5 flex flex-col space-y-3 flex-1 ${isDark ? "bg-[#12141c]/70 border-slate-800 shadow-lg" : "bg-white border-slate-300 shadow-md"}`}>
+                  <div className="flex flex-col space-y-2.5 shrink-0">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-extrabold uppercase tracking-widest ${isDark ? "text-slate-100" : "text-slate-900"}`}>
+                        Solutes Recipe Status
+                      </span>
+                      <span className={`text-xs font-mono font-bold tracking-wider ${isDark ? "text-slate-400" : "text-slate-700"}`}>
+                        TDS: <span className={isDark ? "text-slate-200 font-extrabold" : "text-slate-900 font-black"}>{Math.round(reservoir.tds)} PPM</span>
+                      </span>
+                    </div>
 
-                    {/* Category tabs */}
-                    <div className={`flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider border-b pb-1.5 ${isDark ? "border-slate-900" : "border-slate-200"}`}>
-                      {(["macro", "micro", "fertilizers", "additives"] as const).map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveStatusTab(tab)}
-                          className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
-                            activeStatusTab === tab
-                              ? isDark ? "bg-emerald-950/40 text-emerald-400 border border-emerald-900/35" : "bg-emerald-700 text-white font-black shadow-sm"
-                              : isDark ? "text-slate-500 hover:text-slate-300" : "text-slate-700 hover:text-slate-900 font-bold bg-slate-100 border border-slate-200"
-                          }`}
-                        >
-                          {tab === "macro" ? "Macro" : tab === "micro" ? "Micro" : tab === "fertilizers" ? "Fertilizers" : "Additives"}
-                        </button>
-                      ))}
+                    {/* Category tabs: Glossy Frosted Glass Liquid Lava-Lamp Capsules */}
+                    <div className={`flex items-center gap-2.5 text-xs font-mono tracking-wider border-b pb-2.5 ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
+                      {([
+                        {
+                          id: "macro",
+                          label: "Macro",
+                          borderColor: "#f43f5e",
+                          liquidGradient: "linear-gradient(135deg, #be123c 0%, #fb7185 50%, #e11d48 100%)",
+                          glowColor: "#f43f5e",
+                          dotColor: null,
+                        },
+                        {
+                          id: "micro",
+                          label: "Micro",
+                          borderColor: "#eab308",
+                          liquidGradient: "linear-gradient(135deg, #b45309 0%, #fde047 50%, #d97706 100%)",
+                          glowColor: "#eab308",
+                          dotColor: null,
+                        },
+                        {
+                          id: "fertilizers",
+                          label: "Fertilizers",
+                          borderColor: "#06b6d4",
+                          liquidGradient: "linear-gradient(135deg, #0369a1 0%, #67e8f9 50%, #0284c7 100%)",
+                          glowColor: "#06b6d4",
+                          dotColor: "#06b6d4",
+                        },
+                        {
+                          id: "additives",
+                          label: "Additives",
+                          borderColor: "#22c55e",
+                          liquidGradient: "linear-gradient(135deg, #15803d 0%, #86efac 50%, #16a34a 100%)",
+                          glowColor: "#22c55e",
+                          dotColor: "#22c55e",
+                        },
+                      ] as const).map((tab) => {
+                        const isSelected = activeStatusTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveStatusTab(tab.id as any)}
+                            style={{
+                              borderColor: isSelected ? tab.borderColor : hexToRgba(tab.borderColor, isDark ? 0.65 : 0.85),
+                              boxShadow: isSelected
+                                ? `0 0 16px ${hexToRgba(tab.glowColor, 0.55)}, 0 0 6px ${hexToRgba(tab.glowColor, 0.35)}, inset 0 1px 2px rgba(255,255,255,0.4)`
+                                : `0 0 8px ${hexToRgba(tab.glowColor, 0.15)}`,
+                            }}
+                            className={`relative group px-4 py-1 rounded-full border-2 transition-all duration-300 cursor-pointer flex items-center gap-1.5 select-none font-extrabold text-xs overflow-hidden ${
+                              isSelected
+                                ? "scale-105 shadow-lg"
+                                : "hover:scale-102 opacity-85 hover:opacity-100"
+                            }`}
+                          >
+                            {/* Swirling Lava-Lamp Animated Liquid Background Layer */}
+                            <div
+                              className={`absolute inset-0 opacity-85 transition-opacity duration-300 ${isSelected ? "opacity-100 animate-pulse" : "group-hover:opacity-95"}`}
+                              style={{
+                                background: tab.liquidGradient,
+                              }}
+                            />
+
+                            {/* Glossy Frosted Glass Capsule Overlay & Specular Highlight */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/40 pointer-events-none" />
+                            <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/45 to-transparent pointer-events-none" />
+
+                            {/* Centered Monospace White Text */}
+                            <span className="relative z-10 text-white font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] tracking-wider">
+                              {tab.label}
+                            </span>
+
+                            {/* Right Dot Indicator */}
+                            {tab.dotColor && (
+                              <span
+                                className="relative z-10 w-2 h-2 rounded-full inline-block shrink-0 shadow-[0_0_6px_rgba(255,255,255,0.9)]"
+                                style={{ backgroundColor: "#ffffff" }}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1344,7 +2043,7 @@ export default function Analytics() {
               </div>
 
               {/* Twin Right column: Live Probes & Simulation Timeline */}
-              <div className="lg:col-span-4 flex flex-col space-y-3 min-h-0 h-full">
+              <div className="lg:col-span-4 flex flex-col space-y-3 min-h-0 h-full overflow-y-auto pr-1">
                 
                 {/* Probes Display */}
                 <div className={`border-2 rounded-lg p-3.5 flex flex-col space-y-3.5 shrink-0 ${isDark ? "bg-[#12141c]/60 border-slate-700 shadow-md" : "bg-white border-slate-300 shadow-md"}`} id="live-sensors-card">
@@ -1360,16 +2059,49 @@ export default function Analytics() {
  
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
 
+                    {/* Dissolved Oxygen (DO) Probe */}
+                    <div className={`p-2.5 rounded-lg border flex flex-col justify-between min-h-[60px] ${isDark ? "bg-[#14151b] border-slate-900 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-900"}`}>
+                      <div className="flex justify-between items-start">
+                        <span className={`text-[10px] uppercase font-black ${isDark ? "text-slate-400" : "text-slate-900"}`}>DO Sensor</span>
+                        <span className={`text-[9px] font-bold ${isDark ? "text-slate-400" : "text-slate-700"}`}>mg/L</span>
+                      </div>
+                      <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>
+                        {(environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure")) ? "0.0" : (reservoir.do ?? metrics.dissolvedOxygen ?? 8.0).toFixed(1)}
+                      </span>
+                      {(() => {
+                        const isPumpFailed = environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure");
+                        const val = isPumpFailed ? 0.0 : (reservoir.do ?? metrics.dissolvedOxygen ?? 8.0);
+                        const pct = isPumpFailed ? 0 : Math.min(100, (val / 10.0) * 100);
+                        const col = isPumpFailed ? "#ef4444" : val < 4.0 ? "#ef4444" : val < 6.0 ? "#f59e0b" : "#3b82f6";
+                        const glow = hexToRgba(col, 0.85);
+                        const glowSoft = hexToRgba(col, 0.45);
+                        return (
+                          <div className="relative h-2.5 rounded-full mt-1.5 border" style={{ backgroundColor: isDark ? "#07080f" : "#e2e8f0", borderColor: hexToRgba(col, isDark ? 0.3 : 0.5), boxShadow: isDark ? "inset 0 1px 4px rgba(0,0,0,0.9)" : "inset 0 1px 3px rgba(0,0,0,0.15)", overflow: "visible" }}>
+                            <div className="absolute inset-0 rounded-full overflow-hidden">
+                              <div className="absolute inset-y-0 left-0 rounded-full transition-[width] ease-out" style={{ width: `${pct}%`, transitionDuration: "400ms", background: `linear-gradient(90deg, ${hexToRgba(col, isDark ? 0.1 : 0.2)} 0%, ${hexToRgba(col, isDark ? 0.4 : 0.6)} 20%, ${hexToRgba(col, isDark ? 0.75 : 0.9)} 55%, ${col} 100%)`, boxShadow: `0 0 12px ${glow}, 0 0 24px ${glowSoft}` }}>
+                                <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none"><svg className="absolute top-0 left-0 h-full w-[200%] animate-plasma-wave" viewBox="0 0 1200 20" preserveAspectRatio="none"><path d="M 0 10 Q 100 3, 200 10 T 400 10 T 600 10 T 800 10 T 1000 10 T 1200 10 L 1200 20 L 0 20 Z" fill={isDark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.4)"} /><path d="M 0 10 Q 100 5, 200 10 T 400 10 T 600 10 T 800 10 T 1000 10 T 1200 10" fill="none" stroke={isDark ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.95)"} strokeWidth="1.2" /></svg></div>
+                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 mix-blend-overlay pointer-events-none" style={{ height: "30%" }}><div className="w-full h-full bg-gradient-to-b from-transparent via-white/90 to-transparent" /></div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
                     {/* pH Probe */}
                     <div className={`p-2.5 rounded-lg border flex flex-col justify-between min-h-[60px] ${isDark ? "bg-[#14151b] border-slate-900 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-900"}`}>
                       <div className="flex justify-between items-start">
                         <span className={`text-[10px] uppercase font-black ${isDark ? "text-slate-550" : "text-slate-900"}`}>pH Sensor</span>
                         <span className={`text-[9px] font-bold ${isDark ? "text-slate-650" : "text-slate-700"}`}>pH</span>
                       </div>
-                      <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>{reservoir.pH.toFixed(2)}</span>
+                      <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>
+                        {(environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure")) ? "0.00" : reservoir.pH.toFixed(2)}
+                      </span>
                       {(() => {
-                        const pct = Math.min(100, (reservoir.pH / 14) * 100);
-                        const col = "#84cc16";
+                        const isPumpFailed = environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure");
+                        const val = isPumpFailed ? 0 : reservoir.pH;
+                        const pct = isPumpFailed ? 0 : Math.min(100, (val / 14) * 100);
+                        const col = isPumpFailed ? "#ef4444" : "#84cc16";
                         const glow = hexToRgba(col, 0.85);
                         const glowSoft = hexToRgba(col, 0.45);
                         return (
@@ -1391,10 +2123,14 @@ export default function Analytics() {
                         <span className={`text-[10px] uppercase font-black ${isDark ? "text-slate-550" : "text-slate-900"}`}>TDS Sensor</span>
                         <span className={`text-[9px] font-bold ${isDark ? "text-slate-655" : "text-slate-700"}`}>ppm</span>
                       </div>
-                      <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>{reservoir.tds}</span>
+                      <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>
+                        {(environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure")) ? 0 : Math.round(reservoir.tds)}
+                      </span>
                       {(() => {
-                        const pct = Math.min(100, (reservoir.tds / 2000) * 100);
-                        const col = "#06b6d4";
+                        const isPumpFailed = environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure");
+                        const val = isPumpFailed ? 0 : Math.round(reservoir.tds);
+                        const pct = isPumpFailed ? 0 : Math.min(100, (val / 2000) * 100);
+                        const col = isPumpFailed ? "#ef4444" : "#06b6d4";
                         const glow = hexToRgba(col, 0.85);
                         const glowSoft = hexToRgba(col, 0.45);
                         return (
@@ -1416,10 +2152,14 @@ export default function Analytics() {
                         <span className={`text-[10px] uppercase font-black ${isDark ? "text-slate-550" : "text-slate-900"}`}>Solute EC</span>
                         <span className={`text-[9px] font-bold ${isDark ? "text-slate-655" : "text-slate-700"}`}>mS/cm</span>
                       </div>
-                      <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>{reservoir.ec.toFixed(2)}</span>
+                      <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>
+                        {(environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure")) ? "0.00" : reservoir.ec.toFixed(2)}
+                      </span>
                       {(() => {
-                        const pct = Math.min(100, (reservoir.ec / 3.0) * 100);
-                        const col = "#06b6d4";
+                        const isPumpFailed = environmentalStats.flowRate === 0 || scenario.startsWith("Pump Failure");
+                        const val = isPumpFailed ? 0 : reservoir.ec;
+                        const pct = isPumpFailed ? 0 : Math.min(100, (val / 3.0) * 100);
+                        const col = isPumpFailed ? "#ef4444" : "#06b6d4";
                         const glow = hexToRgba(col, 0.85);
                         const glowSoft = hexToRgba(col, 0.45);
                         return (
@@ -1438,7 +2178,7 @@ export default function Analytics() {
                     {/* Water Temp */}
                     <div className={`p-2.5 rounded-lg border flex flex-col justify-between min-h-[60px] ${isDark ? "bg-[#14151b] border-slate-900 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-900"}`}>
                       <div className="flex justify-between items-start">
-                        <span className={`text-[10px] uppercase font-black ${isDark ? "text-slate-550" : "text-slate-900"}`}>Water Temp</span>
+                        <span className={`text-[10px] uppercase font-black ${isDark ? "text-slate-550" : "text-slate-900"}`}>Tank Water Temp</span>
                         <span className={`text-[9px] font-bold ${isDark ? "text-slate-655" : "text-slate-700"}`}>°C</span>
                       </div>
                       <span className={`text-lg font-black mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>{environmentalStats.waterTemp.toFixed(1)}</span>
@@ -1567,7 +2307,9 @@ export default function Analytics() {
                 <div className={`border-2 rounded-lg p-4 flex flex-col justify-between shrink-0 ${isDark ? "bg-[#12141c]/60 border-slate-700 shadow-md" : "bg-white border-slate-300 shadow-md"}`} id="growth-potential-card">
                   <span className={`text-[11px] font-black uppercase tracking-wider ${isDark ? "text-slate-500" : "text-slate-900"}`}>Growth Potential</span>
                   <strong className={`mt-1 block text-3xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>
-                    {Math.round(lettuceAssessment.growthFactor * 100)}<span className={`text-xs font-bold ${isDark ? "text-slate-500" : "text-slate-700"}`}>%</span>
+                    {scenario === "Algae Bloom" && metrics.growthPotential !== undefined
+                      ? Math.round(metrics.growthPotential)
+                      : Math.round(lettuceAssessment.growthFactor * 100)}<span className={`text-xs font-bold ${isDark ? "text-slate-500" : "text-slate-700"}`}>%</span>
                   </strong>
                 </div>
 
@@ -1593,12 +2335,42 @@ export default function Analytics() {
                     Simulation Timeline Log
                   </span>
                   <div className={`flex-1 p-3 rounded overflow-y-auto text-xs font-mono space-y-2.5 animate-fade-in border ${isDark ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-300 shadow-inner"}`} id="timeline-logs-viewport">
-                    {timeline.map((log, idx) => (
-                      <div key={`log-row-${idx}`} className={`leading-relaxed border-l-2 pl-2.5 transition-all duration-300 ${isDark ? "border-slate-700 hover:border-lime-400" : "border-slate-300 hover:border-emerald-600"}`}>
-                        <span className={`font-black ${isDark ? "text-lime-400" : "text-emerald-800"}`}>{log.slice(0, 7)}</span>
-                        <span className={`font-bold ${isDark ? "text-sky-300" : "text-slate-900"}`}>{log.slice(7)}</span>
-                      </div>
-                    ))}
+                    {timeline.map((log, idx) => {
+                      const timestamp = log.slice(0, 7);
+                      const message = log.slice(7).trim();
+
+                      let badgeText = "";
+                      let badgeClass = "";
+
+                      if (message.toLowerCase().includes("algae")) {
+                        badgeText = "ALGAE";
+                        badgeClass = isDark ? "bg-emerald-950 text-emerald-400 border-emerald-800" : "bg-emerald-100 text-emerald-800 border-emerald-300";
+                      } else if (message.toLowerCase().includes("pump") || message.toLowerCase().includes("cutoff")) {
+                        badgeText = "PUMP FAIL";
+                        badgeClass = isDark ? "bg-red-950 text-red-400 border-red-800" : "bg-red-100 text-red-800 border-red-300";
+                      } else if (message.toLowerCase().includes("tipburn")) {
+                        badgeText = "TIPBURN";
+                        badgeClass = isDark ? "bg-amber-950 text-amber-400 border-amber-800" : "bg-amber-100 text-amber-800 border-amber-300";
+                      } else if (message.toLowerCase().includes("decay")) {
+                        badgeText = "DECAY";
+                        badgeClass = isDark ? "bg-purple-950 text-purple-400 border-purple-800" : "bg-purple-100 text-purple-800 border-purple-300";
+                      } else if (message.toLowerCase().includes("dosing") || message.toLowerCase().includes("auto-correct")) {
+                        badgeText = "DOSER";
+                        badgeClass = isDark ? "bg-blue-950 text-blue-400 border-blue-800" : "bg-blue-100 text-blue-800 border-blue-300";
+                      }
+
+                      return (
+                        <div key={`log-row-${idx}`} className={`leading-relaxed border-l-2 pl-2.5 flex items-center gap-1.5 transition-all duration-300 ${isDark ? "border-slate-700 hover:border-lime-400" : "border-slate-300 hover:border-emerald-600"}`}>
+                          <span className={`font-mono font-black shrink-0 ${isDark ? "text-lime-400" : "text-emerald-800"}`}>{timestamp}</span>
+                          {badgeText && (
+                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border shrink-0 tracking-wider ${badgeClass}`}>
+                              {badgeText}
+                            </span>
+                          )}
+                          <span className={`font-bold ${isDark ? "text-sky-300" : "text-slate-900"}`}>{message}</span>
+                        </div>
+                      );
+                    })}
                     <div ref={timelineEndRef} />
                   </div>
                 </div>

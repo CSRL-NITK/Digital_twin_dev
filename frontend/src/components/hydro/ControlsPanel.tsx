@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Play, Pause, RotateCcw, Sliders, Settings2, Database } from "lucide-react";
 import type { LettuceEnvironmentalStats, NutrientSolution, ReservoirStats } from "../../types";
 import { useTheme } from "../ThemeProvider";
+import { GrowthCard } from "./GrowthCard";
 
 interface ControlsPanelProps {
   scenario: string;
@@ -19,6 +20,7 @@ interface ControlsPanelProps {
     growthRate: number;
     health: number;
     age: number;
+    growthPotential?: number;
   };
   harvestDays: number;
   waterUptake: number;
@@ -290,8 +292,10 @@ export default function ControlsPanel({
         return "High light & organic accumulation spurs algal growth.";
       case "Pump Failure":
         return "Circulating pump stops. Solution film in channels dried.";
+      case "Unattended System Decay (70 Days)":
+        return "Unmonitored 70-day decay simulation: pH drift, salt spike, anoxia, Pythium, pump air suction & plant liquefaction.";
       default:
-        return "Custom parameters configured.";
+        return "Normal growth baseline configured.";
     }
   };
 
@@ -400,58 +404,58 @@ export default function ControlsPanel({
       <div className={`grid grid-cols-5 gap-1 p-1.5 rounded-lg border-2 ${isDark ? "bg-slate-950 border-slate-700" : "bg-slate-100 border-slate-300 shadow-sm"}`} id="tabs-toggle">
         <button
           onClick={() => setControlTab("Scenarios")}
-          className={`py-2 px-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+          className={`py-3 px-1 rounded-md text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             controlTab === "Scenarios"
               ? isDark ? "bg-[#a3e635] text-slate-950 shadow-md" : "bg-[#15803D] text-white shadow-sm"
               : isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-700 hover:text-slate-900 font-bold"
           }`}
         >
-          <Settings2 className="w-3 h-3" />
+          <Settings2 className="w-3.5 h-3.5" />
           <span>Scenes</span>
         </button>
         <button
           onClick={() => setControlTab("Tuning")}
-          className={`py-2 px-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+          className={`py-3 px-1 rounded-md text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             controlTab === "Tuning"
               ? isDark ? "bg-[#a3e635] text-slate-950 shadow-md" : "bg-[#15803D] text-white shadow-sm"
               : isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-700 hover:text-slate-900 font-bold"
           }`}
         >
-          <Sliders className="w-3 h-3" />
+          <Sliders className="w-3.5 h-3.5" />
           <span>Climate</span>
         </button>
         <button
           onClick={() => setControlTab("Nutrients")}
-          className={`py-2 px-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+          className={`py-3 px-1 rounded-md text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             controlTab === "Nutrients"
               ? isDark ? "bg-[#a3e635] text-slate-950 shadow-md" : "bg-[#15803D] text-white shadow-sm"
               : isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-700 hover:text-slate-900 font-bold"
           }`}
         >
-          <Database className="w-3 h-3" />
+          <Database className="w-3.5 h-3.5" />
           <span>Nutrients</span>
         </button>
         <button
           onClick={() => setControlTab("Days")}
-          className={`py-2 px-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+          className={`py-3 px-1 rounded-md text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             controlTab === "Days"
               ? isDark ? "bg-[#a3e635] text-slate-950 shadow-md" : "bg-[#15803D] text-white shadow-sm"
               : isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-700 hover:text-slate-900 font-bold"
           }`}
         >
-          <span className="text-[10px]">📅</span>
+          <span className="text-[11px]">📅</span>
           <span>Days</span>
         </button>
         <button
           onClick={() => setControlTab("Tank")}
-          className={`py-2 px-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+          className={`py-3 px-1 rounded-md text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             controlTab === "Tank"
               ? isDark ? "bg-cyan-400 text-slate-950 shadow-md" : "bg-cyan-700 text-white shadow-sm font-black"
               : isDark ? "text-slate-400 hover:text-slate-200" : "text-slate-700 hover:text-slate-900 font-bold"
           }`}
           id="tab-tank-btn"
         >
-          <span className="text-[10px]">🪣</span>
+          <span className="text-[11px]">🪣</span>
           <span>Tank</span>
         </button>
       </div>
@@ -470,40 +474,72 @@ export default function ControlsPanel({
               id="select-scenario"
             >
               <option value="Normal Growth">Normal Growth (Baseline)</option>
+              <option value="Tipburn Risk">Tipburn Risk (Calclimic)</option>
+              <option value="Algae Bloom">Algae Bloom (Elevated Temp)</option>
+              <option value="Pump Failure">Pump Failure (Flow Cutoff)</option>
+              <option value="Unattended System Decay (70 Days)">Unattended System Decay (70 Days)</option>
             </select>
             <p className={`text-xs leading-relaxed mt-1.5 font-bold ${isDark ? "text-slate-400" : "text-slate-900"}`}>
               {getScenarioDescription(scenario)}
             </p>
           </div>
 
-          {/* PLANT GROWTH STAGE SELECT */}
-          <div className={`flex flex-col space-y-2.5 p-4 rounded-lg border-2 shrink-0 ${isDark ? "bg-slate-900/40 border-slate-700" : "bg-slate-50 border-slate-300 shadow-md"}`}>
-            <label className={`text-xs font-black uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-900"}`}>
-              Plant Growth Stage
-            </label>
+          {/* PLANT GROWTH STAGE CONTROL DASHBOARD (Futuristic Sci-Fi HUD Growth Cards) */}
+          <div className={`flex flex-col space-y-2 p-2.5 rounded-xl border border-slate-800/80 text-slate-100 font-mono shrink-0 select-none ${isDark ? "bg-[#071416]/95 backdrop-blur-md shadow-2xl" : "bg-white shadow-lg"}`}>
+            {/* Dashboard Top Header */}
+            <div className="flex justify-between items-center pb-1 border-b border-slate-800/80">
+              <h2 className={`text-[11px] font-black tracking-wider ${isDark ? "text-slate-100" : "text-slate-900"}`}>
+                PLANT GROWTH STAGE
+              </h2>
+              <div className={`text-[9px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-md ${
+                isDark
+                  ? "text-emerald-400 bg-emerald-950/40 border border-emerald-500/40"
+                  : "text-emerald-800 bg-emerald-100 border border-emerald-300 font-bold"
+              }`}>
+                <span className={isDark ? "text-emerald-400" : "text-emerald-700"}>✓</span>
+                <span>Active:</span>
+                <span className={`capitalize font-bold ${isDark ? "text-emerald-300" : "text-emerald-900"}`}>{growthStage}</span>
+              </div>
+            </div>
+
+            {/* 2x2 Grid Layout with GrowthCard Components */}
             <div className="grid grid-cols-2 gap-2" id="stage-buttons-grid">
-              {(["Germination", "Seedling", "Vegetative", "Mature"] as const).map((stg) => (
-                <button
-                  key={stg}
-                  onClick={() => onStageChange(stg)}
-                  className={`py-2 px-2.5 rounded-lg border text-left flex flex-col justify-between h-16 transition-all cursor-pointer ${
-                    growthStage === stg
-                      ? isDark
-                        ? "bg-slate-950 border-[#a3e635] text-[#a3e635] shadow-[0_0_8px_rgba(163,230,53,0.2)]"
-                        : "bg-emerald-50 border-emerald-600 text-emerald-950 font-black shadow-sm"
-                      : isDark
-                      ? "bg-[#14151b] border-slate-900 text-slate-400 hover:text-slate-200"
-                      : "bg-white border-slate-300 text-slate-900 hover:bg-slate-100 shadow-sm font-extrabold"
-                  }`}
-                >
-                  <span className="font-black text-[11px]">{stg}</span>
-                  <span className={`text-[9px] font-bold leading-tight ${growthStage === stg ? (isDark ? "text-emerald-400" : "text-emerald-800") : (isDark ? "text-slate-400" : "text-slate-700")}`}>
-                    {stg === "Germination" && "Cotyledon sprout (Day 0-5)"}
-                    {stg === "Seedling" && "Root elongation (Day 5-14)"}
-                    {stg === "Vegetative" && "Rapid leafing (Day 14-28)"}
-                    {stg === "Mature" && "Harvest ready (Day 28+)"}
-                  </span>
-                </button>
+              {[
+                {
+                  id: "Germination" as const,
+                  title: "Germination",
+                  subtext: "Cotyledon sprout",
+                  days: "(Day 0-5)",
+                },
+                {
+                  id: "Seedling" as const,
+                  title: "Seedling",
+                  subtext: "Root elongation",
+                  days: "(Day 5-14)",
+                },
+                {
+                  id: "Vegetative" as const,
+                  title: "Vegetative",
+                  subtext: "Rapid leafing",
+                  days: "(Day 14-28)",
+                },
+                {
+                  id: "Mature" as const,
+                  title: "Mature",
+                  subtext: "Harvest ready",
+                  days: "(Day 28+)",
+                },
+              ].map((stage) => (
+                <GrowthCard
+                  key={stage.id}
+                  id={stage.id}
+                  title={stage.title}
+                  subtext={stage.subtext}
+                  days={stage.days}
+                  isActive={growthStage === stage.id}
+                  onSelect={() => onStageChange(stage.id)}
+                  isDark={isDark}
+                />
               ))}
             </div>
           </div>
@@ -733,24 +769,25 @@ export default function ControlsPanel({
             <div className={`flex flex-col space-y-2 p-2.5 rounded-lg border ${isDark ? "bg-[#14151b]/40 border-slate-900/60" : "bg-white border-slate-300 shadow-sm"}`}>
               <div className="flex justify-between text-xs font-bold px-0.5">
                 <span className={`font-black ${isDark ? "text-slate-400" : "text-slate-900"}`}>Direct Reservoir TDS</span>
-                <span className={`font-black ${isDark ? "text-[#eab308]" : "text-amber-800"}`}>{reservoir.tds} ppm ({reservoir.ec.toFixed(2)} mS/cm)</span>
+                <span className={`font-black ${isDark ? "text-[#eab308]" : "text-amber-800"}`}>{Math.round(reservoir.tds)} ppm ({reservoir.ec.toFixed(2)} mS/cm)</span>
               </div>
               <HydroLiquidSlider
                 min={100}
                 max={2500}
                 step={25}
-                value={reservoir.tds}
+                value={Math.round(reservoir.tds)}
                 onChange={(val) => {
-                  const nextEC = parseFloat((val / 640).toFixed(2));
-                  onReservoirChange({ ...reservoir, tds: val, ec: nextEC });
+                  const nextTds = Math.round(val);
+                  const nextEC = parseFloat((nextTds / 640).toFixed(2));
+                  onReservoirChange({ ...reservoir, tds: nextTds, ec: nextEC });
                 }}
                 onDecrease={() => {
-                  const nextTds = Math.max(100, reservoir.tds - 25);
+                  const nextTds = Math.max(100, Math.round(reservoir.tds) - 25);
                   const nextEC = parseFloat((nextTds / 640).toFixed(2));
                   onReservoirChange({ ...reservoir, tds: nextTds, ec: nextEC });
                 }}
                 onIncrease={() => {
-                  const nextTds = Math.min(2500, reservoir.tds + 25);
+                  const nextTds = Math.min(2500, Math.round(reservoir.tds) + 25);
                   const nextEC = parseFloat((nextTds / 640).toFixed(2));
                   onReservoirChange({ ...reservoir, tds: nextTds, ec: nextEC });
                 }}
@@ -943,12 +980,12 @@ export default function ControlsPanel({
             </div>
             <HydroLiquidSlider
               min={0}
-              max={35}
+              max={scenario === "Unattended System Decay (70 Days)" || scenario === "Algae Bloom" ? 70 : 35}
               step={0.5}
               value={metrics.age}
               onChange={(val) => onAgeChange(val)}
               onDecrease={() => onAgeChange(parseFloat(Math.max(0, metrics.age - 0.5).toFixed(1)))}
-              onIncrease={() => onAgeChange(parseFloat(Math.min(35, metrics.age + 0.5).toFixed(1)))}
+              onIncrease={() => onAgeChange(parseFloat(Math.min(scenario === "Unattended System Decay (70 Days)" || scenario === "Algae Bloom" ? 70 : 35, metrics.age + 0.5).toFixed(1)))}
               isDark={isDark}
               id="slider-fine-tune-crop-age"
             />
@@ -957,56 +994,68 @@ export default function ControlsPanel({
             </p>
           </div>
 
-          {/* Quick-Jump Milestone Buttons */}
-          <div className={`flex flex-col space-y-2 p-3 rounded-lg border shrink-0 ${isDark ? "bg-slate-900/40 border-slate-900" : "bg-white border-slate-300 shadow-sm"}`}>
-            <span className={`text-[11px] uppercase tracking-wider font-extrabold ${isDark ? "text-slate-400" : "text-slate-900"}`}>
-              Lifecycle Milestones
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => onAgeChange(0)}
-                className={`py-1.5 px-2.5 rounded-lg font-bold text-[10px] border text-left flex flex-col justify-between h-14 transition-all cursor-pointer ${
-                  metrics.age >= 0 && metrics.age < 5
-                    ? isDark ? "bg-slate-950 border-[#a3e635] text-[#a3e635]" : "bg-emerald-700 border-emerald-800 text-white font-black shadow-md"
-                    : isDark ? "bg-[#14151b] border-slate-900 text-slate-400 hover:text-slate-200" : "bg-white border-slate-300 text-slate-900 hover:bg-slate-100 shadow-sm"
-                }`}
-              >
-                <span className="font-extrabold">Day 0: Germination</span>
-                <span className={`text-[8.5px] font-bold ${metrics.age >= 0 && metrics.age < 5 ? (isDark ? "text-slate-500" : "text-emerald-100") : (isDark ? "text-slate-500" : "text-slate-600")}`}>Sprout begins</span>
-              </button>
-              <button
-                onClick={() => onAgeChange(5)}
-                className={`py-1.5 px-2.5 rounded-lg font-bold text-[10px] border text-left flex flex-col justify-between h-14 transition-all cursor-pointer ${
-                  metrics.age >= 5 && metrics.age < 14
-                    ? isDark ? "bg-slate-950 border-[#a3e635] text-[#a3e635]" : "bg-emerald-700 border-emerald-800 text-white font-black shadow-md"
-                    : isDark ? "bg-[#14151b] border-slate-900 text-slate-400 hover:text-slate-200" : "bg-white border-slate-300 text-slate-900 hover:bg-slate-100 shadow-sm"
-                }`}
-              >
-                <span className="font-extrabold">Day 5: Seedling</span>
-                <span className={`text-[8.5px] font-bold ${metrics.age >= 5 && metrics.age < 14 ? (isDark ? "text-slate-500" : "text-emerald-100") : (isDark ? "text-slate-500" : "text-slate-600")}`}>Roots active</span>
-              </button>
-              <button
-                onClick={() => onAgeChange(14)}
-                className={`py-1.5 px-2.5 rounded-lg font-bold text-[10px] border text-left flex flex-col justify-between h-14 transition-all cursor-pointer ${
-                  metrics.age >= 14 && metrics.age < 28
-                    ? isDark ? "bg-slate-950 border-[#a3e635] text-[#a3e635]" : "bg-emerald-700 border-emerald-800 text-white font-black shadow-md"
-                    : isDark ? "bg-[#14151b] border-slate-900 text-slate-400 hover:text-slate-200" : "bg-white border-slate-300 text-slate-900 hover:bg-slate-100 shadow-sm"
-                }`}
-              >
-                <span className="font-extrabold">Day 14: Vegetative</span>
-                <span className={`text-[8.5px] font-bold ${metrics.age >= 14 && metrics.age < 28 ? (isDark ? "text-slate-500" : "text-emerald-100") : (isDark ? "text-slate-500" : "text-slate-600")}`}>Rapid leafing</span>
-              </button>
-              <button
-                onClick={() => onAgeChange(28)}
-                className={`py-1.5 px-2.5 rounded-lg font-bold text-[10px] border text-left flex flex-col justify-between h-14 transition-all cursor-pointer ${
-                  metrics.age >= 28
-                    ? isDark ? "bg-slate-950 border-[#a3e635] text-[#a3e635]" : "bg-emerald-700 border-emerald-800 text-white font-black shadow-md"
-                    : isDark ? "bg-[#14151b] border-slate-900 text-slate-400 hover:text-slate-200" : "bg-white border-slate-300 text-slate-900 hover:bg-slate-100 shadow-sm"
-                }`}
-              >
-                <span className="font-extrabold">Day 28: Mature</span>
-                <span className={`text-[8.5px] font-bold ${metrics.age >= 28 ? (isDark ? "text-slate-500" : "text-emerald-100") : (isDark ? "text-slate-500" : "text-slate-600")}`}>Ready for yield</span>
-              </button>
+          {/* Quick-Jump Milestone Buttons (Futuristic Sci-Fi HUD Growth Cards) */}
+          <div className={`flex flex-col space-y-2 p-2.5 rounded-xl border border-slate-800/80 text-slate-100 font-mono shrink-0 select-none ${isDark ? "bg-[#071416]/95 backdrop-blur-md shadow-2xl" : "bg-white shadow-lg"}`}>
+            <div className="flex justify-between items-center pb-1 border-b border-slate-800/80">
+              <span className={`text-[11px] uppercase tracking-wider font-extrabold ${isDark ? "text-slate-100" : "text-slate-900"}`}>
+                Lifecycle Milestones
+              </span>
+              <div className={`text-[9px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-md ${
+                isDark
+                  ? "text-emerald-400 bg-emerald-950/40 border border-emerald-500/40"
+                  : "text-emerald-800 bg-emerald-100 border border-emerald-300 font-bold"
+              }`}>
+                <span className={isDark ? "text-emerald-400" : "text-emerald-700"}>✓</span>
+                <span>Active:</span>
+                <span className={`capitalize font-bold ${isDark ? "text-emerald-300" : "text-emerald-900"}`}>{growthStage}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2" id="milestones-buttons-grid">
+              {[
+                {
+                  id: "Germination" as const,
+                  title: "Day 0: Germination",
+                  subtext: "Sprout begins",
+                  days: "(Day 0-5)",
+                  targetAge: 0,
+                },
+                {
+                  id: "Seedling" as const,
+                  title: "Day 5: Seedling",
+                  subtext: "Roots active",
+                  days: "(Day 5-14)",
+                  targetAge: 5,
+                },
+                {
+                  id: "Vegetative" as const,
+                  title: "Day 14: Vegetative",
+                  subtext: "Rapid leafing",
+                  days: "(Day 14-28)",
+                  targetAge: 14,
+                },
+                {
+                  id: "Mature" as const,
+                  title: "Day 28: Mature",
+                  subtext: "Ready for yield",
+                  days: "(Day 28+)",
+                  targetAge: 28,
+                },
+              ].map((stage) => (
+                <GrowthCard
+                  key={stage.id}
+                  id={stage.id}
+                  title={stage.title}
+                  subtext={stage.subtext}
+                  days={stage.days}
+                  isActive={growthStage === stage.id || (stage.id === "Germination" && metrics.age < 5) || (stage.id === "Seedling" && metrics.age >= 5 && metrics.age < 14) || (stage.id === "Vegetative" && metrics.age >= 14 && metrics.age < 28) || (stage.id === "Mature" && metrics.age >= 28)}
+                  onSelect={() => {
+                    onAgeChange(stage.targetAge);
+                    onStageChange(stage.id);
+                  }}
+                  isDark={isDark}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -1057,7 +1106,17 @@ export default function ControlsPanel({
           </div>
           <div className={`p-2.5 rounded-lg border flex flex-col space-y-1 justify-center ${isDark ? "bg-slate-950/45 border-slate-900/60" : "bg-slate-50 border-slate-200"}`}>
             <span className={`text-[9px] uppercase font-black tracking-wider ${isDark ? "text-slate-500" : "text-slate-900"}`}>Net Growth Rate</span>
-            <span className={`font-black text-sm ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>📈 +{metrics.growthRate.toFixed(2)}%</span>
+            {(() => {
+              const effRate = (metrics.health === 0 || (metrics.growthPotential !== undefined && metrics.growthPotential === 0))
+                ? 0.0
+                : metrics.growthRate * (metrics.health / 100);
+              const isZero = effRate === 0;
+              return (
+                <span className={`font-black text-sm ${isZero ? (isDark ? "text-slate-400" : "text-slate-600") : (isDark ? "text-emerald-400" : "text-emerald-700")}`}>
+                  📈 {isZero ? "0.00%" : `+${effRate.toFixed(2)}%`}
+                </span>
+              );
+            })()}
           </div>
           <div className={`p-2.5 rounded-lg border flex flex-col space-y-1 justify-center ${isDark ? "bg-slate-950/45 border-slate-900/60" : "bg-slate-50 border-slate-200"}`}>
             <span className={`text-[9px] uppercase font-black tracking-wider ${isDark ? "text-slate-500" : "text-slate-900"}`}>Harvest Horizon</span>

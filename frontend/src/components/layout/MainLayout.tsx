@@ -19,6 +19,8 @@ import SystemHealthPanel from '../live/SystemHealthPanel';
 import AlertsModal, { type AlertItem } from '../live/AlertsModal';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from 'recharts';
 
+import { useHydroState, HydroStateProvider } from '../../lib/hydro/hydroStateContext';
+
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR
    bg: #17181c  |  active: lime  |  inactive: white-26
@@ -1134,7 +1136,7 @@ interface TelemetryPanelProps {
 }
 
 function TelemetryPanel({ selectedNode, history, dark, nodes }: TelemetryPanelProps) {
-  const [valveOpen, setValveOpen] = useState(true);
+  const hydroState = useHydroState();
   const [muted, setMuted] = useState(false);
 
   const activeNode = useMemo(() => {
@@ -1275,14 +1277,14 @@ function TelemetryPanel({ selectedNode, history, dark, nodes }: TelemetryPanelPr
           <span style={{ fontSize: 8.5, fontWeight: 700, color: dark ? '#9ca3af' : '#5a5f6b', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Actuators</span>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
-              onClick={() => setValveOpen(!valveOpen)}
+              onClick={() => hydroState.togglePump()}
               style={{
                 flex: 1, fontSize: 8.5, fontWeight: 800, padding: '4px 0', borderRadius: 5, cursor: 'pointer',
-                border: 'none', background: valveOpen ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-                color: valveOpen ? '#22c55e' : '#ef4444', transition: 'all 0.12s'
+                border: 'none', background: hydroState.isPumpOn ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+                color: hydroState.isPumpOn ? '#22c55e' : '#ef4444', transition: 'all 0.12s'
               }}
             >
-              Valve: {valveOpen ? 'OPEN' : 'CLOSE'}
+              Valve: {hydroState.isPumpOn ? 'OPEN' : 'CLOSED'}
             </button>
             <button
               onClick={() => setMuted(!muted)}
@@ -1312,6 +1314,7 @@ interface KPIDashboardPanelProps {
 }
 
 function KPIDashboardPanel({ selectedNode, nodes, dark, liveLogs }: KPIDashboardPanelProps) {
+  const hydroState = useHydroState();
   const activeNode = useMemo(() => {
     if (selectedNode) return selectedNode;
     return nodes.find(n => n.nodeType === 'central_tank') || nodes[0] || null;
@@ -1367,6 +1370,7 @@ function KPIDashboardPanel({ selectedNode, nodes, dark, liveLogs }: KPIDashboard
   const wqText = waterQualityScore > 85 ? 'Excellent' : (waterQualityScore > 70 ? 'Warning' : 'Critical');
 
   const flowRate = useMemo(() => {
+    if (!hydroState.isPumpOn) return 0.0;
     if (pumpStatus.toLowerCase() === 'healthy' || pumpStatus.toLowerCase() === 'online') {
       return Number((14.6 + (Math.random() - 0.5) * 0.2).toFixed(1));
     } else if (pumpStatus.toLowerCase() === 'warning') {
@@ -1374,11 +1378,11 @@ function KPIDashboardPanel({ selectedNode, nodes, dark, liveLogs }: KPIDashboard
     } else {
       return 0.0;
     }
-  }, [pumpStatus]);
+  }, [pumpStatus, hydroState.isPumpOn]);
 
   const pressure = flowRate > 0 ? Number((1.8 * (flowRate / 14.6)).toFixed(1)) : 0.0;
   const efficiency = flowRate > 0 ? Math.round((flowRate / 14.6) * 83) : 0;
-  const flowStatus = flowRate > 12 ? 'Normal' : (flowRate > 0 ? 'Low' : 'Zero');
+  const flowStatus = flowRate > 12 ? 'Normal' : (flowRate > 0 ? 'Low' : 'Offline');
   const flowColor = flowRate > 12 ? '#22c55e' : (flowRate > 0 ? '#f59e0b' : '#ef4444');
 
   const nutrientIndex = useMemo(() => {
@@ -1817,7 +1821,9 @@ export default function MainLayout() {
   });
   return (
     <TopologyContext.Provider value={{ globalTopologyId, setGlobalTopologyId }}>
-      <MainLayoutContent />
+      <HydroStateProvider>
+        <MainLayoutContent />
+      </HydroStateProvider>
     </TopologyContext.Provider>
   );
 }
