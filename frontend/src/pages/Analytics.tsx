@@ -7,15 +7,26 @@ import WaterDistributionLiveAnalytics from './WaterDistributionLiveAnalytics';
 
 export default function Analytics() {
   const { id } = useParams();
-  const { globalTopologyId } = useGlobalTopology();
+  const { globalTopologyId, topologies } = useGlobalTopology();
   const activeTopologyId = id || globalTopologyId;
   const [isHydro, setIsHydro] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!activeTopologyId) {
-      const t = setTimeout(() => setIsHydro(false), 0);
-      return () => clearTimeout(t);
+      setIsHydro(false);
+      return;
     }
+
+    // 1. Try to check preloaded topologies context synchronously (instant)
+    if (topologies && topologies.length > 0) {
+      const currentTopo = topologies.find((t: any) => t.id.toString() === activeTopologyId);
+      if (currentTopo) {
+        setIsHydro(currentTopo.name.toLowerCase().includes('hydroponic'));
+        return;
+      }
+    }
+
+    // 2. Fallback to API if context hasn't loaded yet
     let cancelled = false;
     axios.get(`http://localhost:3001/api/topologies/${activeTopologyId}`)
       .then(res => {
@@ -26,7 +37,7 @@ export default function Analytics() {
         if (!cancelled) setIsHydro(false);
       });
     return () => { cancelled = true; };
-  }, [activeTopologyId]);
+  }, [activeTopologyId, topologies]);
 
   if (isHydro === null) {
     return (

@@ -120,6 +120,7 @@ class HydroDigitalTwinEngine {
       worstStatus = payload.status === 'healthy' ? 'Healthy' : (payload.status === 'offline' ? 'Offline' : 'Warning');
     }
 
+    nodeState.status = worstStatus;
     nodeState.lastUpdated = new Date();
 
     // Fire off async database insertion

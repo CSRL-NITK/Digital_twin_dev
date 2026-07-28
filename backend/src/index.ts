@@ -577,6 +577,150 @@ app.patch('/api/alerts/:id/read', async (req, res) => {
   }
 });
 
+// Endpoint to receive external alerts (e.g. from Telegram, custom MQTT, Python scripts, Grafana Webhooks)
+app.post('/api/alerts/external', async (req, res) => {
+  // 1. Detect if this is a Grafana Webhook payload (which sends a nested list of alerts)
+  if (req.body.alerts && Array.isArray(req.body.alerts)) {
+    try {
+      const processedAlerts = [];
+
+      for (const gAlert of req.body.alerts) {
+        const labels = gAlert.labels || {};
+        const annotations = gAlert.annotations || {};
+
+        const alertType = labels.alertname || 'Grafana Alert';
+        
+        let severity = 'Warning';
+        const rawSeverity = (labels.severity || '').toLowerCase();
+        if (rawSeverity === 'critical' || rawSeverity === 'error') {
+          severity = 'Critical';
+        } else if (rawSeverity === 'info') {
+          severity = 'Info';
+        }
+
+        const message = annotations.message || annotations.description || annotations.summary || gAlert.message || 'System threshold violation detected';
+
+        // Try to find a node ID
+        let targetNodeId: number | null = null;
+        const rawNodeId = labels.node_id || labels.nodeId;
+        if (rawNodeId) {
+          targetNodeId = parseInt(rawNodeId, 10);
+        }
+
+        // If no node ID is passed, search the database by node_name, nodeName, or metric
+        if (!targetNodeId || isNaN(targetNodeId)) {
+          const nodeName = labels.node_name || labels.nodeName || labels.metric;
+          if (nodeName) {
+            const dbNode = await prisma.node.findFirst({
+              where: { nodeName: { equals: nodeName, mode: 'insensitive' } }
+            });
+            if (dbNode) {
+              targetNodeId = dbNode.id;
+            }
+          }
+        }
+
+        // If still no node ID, default to the first node in the database
+        if (!targetNodeId || isNaN(targetNodeId)) {
+          const firstNode = await prisma.node.findFirst();
+          targetNodeId = firstNode ? firstNode.id : 12; // Fallback to 12
+        }
+
+        // Create alert record in PostgreSQL
+        const alert = await prisma.alert.create({
+          data: {
+            alertType,
+            severity,
+            message,
+            nodeId: targetNodeId,
+            isRead: false
+          },
+          include: {
+            node: {
+              select: {
+                id: true,
+                nodeName: true,
+                nodeType: true,
+                topologyId: true,
+                topology: { select: { id: true, name: true } }
+              }
+            }
+          }
+        });
+
+        const fullAlert = {
+          ...alert,
+          nodeName: alert.node?.nodeName,
+          nodeType: alert.node?.nodeType,
+          topologyId: alert.node?.topologyId,
+          topologyName: alert.node?.topology?.name || 'External System'
+        };
+
+        // Broadcast to WebSocket clients
+        io.emit('alert:new', fullAlert);
+        processedAlerts.push(fullAlert);
+      }
+
+      return res.status(201).json({ success: true, count: processedAlerts.length, alerts: processedAlerts });
+    } catch (err: any) {
+      console.error('Error processing Grafana webhook alert:', err);
+      return res.status(500).json({ error: 'Failed to process Grafana alert', details: err.message });
+    }
+  }
+
+  // 2. Standard custom JSON payload
+  const { alertType, severity, message, nodeId } = req.body;
+
+  if (!alertType || !severity || !message || nodeId === undefined) {
+    return res.status(400).json({ error: 'Missing required fields: alertType, severity, message, nodeId' });
+  }
+
+  const parsedNodeId = parseInt(nodeId, 10);
+  if (isNaN(parsedNodeId)) {
+    return res.status(400).json({ error: 'Invalid nodeId. It must be a valid number.' });
+  }
+
+  try {
+    // Store in DB with node relation
+    const alert = await prisma.alert.create({
+      data: {
+        alertType,
+        severity,
+        message,
+        nodeId: parsedNodeId,
+        isRead: false
+      },
+      include: {
+        node: {
+          select: {
+            id: true,
+            nodeName: true,
+            nodeType: true,
+            topologyId: true,
+            topology: { select: { id: true, name: true } }
+          }
+        }
+      }
+    });
+
+    const fullAlert = {
+      ...alert,
+      nodeName: alert.node?.nodeName,
+      nodeType: alert.node?.nodeType,
+      topologyId: alert.node?.topologyId,
+      topologyName: alert.node?.topology?.name || 'External System'
+    };
+
+    // Broadcast instantly to all connected frontends
+    io.emit('alert:new', fullAlert);
+
+    res.status(201).json({ success: true, alert: fullAlert });
+  } catch (err: any) {
+    console.error('Error creating external alert:', err);
+    res.status(500).json({ error: 'Failed to create external alert', details: err.message });
+  }
+});
+
 // Endpoint to update topology viewport / custom asset configs (saved as JSON in description)
 app.patch('/api/topologies/:id/viewport', async (req, res) => {
   const topologyId = parseInt(req.params.id, 10);

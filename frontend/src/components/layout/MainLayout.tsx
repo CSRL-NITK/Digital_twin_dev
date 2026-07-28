@@ -1,7 +1,17 @@
 import { Outlet } from 'react-router-dom';
 import { useState, useMemo, memo, useEffect, createContext, useContext } from 'react';
 import { io } from 'socket.io-client';
-const TopologyContext = createContext<{ globalTopologyId: string; setGlobalTopologyId: (id: string) => void; }>({ globalTopologyId: '1', setGlobalTopologyId: () => { } });
+const TopologyContext = createContext<{ 
+  globalTopologyId: string; 
+  setGlobalTopologyId: (id: string) => void; 
+  topologies: any[];
+  setTopologies: React.Dispatch<React.SetStateAction<any[]>>;
+}>({ 
+  globalTopologyId: '1', 
+  setGlobalTopologyId: () => { },
+  topologies: [],
+  setTopologies: () => {}
+});
 export const useGlobalTopology = () => useContext(TopologyContext);
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -172,7 +182,7 @@ const TopBar = memo(function TopBar() {
   const isUserManagement = pathname.startsWith('/user-management');
   const { globalTopologyId, setGlobalTopologyId } = useGlobalTopology();
 
-  const [topologies, setTopologies] = useState<any[]>([]);
+  const { topologies, setTopologies } = useGlobalTopology();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Alerts State
@@ -210,7 +220,7 @@ const TopBar = memo(function TopBar() {
   }, []);
 
   useEffect(() => {
-    if (pathname.startsWith('/topology/')) {
+    if (pathname.startsWith('/topology/') || pathname.startsWith('/analytics/')) {
       const idFromUrl = pathname.split('/')[2];
       if (idFromUrl && idFromUrl !== globalTopologyId) {
         setGlobalTopologyId(idFromUrl);
@@ -387,12 +397,21 @@ const TopBar = memo(function TopBar() {
                   }}>
                     {topologies.map(t => {
                       const isTopologyPage = pathname.startsWith('/topology/');
+                      const isAnalyticsPage = pathname.startsWith('/analytics/');
+                      
+                      let targetUrl = pathname;
+                      if (isTopologyPage) {
+                        targetUrl = `/topology/${t.id}`;
+                      } else if (isAnalyticsPage) {
+                        targetUrl = `/analytics/${t.id}`;
+                      }
+
                       return (
                         <Link
                           key={t.id}
-                          to={isTopologyPage ? `/topology/${t.id}` : pathname}
+                          to={targetUrl}
                           onClick={(e) => {
-                            if (!isTopologyPage) {
+                            if (!isTopologyPage && !isAnalyticsPage) {
                               e.preventDefault();
                               setGlobalTopologyId(t.id.toString());
                             }
@@ -1808,6 +1827,7 @@ const generateSeedData = (baseVal: { ph: number; tds: number; turbidity: number;
 };
 
 export default function MainLayout() {
+  const [topologies, setTopologies] = useState<any[]>([]);
   const [globalTopologyId, setGlobalTopologyId] = useState(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -1819,8 +1839,16 @@ export default function MainLayout() {
     }
     return '1';
   });
+
+  // Pre-load topologies once at root mount
+  useEffect(() => {
+    axios.get('http://localhost:3001/api/topologies')
+      .then(res => setTopologies(res.data))
+      .catch(err => console.error('Failed to pre-fetch topologies:', err));
+  }, []);
+
   return (
-    <TopologyContext.Provider value={{ globalTopologyId, setGlobalTopologyId }}>
+    <TopologyContext.Provider value={{ globalTopologyId, setGlobalTopologyId, topologies, setTopologies }}>
       <HydroStateProvider>
         <MainLayoutContent />
       </HydroStateProvider>
