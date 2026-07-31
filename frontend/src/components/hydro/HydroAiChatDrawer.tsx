@@ -10,6 +10,12 @@ interface Message {
   timestamp?: string;
 }
 
+let lastMsgId = 0;
+const generateUniqueId = (): string => {
+  lastMsgId++;
+  return `${lastMsgId}-${Date.now()}`;
+};
+
 interface HydroAiChatDrawerProps {
   isDark?: boolean;
 }
@@ -36,16 +42,11 @@ export const HydroAiChatDrawer: React.FC<HydroAiChatDrawerProps> = ({ isDark = t
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Hide floating tooltip after drawer opens
-  useEffect(() => {
-    if (isOpen) setShowTooltip(false);
-  }, [isOpen]);
-
   const handleSendMessage = async (textToSend?: string) => {
     const messageText = textToSend || query.trim();
     if (!messageText || loading) return;
 
-    const userMsgId = Date.now().toString();
+    const userMsgId = generateUniqueId();
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     setMessages((prev) => [
@@ -71,7 +72,7 @@ export const HydroAiChatDrawer: React.FC<HydroAiChatDrawerProps> = ({ isDark = t
       setMessages((prev) => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
+          id: generateUniqueId(),
           sender: 'ai',
           text: data.response || 'No response generated.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -82,12 +83,12 @@ export const HydroAiChatDrawer: React.FC<HydroAiChatDrawerProps> = ({ isDark = t
         setBotState('happy');
         setTimeout(() => setBotState('idle'), 2500);
       }, 1500);
-    } catch (err) {
+    } catch {
       setBotState('idle');
       setMessages((prev) => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
+          id: generateUniqueId(),
           sender: 'ai',
           text: "Oops! 🍃 I couldn't reach the Hydroponics Coordinator server. Please verify Ollama or the backend service is running.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -102,7 +103,7 @@ export const HydroAiChatDrawer: React.FC<HydroAiChatDrawerProps> = ({ isDark = t
     setBotState('happy');
     setMessages([
       {
-        id: Date.now().toString(),
+        id: generateUniqueId(),
         sender: 'ai',
         text: '🌱 Chat reset! How can I help you today?',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -129,7 +130,7 @@ export const HydroAiChatDrawer: React.FC<HydroAiChatDrawerProps> = ({ isDark = t
               initial={{ opacity: 0, y: 10, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.9 }}
-              onClick={() => setIsOpen(true)}
+              onClick={() => { setIsOpen(true); setShowTooltip(false); }}
               className="mr-3 px-4 py-2.5 rounded-2xl bg-emerald-950/90 border border-emerald-500/40 text-emerald-200 text-sm font-semibold shadow-2xl backdrop-blur-md cursor-pointer flex items-center gap-2.5 group hover:border-emerald-400 transition-all"
             >
               <span className="relative flex h-2.5 w-2.5">
@@ -150,7 +151,7 @@ export const HydroAiChatDrawer: React.FC<HydroAiChatDrawerProps> = ({ isDark = t
 
         {/* Floating Plant Bot Trigger */}
         <motion.button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => { setIsOpen(!isOpen); setShowTooltip(false); }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           animate={{ y: [0, -6, 0] }}

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Send, X, Bot, Sparkles, User, RefreshCw } from 'lucide-react';
+import { Send, X, Bot, User, RefreshCw } from 'lucide-react';
 
 interface Message {
   sender: 'user' | 'agent';
