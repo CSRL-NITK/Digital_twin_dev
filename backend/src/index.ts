@@ -17,6 +17,9 @@ import { initMqttService } from './services/mqtt.service';
 import { hydroTwinEngine } from './services/hydro-twin.service';
 import { hydroAlertEngine } from './services/hydro-alert.service';
 import hydroAiRoutes from './routes/hydro-ai.routes';
+import { LineCoordinatorAgent } from './agents/Line-Coordinator.agent';
+import { BusCoordinatorAgent } from './agents/Bus-Coordinator.agent';
+import { StarCoordinatorAgent } from './agents/Star-Coordinator.agent';
 
 // Sync admin, operator, and viewer credentials from .env
 async function syncAdminUser() {
@@ -763,6 +766,35 @@ app.patch('/api/topologies/:id/viewport', async (req, res) => {
   }
 });
 
+const lineCoordinator = new LineCoordinatorAgent();
+const busCoordinator = new BusCoordinatorAgent();
+const starCoordinator = new StarCoordinatorAgent();
+
+// Unified AI Coordinator Endpoint
+app.post('/api/llm/chat', async (req, res) => {
+  try {
+    const { query, sandboxState, topologyId } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: 'Query is required' });
+    }
+
+    // Delegate classification and routing dynamically based on topologyId
+    let reply = '';
+    const tid = String(topologyId);
+    if (tid === '6') {
+      reply = await busCoordinator.handleQuery(query, sandboxState);
+    } else if (tid === '1') {
+      reply = await starCoordinator.handleQuery(query, sandboxState);
+    } else {
+      reply = await lineCoordinator.handleQuery(query, sandboxState);
+    }
+    
+    res.json({ reply });
+  } catch (error: any) {
+    console.error('LLM Agent routing error:', error.message);
+    res.status(500).json({ error: error.message || 'AI Engine Routing failed' });
+  }
+});
 
 // Endpoint for ThingsBoard Rule Engine Webhook
 app.post('/api/telemetry/thingsboard', async (req, res) => {

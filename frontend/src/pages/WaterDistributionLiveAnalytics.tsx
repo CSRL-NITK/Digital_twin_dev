@@ -523,6 +523,32 @@ export default function WaterDistributionLiveAnalytics({ globalTopologyId }: { g
     return () => clearInterval(interval);
   }, [isSimulating, localTopologyData, simulationSpeed, simulatedCentralLevel, simulatedTank1Level, simulatedTank2Level, simulatedTank3Level, simulatedTank4Level, displayPh, displayTds, displayTemperature]);
 
+  // Export active simulated state to window object for the AI Copilot
+  useEffect(() => {
+    (window as any).__getSimulatedState = () => {
+      return {
+        centralLevel: simulatedCentralLevel,
+        tank1Level: simulatedTank1Level,
+        tank2Level: simulatedTank2Level,
+        tank3Level: simulatedTank3Level,
+        tank4Level: simulatedTank4Level,
+        activeScenario: scenario,
+        simulationSpeed: simulationSpeed,
+        motorSpeed: motorSpeed,
+        pressure: 3.4,
+        flowRate: 5.2,
+        ph: displayPh,
+        tds: displayTds,
+        temperature: displayTemperature,
+        isPumpRunning: isSimulating && motorSpeed > 0,
+        logs: simulatedLogs
+      };
+    };
+    return () => {
+      delete (window as any).__getSimulatedState;
+    };
+  }, [simulatedCentralLevel, simulatedTank1Level, simulatedTank2Level, simulatedTank3Level, simulatedTank4Level, scenario, simulationSpeed, motorSpeed, displayPh, displayTds, displayTemperature, isSimulating, simulatedLogs]);
+
   // Field container and styling utilities
   const getFieldContainerStyle = (): React.CSSProperties => ({
     marginBottom: 16,

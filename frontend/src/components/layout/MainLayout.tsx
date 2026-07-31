@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useTheme } from '../ThemeProvider';
+import AICopilotDrawer from '../live/AICopilotDrawer';
+import { Bot } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import LiveChartsPanel from '../live/LiveChartsPanel';
 import SystemHealthPanel from '../live/SystemHealthPanel';
@@ -886,6 +888,13 @@ function MainLayoutContent() {
   const { globalTopologyId } = useGlobalTopology();
   const dark = theme === 'dark';
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
+  const pageContext = useMemo((): 'live' | 'dashboard' | 'simulation' => {
+    if (pathname.startsWith('/dashboard')) return 'dashboard';
+    if (pathname.startsWith('/analytics')) return 'simulation';
+    return 'live';
+  }, [pathname]);
   const isFullWidthPage = pathname.startsWith('/user-management') || pathname.startsWith('/topologies') || pathname.startsWith('/analytics') || pathname.startsWith('/dashboard');
 
   const [topologies, setTopologies] = useState<any[]>([]);
@@ -1145,6 +1154,36 @@ function MainLayoutContent() {
         )}
       </div>
       {isHydroponics && <HydroAiChatDrawer isDark={dark} />}
+
+      {/* Floating AI Assistant Toggle Button - visible for Line (5), Bus (6), and Star (1) Topologies */}
+      {(globalTopologyId === '5' || globalTopologyId === '6' || globalTopologyId === '1') && (pathname.startsWith('/topology') || pathname.startsWith('/analytics') || pathname.startsWith('/dashboard')) && (
+        <button
+          onClick={() => setCopilotOpen(!copilotOpen)}
+          title="Toggle AI Digital Twin Copilot"
+          style={{
+            position: 'fixed', bottom: 20, right: copilotOpen ? 400 : 20,
+            width: 48, height: 48, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #00ffff 0%, #0088ff 100%)',
+            border: 'none', cursor: 'pointer', zIndex: 1001,
+            boxShadow: '0 4px 15px rgba(0, 255, 255, 0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'right 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          <Bot size={20} color="#000" />
+        </button>
+      )}
+
+      {/* AI Copilot Drawer Overlay - rendered for Line (5), Bus (6), and Star (1) Topologies */}
+      {(globalTopologyId === '5' || globalTopologyId === '6' || globalTopologyId === '1') && (pathname.startsWith('/topology') || pathname.startsWith('/analytics') || pathname.startsWith('/dashboard')) && (
+        <AICopilotDrawer 
+          isOpen={copilotOpen} 
+          onClose={() => setCopilotOpen(false)} 
+          pageContext={pageContext} 
+          dark={dark} 
+          topologyId={globalTopologyId}
+        />
+      )}
     </div>
   );
 }
