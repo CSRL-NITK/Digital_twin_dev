@@ -7,11 +7,11 @@ JWT_SECRET="super-secret-dt-key-2026"
 ADMIN_USERNAME="admin"
 ADMIN_PASSWORD="password123"
 
-run this in backend folder for seeding hydroponic
+run this in backend folder for seeding hydroponics:
 
-npx ts-node src/seed-hydroponic.ts
+npx ts-node src/hydro-seed.ts
 
-npx ts-node src/seed-hydroponic-history.ts
+npx ts-node src/hydro-seed-history.ts
 
 
 # Grafana Setup
@@ -81,26 +81,40 @@ database: DT-MAIN
 
 ## Start the Complete Project
 
-### Backend
+### Shortcut (Run everything via root package.json)
+```bash
+# For Water Distribution (Star Topology ID = 1)
+npm run dev
 
+# For Hydroponics Topology (Topology ID = 2)
+npm run dev:hydro
+```
+
+### Manual Individual Commands
+
+#### 1. Backend
 ```bash
 cd backend
 npm install
 npm run dev
 ```
 
-### Frontend
-
+#### 2. Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### Python Sensor Simulator
-
+#### 3. Python Sensor Simulator (Water Distribution / Star Topology)
 ```bash
 cd python-generator
+python main.py
+```
+
+#### 4. Python Sensor Simulator (Hydroponics Topology)
+```bash
+cd hydro-generator
 python main.py
 ```
 

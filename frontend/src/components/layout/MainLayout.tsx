@@ -30,6 +30,7 @@ import AlertsModal, { type AlertItem } from '../live/AlertsModal';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from 'recharts';
 
 import { useHydroState, HydroStateProvider } from '../../lib/hydro/hydroStateContext';
+import { HydroAiChatDrawer } from '../hydro/HydroAiChatDrawer';
 
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR
@@ -894,6 +895,9 @@ function MainLayoutContent() {
       .catch(err => console.error(err));
   }, []);
   const currentTopology = topologies.find(t => t.id.toString() === globalTopologyId);
+  const isHydroponics = Boolean(
+    currentTopology?.name.toLowerCase().includes('hydroponic') || pathname.startsWith('/hydro')
+  );
 
   const [topology, setTopology] = useState<any>(null);
   const [nodes, setNodes] = useState<any[]>([]);
@@ -1140,6 +1144,7 @@ function MainLayoutContent() {
           </div>
         )}
       </div>
+      {isHydroponics && <HydroAiChatDrawer isDark={dark} />}
     </div>
   );
 }
@@ -1248,15 +1253,20 @@ function TelemetryPanel({ selectedNode, history, dark, nodes }: TelemetryPanelPr
           {activeNode ? activeNode.nodeName : 'Hydroponic System'}
         </span>
       </div>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>
-        {renderSparkline('ph', 'pH Level', Number(ph).toFixed(2), 'ph', '#00e5a0')}
-        {renderSparkline('tds', 'TDS Level', `${Number(tds).toFixed(0)} ppm`, 'tds', '#00aaff')}
-        {renderSparkline('turbidity', 'Turbidity', `${Number(turbidity).toFixed(1)} NTU`, 'turbidity', '#00d4c8')}
-        {renderSparkline('water_temp', 'Water Temp', `${Number(water_temp).toFixed(1)} °C`, 'water_temp', '#ffb347')}
-        {renderSparkline('air_temp', 'Air Temp', `${Number(air_temp).toFixed(1)} °C`, 'air_temp', '#c08aff')}
-        {renderSparkline('light_intensity', 'Light Intensity', `${Number(light_intensity).toFixed(0)} lux`, 'light_intensity', '#ffe066')}
+        {activeNode?.nodeType === 'central_tank' && (
+          <>
+            {renderSparkline('ph', 'pH Level', Number(ph).toFixed(2), 'ph', '#00e5a0')}
+            {renderSparkline('tds', 'TDS Level', `${Number(tds).toFixed(0)} ppm`, 'tds', '#00aaff')}
+            {renderSparkline('turbidity', 'Turbidity', `${Number(turbidity).toFixed(1)} NTU`, 'turbidity', '#00d4c8')}
+            {renderSparkline('water_temp', 'Water Temp', `${Number(water_temp).toFixed(1)} °C`, 'water_temp', '#ffb347')}
+            {renderSparkline('air_temp', 'Air Temp', `${Number(air_temp).toFixed(1)} °C`, 'air_temp', '#c08aff')}
+          </>
+        )}
+        {activeNode?.nodeType !== 'pump' && renderSparkline('light_intensity', 'Light Intensity', `${Number(light_intensity).toFixed(0)} lux`, 'light_intensity', '#ffe066')}
       </div>
+
+
 
       {/* Bottom Node Diagnostics Card */}
       <div

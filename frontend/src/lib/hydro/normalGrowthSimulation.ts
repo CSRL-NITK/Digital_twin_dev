@@ -54,6 +54,7 @@ export function getNormalGrowthState(age: number): NormalGrowthState {
 
   let phaseName = "Germination & Radicle Emergence";
   let stage: "Germination" | "Seedling" | "Vegetative" | "Mature" = "Germination";
+  let health = 100;
   let ec = 0.70;
   let tds = 450;
   let pH = 6.00;
@@ -226,8 +227,8 @@ export function getNormalGrowthState(age: number): NormalGrowthState {
     waterUptake = Math.round(250 + r * 100);
     growthRate = 1.25;
     plantEffect = "Prominent leaf curl and compact rosette head formation. Transpiration and potassium uptake peak.";
-  } else {
-    // Phase 6: Harvest Maturity (Days 25 to 28+)
+  } else if (t <= 28) {
+    // Phase 6: Harvest Maturity (Days 25 to 28)
     const r = Math.min(1.0, (t - 24) / 4);
     phaseName = "Harvest Maturity";
     stage = "Mature";
@@ -248,11 +249,42 @@ export function getNormalGrowthState(age: number): NormalGrowthState {
     leafCount = Math.round(18 + r * 6);
     freshBiomass = parseFloat((180.0 + r * 70.0).toFixed(1));
     waterUptake = Math.round(350 + r * 100);
+    health = 100;
     growthRate = 0.95;
     plantEffect = "Full commercial harvest quality with dense white root network and rich green rosette head.";
-  }
+  } else {
+    // Phase 7: Post-Harvest Over-Mature Tissue Senescence & Decay (Days 29 to 70+)
+    const decayProgress = Math.min(1.0, (t - 28) / 42);
+    phaseName = t >= 70 ? "Tissue Senescence & Decay" : "Over-Mature Senescence";
+    stage = "Mature";
+    ec = 1.40;
+    tds = 900;
+    doVal = Math.max(1.0, parseFloat((8.0 - decayProgress * 6.0).toFixed(1)));
+    waterTemp = 23.0;
+    airTemp = 24.0;
+    humidity = 55;
+    ledIntensity = 350;
+    lux = 18900;
 
-  const health = t > 70 ? Math.max(0, Math.round(100 - (t - 70) * 3.8)) : 100;
+    n = Math.max(10, Math.round(150 - decayProgress * 120));
+    p = Math.max(5, Math.round(31 - decayProgress * 25));
+    k = Math.max(20, Math.round(210 - decayProgress * 170));
+    ca = Math.max(10, Math.round(90 - decayProgress * 70));
+    mg = Math.max(5, Math.round(24 - decayProgress * 18));
+    s = Math.max(5, Math.round(32 - decayProgress * 24));
+    fe = 0.3; mn = 0.05; zn = 0.02; cu = 0.005; b = 0.03; mo = 0.005; cl = 2.0;
+
+    height = parseFloat((35.0 - decayProgress * 10.0).toFixed(1));
+    rootLength = 25.0;
+    leafCount = Math.max(6, Math.round(24 - decayProgress * 18));
+    freshBiomass = Math.max(20.0, parseFloat((250.0 - decayProgress * 230.0).toFixed(1)));
+    waterUptake = Math.max(0, Math.round(450 - decayProgress * 450));
+    health = Math.max(0, Math.round(100 - decayProgress * 100)); // 0% health on Day 70
+    growthRate = 0.0;
+    plantEffect = t >= 70 
+      ? "Unharvested tissue collapse and complete necrotic decay." 
+      : "Canopy over-maturity; leaf margins yellow and wilt as senescence progresses.";
+  }
 
   return {
     t: parseFloat(t.toFixed(2)),

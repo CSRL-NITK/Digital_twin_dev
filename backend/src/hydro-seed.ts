@@ -86,15 +86,17 @@ async function main() {
     createdNodes[node.name] = created.id;
     console.log(`Created Node: ${node.name} (${created.id})`);
 
-    // Create 6 sensors for central reservoir and the tiers
+    // Create sensors for central reservoir (all 6) and the tiers (only light intensity)
     if (node.type === 'tank' || node.type === 'central_tank') {
-      const sensors = [
+      const sensors = node.type === 'central_tank' ? [
         { name: 'pH Sensor', type: 'ph' },
         { name: 'TDS Sensor', type: 'tds' },
         { name: 'Turbidity Sensor', type: 'turbidity' },
         { name: 'Water Temperature Sensor', type: 'water_temp' },
         { name: 'Air Temperature Sensor', type: 'air_temp' },
         { name: 'Light Intensity Sensor', type: 'light_intensity' },
+      ] : [
+        { name: 'Light Intensity Sensor', type: 'light_intensity' }
       ];
 
       for (const s of sensors) {
@@ -107,7 +109,7 @@ async function main() {
           }
         });
       }
-      console.log(`Created 6 sensors for ${node.name}`);
+      console.log(`Created ${sensors.length} sensors for ${node.name}`);
     }
   }
 

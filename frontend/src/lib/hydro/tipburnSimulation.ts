@@ -270,7 +270,7 @@ export function getTipburnState(age: number): TipburnState {
     n = 150; p = 31; k = 210; ca = 90; mg = 24; s = 32; fe = 0.8;
 
     height = 30.0; rootLength = 24.0; leafCount = 20; freshBiomass = 185.0; waterUptake = 200;
-    health = Math.max(10, Math.round(65 - r * 55)); growthRate = 0.0; tipburnSeverity = 1.00;
+    health = Math.max(0, Math.round(65 - r * 65)); growthRate = 0.0; tipburnSeverity = 1.00;
     plantEffect = "Permanent inner head tipburn necrosis and over-mature leaf breakdown.";
   }
 

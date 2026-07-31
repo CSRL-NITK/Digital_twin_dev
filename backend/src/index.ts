@@ -16,6 +16,7 @@ import { alertEngine } from './services/alert.service';
 import { initMqttService } from './services/mqtt.service';
 import { hydroTwinEngine } from './services/hydro-twin.service';
 import { hydroAlertEngine } from './services/hydro-alert.service';
+import hydroAiRoutes from './routes/hydro-ai.routes';
 
 // Sync admin, operator, and viewer credentials from .env
 async function syncAdminUser() {
@@ -102,6 +103,7 @@ app.use('/api/', apiLimiter);
 // Routes
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRoutes);
+app.use('/api/hydro/ai', hydroAiRoutes);
 
 // REST APIs
 app.post('/api/sensors/upload', async (req, res) => {

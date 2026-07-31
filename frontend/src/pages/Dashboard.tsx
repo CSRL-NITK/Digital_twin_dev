@@ -3,7 +3,7 @@ import { useGlobalTopology } from '../components/layout/MainLayout';
 import { useTheme } from '../components/ThemeProvider';
 import axios from 'axios';
 
-const GRAFANA_BASE   = 'http://localhost:3000';
+const GRAFANA_BASE   = import.meta.env.VITE_GRAFANA_URL || 'http://localhost:3005';
 const WATER_DIST_UID = 'water-distribution-dt';
 const HYDRO_UID      = 'ad6jj2c';
 
@@ -37,6 +37,8 @@ export default function Dashboard() {
   const [topology, setTopology]     = useState<Topology | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const grafanaUrl = buildGrafanaUrl(topology, grafanaTheme);
+
   // Fetch all topologies
   useEffect(() => {
     axios.get('http://localhost:3001/api/topologies')
@@ -57,7 +59,6 @@ export default function Dashboard() {
     setRefreshKey(k => k + 1);
   }, [grafanaTheme]);
 
-  const grafanaUrl = buildGrafanaUrl(topology, grafanaTheme);
 
   return (
     <div style={{

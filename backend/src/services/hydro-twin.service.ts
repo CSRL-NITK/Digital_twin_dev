@@ -94,24 +94,20 @@ class HydroDigitalTwinEngine {
 
     // Evaluate health rules based on payload
     let worstStatus = 'Healthy';
-    let pHS = 'Online', tdsS = 'Online', turbS = 'Online', wtempS = 'Online', atempS = 'Online', lightS = 'Online';
+    const statuses: string[] = [];
 
-    if (payload.ph !== undefined) {
-      nodeState.ph = payload.ph;
-      nodeState.tds = payload.tds;
-      nodeState.turbidity = payload.turbidity;
-      nodeState.water_temp = payload.water_temp;
-      nodeState.air_temp = payload.air_temp;
-      nodeState.light_intensity = payload.light_intensity;
+    // Helper map of all possible sensor fields
+    const telemetryFields = ['ph', 'tds', 'turbidity', 'water_temp', 'air_temp', 'light_intensity'] as const;
+    const hasTelemetry = telemetryFields.some(field => payload[field] !== undefined);
 
-      pHS = hydroAlertEngine.evaluateSensor('ph', payload.ph);
-      tdsS = hydroAlertEngine.evaluateSensor('tds', payload.tds);
-      turbS = hydroAlertEngine.evaluateSensor('turbidity', payload.turbidity);
-      wtempS = hydroAlertEngine.evaluateSensor('water_temp', payload.water_temp);
-      atempS = hydroAlertEngine.evaluateSensor('air_temp', payload.air_temp);
-      lightS = hydroAlertEngine.evaluateSensor('light_intensity', payload.light_intensity);
+    if (hasTelemetry) {
+      for (const field of telemetryFields) {
+        if (payload[field] !== undefined) {
+          nodeState[field] = payload[field];
+          statuses.push(hydroAlertEngine.evaluateSensor(field, payload[field]));
+        }
+      }
 
-      const statuses = [pHS, tdsS, turbS, wtempS, atempS, lightS];
       if (statuses.includes('Critical')) worstStatus = 'Critical';
       else if (statuses.includes('Warning')) worstStatus = 'Warning';
       else if (statuses.includes('Offline')) worstStatus = 'Offline';
@@ -128,27 +124,21 @@ class HydroDigitalTwinEngine {
 
     // Broadcast instantly via WebSocket for zero latency UI
     if (this.io && nodeState.dbNodeId) {
-      if (payload.ph !== undefined && nodeState.dbSensors) {
-        // Mock the savedReadings format for UI
-        const sensors = [
-          { name: 'ph', value: payload.ph, status: pHS },
-          { name: 'tds', value: payload.tds, status: tdsS },
-          { name: 'turbidity', value: payload.turbidity, status: turbS },
-          { name: 'water_temp', value: payload.water_temp, status: wtempS },
-          { name: 'air_temp', value: payload.air_temp, status: atempS },
-          { name: 'light_intensity', value: payload.light_intensity, status: lightS }
-        ];
-
-        const formattedSensors = sensors.map(s => {
-          const dbS = nodeState.dbSensors?.find(x => x.sensorType === s.name);
-          return {
-            sensorType: s.name,
-            value: s.value,
-            status: s.status,
-            sensorId: dbS?.id,
-            lastSeen: nodeState.lastUpdated
-          };
-        });
+      if (hasTelemetry && nodeState.dbSensors) {
+        // Build the active sensors list present in the payload
+        const formattedSensors = [];
+        for (const field of telemetryFields) {
+          if (payload[field] !== undefined) {
+            const dbS = nodeState.dbSensors.find(x => x.sensorType === field);
+            formattedSensors.push({
+              sensorType: field,
+              value: payload[field],
+              status: hydroAlertEngine.evaluateSensor(field, payload[field]),
+              sensorId: dbS?.id,
+              lastSeen: nodeState.lastUpdated
+            });
+          }
+        }
 
         this.io.emit('sensor_update', {
           nodeId: nodeState.dbNodeId,
@@ -180,40 +170,38 @@ class HydroDigitalTwinEngine {
         hydroAlertEngine.triggerAlert(state.dbNodeId, slug, currentStatus, `System status transitioned to ${currentStatus} due to anomalies.`);
       }
 
-      // Insert sensor readings for every packet
-      if (payload.ph !== undefined && state.dbSensors) {
-        const sensorValues = {
-          'ph': payload.ph,
-          'tds': payload.tds,
-          'turbidity': payload.turbidity,
-          'water_temp': payload.water_temp,
-          'air_temp': payload.air_temp,
-          'light_intensity': payload.light_intensity
-        };
+      // Check if telemetry fields are present
+      const telemetryFields = ['ph', 'tds', 'turbidity', 'water_temp', 'air_temp', 'light_intensity'] as const;
+      const hasTelemetry = telemetryFields.some(field => payload[field] !== undefined);
 
+      // Insert sensor readings for every packet
+      if (hasTelemetry && state.dbSensors) {
         const readingsToInsert = [];
         const sensorUpdates = [];
         
-        for (const [sType, sValue] of Object.entries(sensorValues)) {
-          const dbSensor = state.dbSensors.find((s: any) => s.sensorType === sType);
-          if (dbSensor && sValue !== undefined) {
-            const sStatus = hydroAlertEngine.evaluateSensor(sType, sValue);
+        for (const field of telemetryFields) {
+          const sValue = payload[field];
+          if (sValue !== undefined) {
+            const dbSensor = state.dbSensors.find((s: any) => s.sensorType === field);
+            if (dbSensor) {
+              const sStatus = hydroAlertEngine.evaluateSensor(field, sValue);
 
-            sensorUpdates.push(
-              prisma.sensor.update({
-                where: { id: dbSensor.id },
-                data: {
-                  status: sStatus,
-                  lastSeen: new Date()
-                }
-              })
-            );
+              sensorUpdates.push(
+                prisma.sensor.update({
+                  where: { id: dbSensor.id },
+                  data: {
+                    status: sStatus,
+                    lastSeen: new Date()
+                  }
+                })
+              );
 
-            readingsToInsert.push({
-              sensorId: dbSensor.id,
-              value: Number(sValue),
-              createdAt: new Date()
-            });
+              readingsToInsert.push({
+                sensorId: dbSensor.id,
+                value: Number(sValue),
+                createdAt: new Date()
+              });
+            }
           }
         }
 

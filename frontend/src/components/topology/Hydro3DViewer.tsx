@@ -213,7 +213,7 @@ function GLTFLoaderIndicator({ progress }: { progress: number }) {
 useGLTF.preload('/hydroponic.glb');
 
 // Main Component
-export default function Hydroponics3DViewer() {
+export default function Hydro3DViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);

@@ -540,26 +540,37 @@ export default function ModelViewer({ url = '/test.glb', isPumpOn: propIsPumpOn,
       </div>
 
       {/* Sleek Controls Overlay in top-right corner */}
-      <div className="absolute top-4 right-6 z-20 flex gap-2">
+      <div className="absolute top-4 right-6 z-20 flex items-center gap-2.5 select-none">
         <button
           onClick={handlePumpToggle}
-          className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-800 shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer font-bold text-xs ${
+          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full border shadow-md backdrop-blur-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:scale-105 active:scale-95 ${
             isFlowing
-              ? 'bg-[#14151b] hover:bg-[#1f2029] text-emerald-400 border-emerald-800/80 shadow-[0_0_12px_rgba(34,197,94,0.3)]'
-              : 'bg-red-950/80 hover:bg-red-900/90 text-red-200 border-red-800/80'
+              ? 'bg-emerald-950/90 hover:bg-emerald-900/90 text-emerald-300 border-emerald-500/50 shadow-emerald-950/40'
+              : 'bg-slate-900/90 hover:bg-slate-800/90 text-rose-300 border-rose-500/50 shadow-slate-950/40'
           }`}
           title={isFlowing ? "Stop Water Pump" : "Start Water Pump"}
         >
-          {isFlowing && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>}
-          {isFlowing ? '⚡ Pump ON' : '🛑 Pump OFF'}
+          <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+            {isFlowing ? (
+              <>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </>
+            ) : (
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+            )}
+          </span>
+          <span className="text-xs font-bold tracking-wide">
+            {isFlowing ? 'Pump ON' : 'Pump OFF'}
+          </span>
         </button>
 
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className="flex items-center justify-center p-2.5 rounded-xl border border-slate-800 bg-[#14151b] hover:bg-[#1f2029] text-slate-200 hover:text-white shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer"
+          className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-700/60 bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white shadow-md backdrop-blur-md transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
           title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
         >
-          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
         </button>
       </div>
 

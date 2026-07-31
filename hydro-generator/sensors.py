@@ -99,6 +99,13 @@ def get_payloads():
                 "timestamp": now_str,
                 "status": state["status"]
             })
+        elif node["type"] == "tank":
+            payloads.append({
+                "nodeId": node_id,
+                "timestamp": now_str,
+                "light_intensity": round(state["light_intensity"], 1),
+                "status": state["status"]
+            })
         else:
             payloads.append({
                 "nodeId": node_id,

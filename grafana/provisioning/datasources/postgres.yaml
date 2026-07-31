@@ -6,11 +6,12 @@ datasources:
     uid: efsudp8r58f7ke
     access: proxy
     url: host.docker.internal:5432
-    database: DT-MAIN
     user: postgres
+    database: DT-MAIN
     secureJsonData:
-      password: postgres
+      password: postgres123
     jsonData:
+      database: DT-MAIN
       sslmode: disable
       postgresVersion: 1500
       timescaledb: false

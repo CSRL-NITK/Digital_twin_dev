@@ -66,7 +66,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT value::float AS \"pH\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'ph' ORDER BY sr.created_at DESC LIMIT 1"
+                        "rawSql": "SELECT sr.value::float AS \"pH\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'ph' AND n.node_name = 'Central Reservoir' ORDER BY sr.created_at DESC LIMIT 1"
                       }
                     },
                     "refId": "A",
@@ -148,7 +148,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT (100.0 - (AVG(sr.value::float) / 50.0 * 100.0)) AS \"WPI\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'turbidity'",
+                        "rawSql": "SELECT (100.0 - (AVG(sr.value::float) / 50.0 * 100.0)) AS \"WPI\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'turbidity' AND n.node_name = 'Central Reservoir'",
                         "sql": {
                           "columns": [
                             {
@@ -249,7 +249,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", (100 - LEAST(20, ABS(sr.value::float - 22.0) * 4)) AS \"Health Score\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'water_temp' ORDER BY sr.created_at ASC",
+                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", (100 - LEAST(20, ABS(sr.value::float - 22.0) * 4)) AS \"Health Score\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'water_temp' AND n.node_name = 'Central Reservoir' ORDER BY sr.created_at ASC",
                         "sql": {
                           "columns": [
                             {
@@ -725,7 +725,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", sr.value::float AS \"TDS\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'tds' ORDER BY (sr.created_at AT TIME ZONE 'UTC') ASC"
+                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", sr.value::float AS \"TDS\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'tds' AND n.node_name = 'Central Reservoir' ORDER BY (sr.created_at AT TIME ZONE 'UTC') ASC"
                       }
                     },
                     "refId": "A",
@@ -845,7 +845,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", sr.value::float AS \"pH\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'ph' ORDER BY (sr.created_at AT TIME ZONE 'UTC') ASC"
+                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", sr.value::float AS \"pH\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'ph' AND n.node_name = 'Central Reservoir' ORDER BY (sr.created_at AT TIME ZONE 'UTC') ASC"
                       }
                     },
                     "refId": "A",
@@ -965,7 +965,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", COUNT(sr.id) OVER (ORDER BY sr.created_at) AS \"Alert Count\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE (s.sensor_type = 'ph' AND (sr.value::float < 6.0 OR sr.value::float > 6.6)) OR (s.sensor_type = 'water_temp' AND (sr.value::float < 20.0 OR sr.value::float > 24.0)) ORDER BY sr.created_at ASC",
+                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", COUNT(sr.id) OVER (ORDER BY sr.created_at) AS \"Alert Count\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE n.node_name = 'Central Reservoir' AND ((s.sensor_type = 'ph' AND (sr.value::float < 6.0 OR sr.value::float > 6.6)) OR (s.sensor_type = 'water_temp' AND (sr.value::float < 20.0 OR sr.value::float > 24.0))) ORDER BY sr.created_at ASC",
                         "sql": {
                           "columns": [
                             {
@@ -1102,7 +1102,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", (99.6 + SIN(EXTRACT(EPOCH FROM sr.created_at) / 50000) * 0.3 + RANDOM() * 0.05) AS \"Uptime\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'ph' ORDER BY sr.created_at ASC",
+                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", (99.6 + SIN(EXTRACT(EPOCH FROM sr.created_at) / 50000) * 0.3 + RANDOM() * 0.05) AS \"Uptime\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'ph' AND n.node_name = 'Central Reservoir' ORDER BY sr.created_at ASC",
                         "sql": {
                           "columns": [
                             {
@@ -1239,7 +1239,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT value::float AS \"TDS\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'tds' ORDER BY sr.created_at DESC LIMIT 1"
+                        "rawSql": "SELECT sr.value::float AS \"TDS\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'tds' AND n.node_name = 'Central Reservoir' ORDER BY sr.created_at DESC LIMIT 1"
                       }
                     },
                     "refId": "A",
@@ -1321,7 +1321,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT value::float AS \"Turbidity\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'turbidity' ORDER BY sr.created_at DESC LIMIT 1"
+                        "rawSql": "SELECT sr.value::float AS \"Turbidity\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'turbidity' AND n.node_name = 'Central Reservoir' ORDER BY sr.created_at DESC LIMIT 1"
                       }
                     },
                     "refId": "A",
@@ -1403,7 +1403,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT value::float AS \"Water Temp\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'temperature' ORDER BY sr.created_at DESC LIMIT 1"
+                        "rawSql": "SELECT sr.value::float AS \"Water Temp\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'temperature' AND n.node_name = 'Central Reservoir' ORDER BY sr.created_at DESC LIMIT 1"
                       }
                     },
                     "refId": "A",
@@ -1485,7 +1485,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT value::float AS \"Air Temp\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'air_temp' ORDER BY sr.created_at DESC LIMIT 1"
+                        "rawSql": "SELECT sr.value::float AS \"Air Temp\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'air_temp' AND n.node_name = 'Central Reservoir' ORDER BY sr.created_at DESC LIMIT 1"
                       }
                     },
                     "refId": "A",
@@ -1567,7 +1567,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT value::float AS \"Light Intensity\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'light_intensity' ORDER BY sr.created_at DESC LIMIT 1"
+                        "rawSql": "SELECT sr.value::float AS \"Light Intensity\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'light_intensity' AND n.node_name = 'Tier 1' ORDER BY sr.created_at DESC LIMIT 1"
                       }
                     },
                     "refId": "A",
@@ -1649,7 +1649,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", sr.value::float AS \"value\", s.sensor_type AS \"metric\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type IN ('ph', 'tds', 'temperature', 'air_temp', 'turbidity', 'light_intensity') ORDER BY (sr.created_at AT TIME ZONE 'UTC') ASC"
+                        "rawSql": "SELECT (sr.created_at AT TIME ZONE 'UTC') AS \"time\", sr.value::float AS \"value\", s.sensor_type AS \"metric\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE (s.sensor_type IN ('ph', 'tds', 'temperature', 'air_temp', 'turbidity') AND n.node_name = 'Central Reservoir') OR (s.sensor_type = 'light_intensity' AND n.node_name = 'Tier 1') ORDER BY (sr.created_at AT TIME ZONE 'UTC') ASC"
                       }
                     },
                     "refId": "A",
@@ -1769,7 +1769,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT (100.0 - (AVG(sr.value::float) / 50.0 * 100.0)) AS \"WPI\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'turbidity'",
+                        "rawSql": "SELECT (100.0 - (AVG(sr.value::float) / 50.0 * 100.0)) AS \"WPI\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'turbidity' AND n.node_name = 'Central Reservoir'",
                         "sql": {
                           "columns": [
                             {
@@ -1870,7 +1870,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT ABS(AVG(sr.value::float) - 6.0) * 10 AS \"pH Dev\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id WHERE s.sensor_type = 'ph'"
+                        "rawSql": "SELECT ABS(AVG(sr.value::float) - 6.0) * 10 AS \"pH Dev\" FROM sensor_readings sr JOIN sensors s ON s.id = sr.sensor_id JOIN nodes n ON n.id = s.node_id WHERE s.sensor_type = 'ph' AND n.node_name = 'Central Reservoir'"
                       }
                     },
                     "refId": "A",
