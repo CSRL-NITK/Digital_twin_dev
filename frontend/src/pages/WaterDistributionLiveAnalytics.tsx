@@ -947,23 +947,29 @@ export default function WaterDistributionLiveAnalytics({ globalTopologyId }: { g
 
         {/* Telemetry Console */}
         <div style={{
-          height: 180, background: '#111215', border: `1px solid ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)'}`,
+          height: 180,
+          background: dark ? '#111215' : '#f8fafc',
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)'}`,
           borderRadius: 18, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16,
-          fontFamily: 'monospace', boxShadow: 'inset 0 4px 10px rgba(0,0,0,0.40)', flexShrink: 0
+          fontFamily: 'monospace',
+          boxShadow: dark ? 'inset 0 4px 10px rgba(0,0,0,0.40)' : 'inset 0 2px 6px rgba(0,0,0,0.05)',
+          flexShrink: 0
         }}>
           {/* Console Header */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 6
+            marginBottom: 8,
+            borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+            paddingBottom: 6
           }}>
-            <span style={{ fontSize: 9.5, color: '#00ffff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 9.5, color: dark ? '#00ffff' : '#0891b2', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
               &gt;_ SIMULATION TELEMETRY CONSOLE
             </span>
             <span style={{ fontSize: 8.5, color: '#6b7280' }}>{simulatedLogs.length} events logged</span>
           </div>
 
           {/* Log List */}
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: '#a7f3d0' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, color: dark ? '#a7f3d0' : '#065f46' }}>
             {simulatedLogs.map((log, idx) => (
               <div key={idx} style={{ whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
                 {log}
