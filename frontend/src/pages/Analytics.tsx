@@ -20,9 +20,9 @@ export default function Analytics() {
 
     // 1. Try to check preloaded topologies context synchronously (instant)
     if (topologies && topologies.length > 0) {
-      const currentTopo = topologies.find((t: any) => t.id.toString() === activeTopologyId);
+      const currentTopo = topologies.find((t: any) => t?.id?.toString() === activeTopologyId?.toString());
       if (currentTopo) {
-        setIsHydro(currentTopo.name.toLowerCase().includes('hydroponic'));
+        setIsHydro((currentTopo.name || '').toLowerCase().includes('hydroponic'));
         return;
       }
     }
@@ -31,7 +31,7 @@ export default function Analytics() {
     let cancelled = false;
     axios.get(`${API_BASE}/topologies/${activeTopologyId}`)
       .then(res => {
-        if (!cancelled) setIsHydro(res.data.name.toLowerCase().includes('hydroponic'));
+        if (!cancelled) setIsHydro((res.data?.name || '').toLowerCase().includes('hydroponic'));
       })
       .catch(err => {
         console.error(err);

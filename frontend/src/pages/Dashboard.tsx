@@ -21,7 +21,7 @@ interface Topology {
 function buildGrafanaUrl(topology: Topology | null, grafanaTheme: 'dark' | 'light'): string {
   if (!topology) return '';
 
-  const isHydro = topology.name.toLowerCase().includes('hydro');
+  const isHydro = (topology?.name || '').toLowerCase().includes('hydro');
   const theme = `theme=${grafanaTheme}`;
 
   if (isHydro) {
