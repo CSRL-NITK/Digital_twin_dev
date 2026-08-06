@@ -11,18 +11,24 @@ ADMIN_PASSWORD="password123"
 seed :
 
 1 - Core Topologies Seed (Seeds Line, Star, Bus, and Hydroponics topologies, node positions, and sensors)
->>> npx ts-node src/seed.ts
-
+```bash
+ npx ts-node src/seed.ts
+```
 
 2 - Hydroponic Topology Seed (Creates/resets the hydroponic nodes & specific sensors)
->>> npx ts-node src/hydro-seed.ts
+```bash
+ npx ts-node src/hydro-seed.ts
+```
 
 3 - ydroponic 7-Day History Seed (Seeds 7 days of dummy historical telemetry data) 
->>> npx ts-node src/hydro-seed-history.ts
+```bash
+npx ts-node src/hydro-seed-history.ts
+```
 
 4 - tandalone Users Seed (Ensures default user accounts are created)
->>> npx ts-node src/seed_users.ts
-
+```bash
+npx ts-node src/seed_users.ts
+```
 
 # Grafana Setup
 
