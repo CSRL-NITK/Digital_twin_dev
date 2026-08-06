@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { useGlobalTopology } from '../components/layout/MainLayout';
 import HydroponicsSimulation from './hydro/Analytics';
 import WaterDistributionLiveAnalytics from './WaterDistributionLiveAnalytics';
+import { API_BASE } from '../apiConfig';
 
 export default function Analytics() {
   const { id } = useParams();
@@ -28,7 +29,7 @@ export default function Analytics() {
 
     // 2. Fallback to API if context hasn't loaded yet
     let cancelled = false;
-    axios.get(`http://localhost:3001/api/topologies/${activeTopologyId}`)
+    axios.get(`${API_BASE}/topologies/${activeTopologyId}`)
       .then(res => {
         if (!cancelled) setIsHydro(res.data.name.toLowerCase().includes('hydroponic'));
       })

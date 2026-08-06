@@ -8,10 +8,10 @@ import {
   User, AtSign, Mail, Lock, Eye, EyeOff, CheckCircle, XCircle, Clock
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
+import { API_BASE as BACKEND_URL } from '../apiConfig';
 
 axios.defaults.withCredentials = true;
 
-const BACKEND_URL = 'http://localhost:3001';
 const FONT = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
 
 const schema = z.object({

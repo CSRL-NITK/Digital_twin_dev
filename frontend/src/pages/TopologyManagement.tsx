@@ -9,8 +9,8 @@ import { useTheme } from '../components/ThemeProvider';
 import BorderGlow from '../components/ui/BorderGlow';
 import PushableButton from '../components/ui/PushableButton';
 import OpenTopologyButton from '../components/ui/OpenTopologyButton';
+import { API_BASE as BACKEND_URL } from '../apiConfig';
 
-const BACKEND_URL = 'http://localhost:3001';
 const FONT = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
 
 interface Topology {

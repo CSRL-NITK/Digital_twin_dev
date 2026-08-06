@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../../apiConfig';
 import { Send, X, Bot, User, RefreshCw } from 'lucide-react';
 
 interface Message {
@@ -90,7 +91,7 @@ export default function AICopilotDrawer({ isOpen, onClose, pageContext, dark, to
       }
 
       // Query the backend unified coordinator API
-      const res = await axios.post('http://localhost:3001/api/llm/chat', {
+      const res = await axios.post(`${API_BASE}/llm/chat`, {
         query: textToSend,
         pageContext,
         sandboxState,

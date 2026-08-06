@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import { ChevronDown, Activity, Droplets, Thermometer, Waves, Zap } from 'lucide-react';
 import { useTheme } from '../ThemeProvider';
+import { API_BASE, SOCKET_BASE } from '../../apiConfig';
 
 interface LiveChartsPanelProps {
   topologyId: string;
@@ -242,7 +243,7 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
     setTanks([]);
     setSelectedTankId('');
     setData([]);
-    axios.get(`http://localhost:3001/api/topologies/${topologyId}`)
+    axios.get(`${API_BASE}/topologies/${topologyId}`)
       .then(res => {
         const tankNodes = (res.data?.nodes ?? []).filter((n: any) =>
           n.nodeType?.includes('tank') || n.nodeType?.includes('source')
@@ -257,7 +258,7 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
   useEffect(() => {
     if (!selectedTankId) return;
 
-    axios.get(`http://localhost:3001/api/readings/history/${selectedTankId}`)
+    axios.get(`${API_BASE}/readings/history/${selectedTankId}`)
       .then(res => {
         const dbHistory = res.data;
         if (Array.isArray(dbHistory) && dbHistory.length >= 2) {
@@ -275,7 +276,7 @@ export default function LiveChartsPanel({ topologyId, selectedNode }: LiveCharts
   // Listen for real-time socket sensor updates
   useEffect(() => {
     if (!selectedTankId) return;
-    const socket = io('http://localhost:3001');
+    const socket = io(SOCKET_BASE);
 
     socket.on('sensor_update', (updateData: any) => {
       if (String(updateData.nodeId) === String(selectedTankId)) {

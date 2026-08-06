@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-
-const BACKEND_URL = 'http://localhost:3001';
+import { API_BASE } from '../apiConfig';
 
 type Role = 'admin' | 'operator' | 'viewer';
 
@@ -28,7 +27,7 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     if (_cachedUser) return;
     axios
-      .get(`${BACKEND_URL}/api/auth/me`, { withCredentials: true })
+      .get(`${API_BASE}/auth/me`, { withCredentials: true })
       .then((res) => {
         _cachedUser = res.data.user;
         setUser(res.data.user);

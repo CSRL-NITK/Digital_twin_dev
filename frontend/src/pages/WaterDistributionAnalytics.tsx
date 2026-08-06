@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { API_BASE } from '../apiConfig';
 import { 
   Play, 
   Square, 
@@ -650,7 +651,7 @@ export default function WaterDistributionAnalytics() {
   // --- Fetch active topology info from backend ---
   useEffect(() => {
     if (!globalTopologyId) return;
-    axios.get(`http://localhost:3001/api/topologies/${globalTopologyId}`)
+    axios.get(`${API_BASE}/topologies/${globalTopologyId}`)
       .then(res => {
         const data = res.data;
         const name = data.name || 'Star Topology';

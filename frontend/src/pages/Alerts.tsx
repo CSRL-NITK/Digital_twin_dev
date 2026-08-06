@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { AlertTriangle, Bell, CheckCircle, Clock } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE, SOCKET_BASE } from '../apiConfig';
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -11,7 +12,7 @@ export default function Alerts() {
     // Fetch historical alerts
     const fetchAlerts = async () => {
       try {
-        const res = await axios.get('http://localhost:3001/api/alerts');
+        const res = await axios.get(`${API_BASE}/alerts`);
         setAlerts(res.data);
       } catch (err) {
         console.error('Failed to fetch alerts:', err);
@@ -22,7 +23,7 @@ export default function Alerts() {
     fetchAlerts();
 
     // Listen for real-time alerts
-    const socket: Socket = io('http://localhost:3001', {
+    const socket: Socket = io(SOCKET_BASE, {
       transports: ['websocket'],
     });
 

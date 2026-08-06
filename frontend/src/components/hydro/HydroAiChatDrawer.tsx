@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { API_BASE } from '../../apiConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Trash2, Sparkles, RefreshCw, Leaf, Maximize2, Minimize2, Activity, LineChart, BarChart2, Settings, ChevronDown, Sprout } from 'lucide-react';
 import { CutePlantAvatar } from './CutePlantAvatar';
@@ -59,7 +60,7 @@ export const HydroAiChatDrawer: React.FC<HydroAiChatDrawerProps> = ({ isDark = t
     setBotState('thinking');
 
     try {
-      const res = await fetch('http://localhost:3001/api/hydro/ai/coordinator', {
+      const res = await fetch(`${API_BASE}/hydro/ai/coordinator`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: messageText }),

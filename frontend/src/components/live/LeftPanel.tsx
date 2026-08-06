@@ -1,6 +1,7 @@
 import { Database, AlertTriangle, Wifi } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../../apiConfig';
 
 export default function LeftPanel() {
   const [stats] = useState({ totalTanks: 5, activePumps: 1, flowRate: 140, health: 98 });
@@ -8,7 +9,7 @@ export default function LeftPanel() {
 
   useEffect(() => {
     // Fetch initial stats and alerts
-    axios.get('http://localhost:3001/api/alerts').then(res => setAlerts(res.data.slice(0, 3))).catch(console.error);
+    axios.get(`${API_BASE}/alerts`).then(res => setAlerts(res.data.slice(0, 3))).catch(console.error);
   }, []);
 
   return (

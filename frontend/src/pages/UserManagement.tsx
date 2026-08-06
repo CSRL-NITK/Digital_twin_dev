@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/hooks/useAuth';
+import { API_BASE as BACKEND_URL } from '../apiConfig';
 
-const BACKEND_URL = 'http://localhost:3001';
 const FONT = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
 
 const ROLES = ['admin', 'operator', 'viewer'] as const;

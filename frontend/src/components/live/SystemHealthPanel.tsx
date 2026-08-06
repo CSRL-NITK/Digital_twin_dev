@@ -3,6 +3,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Activity, AlertTriangle, Server, Wifi, Database, Cpu, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useTheme } from '../ThemeProvider';
+import { API_BASE, SOCKET_BASE } from '../../apiConfig';
 
 interface TankNode {
   id: number;
@@ -54,7 +55,8 @@ export default function SystemHealthPanel({ topologyId, isHydro = false }: Syste
   useEffect(() => {
     if (!topologyId) return;
 
-    axios.get(`http://localhost:3001/api/topologies/${topologyId}`)
+    // 1. Initial Topology Nodes Fetch
+    axios.get(`${API_BASE}/topologies/${topologyId}`)
       .then(res => {
         setNodes(res.data?.nodes ?? []);
         setDbConnected(true);
@@ -64,7 +66,8 @@ export default function SystemHealthPanel({ topologyId, isHydro = false }: Syste
         setDbConnected(false);
       });
 
-    axios.get('http://localhost:3001/api/alerts?take=10')
+    // 2. Initial Alerts Fetch
+    axios.get(`${API_BASE}/alerts?take=10`)
       .then(res => {
         setAlerts(res.data || []);
       })
@@ -75,7 +78,8 @@ export default function SystemHealthPanel({ topologyId, isHydro = false }: Syste
 
   // Connect to socket for live updates
   useEffect(() => {
-    const socket = io('http://localhost:3001');
+    // 3. Socket.io setup for real-time telemetry updates
+    const socket = io(SOCKET_BASE);
 
     socket.on('connect', () => {
       setSocketConnected(true);

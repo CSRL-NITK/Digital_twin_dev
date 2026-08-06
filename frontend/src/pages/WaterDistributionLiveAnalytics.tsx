@@ -14,8 +14,7 @@ import {
 } from 'lucide-react';
 const TopologyCanvas = React.lazy(() => import('./TopologyCanvas'));
 import { useTheme } from '../components/ThemeProvider';
-
-const BACKEND_URL = 'http://localhost:3001';
+import { API_BASE as BACKEND_URL } from '../apiConfig';
 
 export default function WaterDistributionLiveAnalytics({ globalTopologyId }: { globalTopologyId: number | string | null }) {
   const { theme } = useTheme();

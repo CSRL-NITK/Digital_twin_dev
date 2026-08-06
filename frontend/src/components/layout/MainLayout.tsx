@@ -22,6 +22,7 @@ import {
   Zap, Sliders,
 } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE, SOCKET_BASE } from '../../apiConfig';
 import { useTheme } from '../ThemeProvider';
 import AICopilotDrawer from '../live/AICopilotDrawer';
 import { Bot } from 'lucide-react';
@@ -55,7 +56,7 @@ const Sidebar = memo(function Sidebar() {
   ];
 
   const logout = async () => {
-    try { await axios.post('http://localhost:3001/api/auth/logout'); } catch (err) { console.error(err); }
+    try { await axios.post('${API_BASE}/auth/logout'); } catch (err) { console.error(err); }
     window.location.href = '/login';
   };
 
@@ -195,14 +196,14 @@ const TopBar = memo(function TopBar() {
   const unreadCount = useMemo(() => alerts.filter(a => !a.isRead).length, [alerts]);
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/topologies')
+    axios.get('${API_BASE}/topologies')
       .then(res => setTopologies(res.data))
       .catch(err => console.error(err));
   }, [pathname]);
 
   // Initial Alert Fetching
   useEffect(() => {
-    axios.get('http://localhost:3001/api/alerts')
+    axios.get('${API_BASE}/alerts')
       .then(res => {
         setAlerts(res.data);
       })
@@ -211,7 +212,7 @@ const TopBar = memo(function TopBar() {
 
   // WebSockets for Real-Time Alerts
   useEffect(() => {
-    const socket = io('http://localhost:3001', { transports: ['websocket'] });
+    const socket = io(SOCKET_BASE, { transports: ['websocket'] });
 
     socket.on('alert:new', (newAlert: AlertItem) => {
       setAlerts(prev => [{ ...newAlert, isRead: false }, ...prev]);
@@ -254,7 +255,7 @@ const TopBar = memo(function TopBar() {
 
   const handleClearAllAlerts = async () => {
     try {
-      await axios.put('http://localhost:3001/api/alerts/clear');
+      await axios.put('${API_BASE}/alerts/clear');
       setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
     } catch (err) {
       console.error('Failed to clear active alerts:', err);
@@ -263,7 +264,7 @@ const TopBar = memo(function TopBar() {
 
   const handleDeleteAlert = async (id: number) => {
     try {
-      await axios.patch(`http://localhost:3001/api/alerts/${id}/read`);
+      await axios.patch(`${API_BASE}/alerts/${id}/read`);
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
     } catch (err) {
       console.error('Failed to dismiss alert:', err);
@@ -358,7 +359,7 @@ const TopBar = memo(function TopBar() {
                   id="topology-selector"
                   onClick={() => {
                     if (!menuOpen) {
-                      axios.get('http://localhost:3001/api/topologies')
+                      axios.get('${API_BASE}/topologies')
                         .then(res => setTopologies(res.data))
                         .catch(err => console.error(err));
                     }
@@ -573,14 +574,14 @@ const AnalyticsStrip = memo(function AnalyticsStrip() {
     if (!globalTopologyId) return;
 
     // Fetch initial topology nodes and their sensor values
-    axios.get(`http://localhost:3001/api/topologies/${globalTopologyId}`)
+    axios.get(`${API_BASE}/topologies/${globalTopologyId}`)
       .then(res => {
         setNodes(res.data?.nodes ?? []);
       })
       .catch(console.error);
 
     // Dynamic updates via websocket
-    const socket = io('http://localhost:3001');
+    const socket = io(SOCKET_BASE);
 
     socket.on('sensor_update', (data: any) => {
       setNodes(prev => prev.map(node => {
@@ -899,7 +900,7 @@ function MainLayoutContent() {
 
   const [topologies, setTopologies] = useState<any[]>([]);
   useEffect(() => {
-    axios.get('http://localhost:3001/api/topologies')
+    axios.get('${API_BASE}/topologies')
       .then(res => setTopologies(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -920,7 +921,7 @@ function MainLayoutContent() {
   // Sync active topology details
   useEffect(() => {
     if (idFromUrl) {
-      axios.get(`http://localhost:3001/api/topologies/${idFromUrl}`)
+      axios.get(`${API_BASE}/topologies/${idFromUrl}`)
         .then(res => setTopology(res.data))
         .catch(err => console.error(err));
     } else {
@@ -933,7 +934,7 @@ function MainLayoutContent() {
     if (topology && topology.name.toLowerCase().includes('hydroponic')) {
       const fetchInitialData = async () => {
         try {
-          const nodesRes = await axios.get(`http://localhost:3001/api/nodes`);
+          const nodesRes = await axios.get(`${API_BASE}/nodes`);
           const hydroNodes = nodesRes.data.filter((n: any) => n.topologyId === topology.id);
           setNodes(hydroNodes);
 
@@ -971,7 +972,7 @@ function MainLayoutContent() {
   // WebSocket listeners for Hydroponic Topology
   useEffect(() => {
     if (topology && topology.name.toLowerCase().includes('hydroponic') && Object.keys(nodeMap).length > 0) {
-      const socket = io('http://localhost:3001');
+      const socket = io(SOCKET_BASE);
 
       socket.on('sensor_update', (data) => {
         setNodes(prev => prev.map(node => {
@@ -1891,7 +1892,7 @@ export default function MainLayout() {
 
   // Pre-load topologies once at root mount
   useEffect(() => {
-    axios.get('http://localhost:3001/api/topologies')
+    axios.get('${API_BASE}/topologies')
       .then(res => setTopologies(res.data))
       .catch(err => console.error('Failed to pre-fetch topologies:', err));
   }, []);

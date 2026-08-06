@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react';
 import { useGlobalTopology } from '../components/layout/MainLayout';
 import { useTheme } from '../components/ThemeProvider';
 import axios from 'axios';
+import { API_BASE } from '../apiConfig';
 
-const GRAFANA_BASE   = import.meta.env.VITE_GRAFANA_URL || 'http://localhost:3005';
+const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+const GRAFANA_BASE   = import.meta.env.VITE_GRAFANA_URL || (
+    typeof window !== 'undefined' && window.location.protocol === 'https:'
+        ? `${window.location.origin}/digital-twin-grafana`
+        : `http://${currentHost}:3005`
+);
 const WATER_DIST_UID = 'water-distribution-dt';
 const HYDRO_UID      = 'ad6jj2c';
 
@@ -41,7 +47,7 @@ export default function Dashboard() {
 
   // Fetch all topologies
   useEffect(() => {
-    axios.get('http://localhost:3001/api/topologies')
+    axios.get(`${API_BASE}/topologies`)
       .then(res => setTopologies(res.data))
       .catch(err => console.error('Failed to fetch topologies:', err));
   }, []);
