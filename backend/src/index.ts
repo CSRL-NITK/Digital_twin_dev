@@ -237,8 +237,8 @@ app.get('/api/topologies/:id', async (req, res) => {
   }
 
   // Inject the latest database sensor reading value for each sensor
-  const nodesWithValues = await Promise.all(topology.nodes.map(async (node) => {
-    const sensorsWithValues = await Promise.all(node.sensors.map(async (sensor) => {
+  const nodesWithValues = await Promise.all(topology.nodes.map(async (node: any) => {
+    const sensorsWithValues = await Promise.all(node.sensors.map(async (sensor: any) => {
       const latestReading = await prisma.sensorReading.findFirst({
         where: { sensorId: sensor.id },
         orderBy: { id: 'desc' }
@@ -539,7 +539,7 @@ app.get('/api/alerts', async (req, res) => {
       skip
     });
 
-    const formatted = alerts.map(a => ({
+    const formatted = alerts.map((a: any) => ({
       ...a,
       nodeName: a.node?.nodeName || `Node #${a.nodeId}`,
       nodeType: a.node?.nodeType,

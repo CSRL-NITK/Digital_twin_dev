@@ -45,12 +45,34 @@ cd "$PROJECT_ROOT" || exit 1
 # ── Parse CLI flags ───────────────────────────────────────────────
 SKIP_SEED=false
 CHECK_ONLY=false
+AUTO_CONFIRM=false
+FORCE_INSTALL_DEPS=false
+
 for arg in "$@"; do
   case "$arg" in
-    --skip-seed)  SKIP_SEED=true ;;
-    --check)      CHECK_ONLY=true ;;
+    --skip-seed)                    SKIP_SEED=true ;;
+    --check)                        CHECK_ONLY=true ;;
+    -y|--yes|--non-interactive)    AUTO_CONFIRM=true ;;
+    --install-deps)                 FORCE_INSTALL_DEPS=true ;;
+    -h|--help)
+      echo "Digital Twin Launcher — Ubuntu / Linux / macOS"
+      echo ""
+      echo "Usage: ./start.sh [options]"
+      echo ""
+      echo "Options:"
+      echo "  -y, --yes, --non-interactive  Run non-interactively without prompt pauses"
+      echo "  --install-deps                Force auto-installation of Ubuntu system dependencies"
+      echo "  --skip-seed                   Skip database seeding"
+      echo "  --check                       Perform pre-flight environment check only"
+      echo "  -h, --help                    Show this help message"
+      exit 0
+      ;;
   esac
 done
+
+if [ ! -t 0 ]; then
+  AUTO_CONFIRM=true
+fi
 
 # ── Helper functions ──────────────────────────────────────────────
 ok()   { echo -e "  ${GREEN}[✔]${NC} $1"; }
@@ -61,6 +83,81 @@ step() { echo -e "\n${BOLD}${CYAN}$1${NC}"; }
 
 check_cmd() {
   command -v "$1" &>/dev/null
+}
+
+run_sudo() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  elif command -v sudo &>/dev/null; then
+    sudo "$@"
+  else
+    fail "sudo privileges are required to install system packages."
+    return 1
+  fi
+}
+
+install_ubuntu_dependencies() {
+  if ! check_cmd apt-get; then
+    warn "Not an Ubuntu/Debian system with apt-get — skipping auto-installation of system packages."
+    return 1
+  fi
+
+  step "[Auto-Install] Installing required Ubuntu system packages..."
+
+  info "Updating apt package index..."
+  run_sudo apt-get update -y || true
+
+  info "Installing build utilities (curl, ca-certificates, gnupg, git, build-essential, netcat-openbsd, libpq-dev)..."
+  run_sudo apt-get install -y curl ca-certificates gnupg git build-essential netcat-openbsd libpq-dev || true
+
+  # 1. Node.js 20.x
+  NODE_VER=""
+  NODE_MAJOR=0
+  if check_cmd node; then
+    NODE_VER="$(node -v 2>/dev/null || echo '')"
+    NODE_MAJOR="$(echo "$NODE_VER" | sed 's/v//' | cut -d. -f1)"
+  fi
+
+  if [ -z "$NODE_VER" ] || [ "$NODE_MAJOR" -lt 18 ] 2>/dev/null; then
+    info "Installing Node.js 20.x from NodeSource..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | run_sudo bash - || true
+    run_sudo apt-get install -y nodejs || true
+  fi
+
+  # 2. Python 3, python3-venv, python3-pip
+  info "Installing Python 3, python3-venv, and python3-pip..."
+  run_sudo apt-get install -y python3 python3-venv python3-pip python3-dev || true
+
+  # 3. PostgreSQL Server
+  if ! check_cmd psql; then
+    info "Installing PostgreSQL server..."
+    run_sudo apt-get install -y postgresql postgresql-contrib || true
+  fi
+
+  # 4. Start & Enable PostgreSQL Service
+  info "Ensuring PostgreSQL service is active..."
+  run_sudo systemctl start postgresql 2>/dev/null || run_sudo service postgresql start 2>/dev/null || true
+  run_sudo systemctl enable postgresql 2>/dev/null || true
+  sleep 2
+
+  # Configure postgres password if peer auth works
+  if run_sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres123';" &>/dev/null; then
+    ok "PostgreSQL user 'postgres' password set to 'postgres123'"
+  fi
+
+  # 5. Docker & Docker Compose (for Grafana)
+  if ! check_cmd docker; then
+    info "Installing Docker Engine and Docker Compose for Grafana monitoring..."
+    run_sudo apt-get install -y docker.io docker-compose-v2 2>/dev/null || run_sudo apt-get install -y docker.io docker-compose 2>/dev/null || true
+  fi
+
+  info "Ensuring Docker daemon is active..."
+  run_sudo systemctl start docker 2>/dev/null || run_sudo service docker start 2>/dev/null || true
+  run_sudo systemctl enable docker 2>/dev/null || true
+
+  if [ "$(id -u)" -ne 0 ] && command -v usermod &>/dev/null; then
+    run_sudo usermod -aG docker "$USER" 2>/dev/null || true
+  fi
 }
 
 # Portable TCP port check (works on bash without /dev/tcp, and on macOS/Linux)
@@ -157,109 +254,124 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
-# ═══════════════════════════════════════════════════════════════════
-#  PRE-FLIGHT CHECK
-# ═══════════════════════════════════════════════════════════════════
-clear 2>/dev/null || true   # clear may fail in non-interactive terminals
+check_environment() {
+  PREFLIGHT_PASS=true
+
+  # 1. Node.js (v18+)
+  if check_cmd node; then
+    NODE_VER="$(node -v 2>/dev/null || echo '')"
+    NODE_MAJOR="$(echo "$NODE_VER" | sed 's/v//' | cut -d. -f1)"
+    if [ -n "$NODE_MAJOR" ] && [ "$NODE_MAJOR" -ge 18 ] 2>/dev/null; then
+      ok "Node.js $NODE_VER detected"
+    else
+      fail "Node.js $NODE_VER detected — v18+ required"
+      PREFLIGHT_PASS=false
+    fi
+  else
+    fail "Node.js not found — v18+ required"
+    PREFLIGHT_PASS=false
+  fi
+
+  # 2. npm
+  if check_cmd npm; then
+    NPM_VER="$(npm -v 2>/dev/null || echo 'unknown')"
+    ok "npm v$NPM_VER detected"
+  else
+    fail "npm not found"
+    PREFLIGHT_PASS=false
+  fi
+
+  # 3. Python 3
+  PYTHON_CMD=""
+  if check_cmd python3; then
+    PYTHON_CMD="python3"
+  elif check_cmd python; then
+    PY_MAJOR="$(python -c 'import sys; print(sys.version_info.major)' 2>/dev/null || echo '2')"
+    if [ "$PY_MAJOR" = "3" ]; then
+      PYTHON_CMD="python"
+    fi
+  fi
+
+  if [ -n "$PYTHON_CMD" ]; then
+    PY_VER="$($PYTHON_CMD --version 2>&1 || echo 'Python 3')"
+    ok "$PY_VER detected"
+  else
+    fail "Python 3 not found — install Python 3.10+"
+    PREFLIGHT_PASS=false
+  fi
+
+  # 4. pip
+  PIP_CMD=""
+  if check_cmd pip3; then
+    PIP_CMD="pip3"
+  elif check_cmd pip; then
+    PIP_CMD="pip"
+  elif [ -n "$PYTHON_CMD" ]; then
+    if $PYTHON_CMD -m pip --version &>/dev/null; then
+      PIP_CMD="$PYTHON_CMD -m pip"
+    fi
+  fi
+
+  if [ -n "$PIP_CMD" ]; then
+    PIP_VER="$($PIP_CMD --version 2>/dev/null | awk '{print $2}' || echo 'installed')"
+    ok "pip v$PIP_VER detected"
+  else
+    warn "pip not found — Python package installation may fail"
+  fi
+
+  # 5. PostgreSQL (check port 5432)
+  if check_port 5432; then
+    ok "PostgreSQL Server verified on Port 5432"
+  else
+    fail "PostgreSQL unreachable on Port 5432"
+    PREFLIGHT_PASS=false
+  fi
+
+  # 6. Docker (for Grafana Dashboard)
+  if check_cmd docker; then
+    if docker info &>/dev/null 2>&1 || run_sudo docker info &>/dev/null 2>&1; then
+      DOCKER_VER="$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || echo 'installed')"
+      ok "Docker v$DOCKER_VER daemon running — Grafana auto-start ready"
+    else
+      warn "Docker CLI detected, but daemon is NOT running — starting Docker service..."
+      run_sudo systemctl start docker 2>/dev/null || run_sudo service docker start 2>/dev/null || true
+      if docker info &>/dev/null 2>&1 || run_sudo docker info &>/dev/null 2>&1; then
+        ok "Docker daemon started successfully — Grafana auto-start ready"
+      else
+        warn "Docker daemon could not be started — Grafana auto-start may be skipped"
+      fi
+    fi
+  else
+    fail "Docker not found — required for Grafana auto-start"
+    PREFLIGHT_PASS=false
+  fi
+}
+
+clear 2>/dev/null || true
 echo -e "${BOLD}═════════════════════════════════════════════════════════════${NC}"
 echo -e "${BOLD}        Digital Twin Environment Pre-flight Check           ${NC}"
 echo -e "${BOLD}═════════════════════════════════════════════════════════════${NC}"
 
-PREFLIGHT_PASS=true
-
-# 1. Node.js (v18+)
-if check_cmd node; then
-  NODE_VER="$(node -v 2>/dev/null || echo '')"
-  NODE_MAJOR="$(echo "$NODE_VER" | sed 's/v//' | cut -d. -f1)"
-  # Guard against non-numeric output
-  if [ -n "$NODE_MAJOR" ] && [ "$NODE_MAJOR" -ge 18 ] 2>/dev/null; then
-    ok "Node.js $NODE_VER detected"
-  else
-    fail "Node.js $NODE_VER detected — v18+ required"
-    PREFLIGHT_PASS=false
-  fi
-else
-  fail "Node.js not found — install v18+ from https://nodejs.org"
-  PREFLIGHT_PASS=false
+if [ "$FORCE_INSTALL_DEPS" = true ] && check_cmd apt-get; then
+  install_ubuntu_dependencies
 fi
 
-# 2. npm
-if check_cmd npm; then
-  NPM_VER="$(npm -v 2>/dev/null || echo 'unknown')"
-  ok "npm v$NPM_VER detected"
-else
-  fail "npm not found — it should come with Node.js"
-  PREFLIGHT_PASS=false
-fi
+check_environment
 
-# 3. Python 3
-PYTHON_CMD=""
-if check_cmd python3; then
-  PYTHON_CMD="python3"
-elif check_cmd python; then
-  # Ensure it's Python 3, not Python 2
-  PY_MAJOR="$(python -c 'import sys; print(sys.version_info.major)' 2>/dev/null || echo '2')"
-  if [ "$PY_MAJOR" = "3" ]; then
-    PYTHON_CMD="python"
-  fi
-fi
-
-if [ -n "$PYTHON_CMD" ]; then
-  PY_VER="$($PYTHON_CMD --version 2>&1 || echo 'Python 3')"
-  ok "$PY_VER detected"
-else
-  fail "Python 3 not found — install Python 3.10+"
-  PREFLIGHT_PASS=false
-fi
-
-# 4. pip
-PIP_CMD=""
-if check_cmd pip3; then
-  PIP_CMD="pip3"
-elif check_cmd pip; then
-  PIP_CMD="pip"
-elif [ -n "$PYTHON_CMD" ]; then
-  # Try python -m pip
-  if $PYTHON_CMD -m pip --version &>/dev/null; then
-    PIP_CMD="$PYTHON_CMD -m pip"
-  fi
-fi
-
-if [ -n "$PIP_CMD" ]; then
-  PIP_VER="$($PIP_CMD --version 2>/dev/null | awk '{print $2}' || echo 'installed')"
-  ok "pip v$PIP_VER detected"
-else
-  warn "pip not found — Python package installation may fail"
-fi
-
-# 5. PostgreSQL (check port 5432)
-if check_port 5432; then
-  ok "PostgreSQL Server verified on Port 5432"
-else
-  fail "PostgreSQL unreachable on Port 5432 — start the postgres service"
-  echo -e "    ${DIM}Ubuntu/Debian: sudo systemctl start postgresql${NC}"
-  echo -e "    ${DIM}macOS (Homebrew): brew services start postgresql${NC}"
-  PREFLIGHT_PASS=false
-fi
-
-# 6. Docker (optional — for Grafana)
-if check_cmd docker; then
-  if docker info &>/dev/null 2>&1; then
-    DOCKER_VER="$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || echo 'unknown')"
-    ok "Docker v$DOCKER_VER daemon running — Grafana auto-start ready"
-  else
-    DOCKER_VER="$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || echo 'unknown')"
-    warn "Docker CLI v$DOCKER_VER detected, but daemon is NOT running — Skipping Grafana"
-  fi
-else
-  echo -e "  ${DIM}[-]${NC} Docker not installed — Skipping Grafana auto-start"
+if [ "$PREFLIGHT_PASS" = false ] && check_cmd apt-get; then
+  echo ""
+  info "Missing system dependencies detected. Auto-installing Ubuntu packages..."
+  install_ubuntu_dependencies
+  echo ""
+  step "Re-checking environment after system package installation..."
+  check_environment
 fi
 
 echo -e "${BOLD}═════════════════════════════════════════════════════════════${NC}"
 
 if [ "$PREFLIGHT_PASS" = false ]; then
   echo ""
-  fail "Pre-flight check failed. Please install the missing dependencies listed above."
+  fail "Pre-flight check failed. Please install missing components or run on Ubuntu with sudo."
   exit 1
 fi
 
@@ -270,13 +382,36 @@ if [ "$CHECK_ONLY" = true ]; then
   exit 0
 fi
 
-echo ""
-read -rp "  Press [ENTER] to install dependencies and launch the platform..."
+if [ "$AUTO_CONFIRM" = false ] && [ -t 0 ]; then
+  echo ""
+  read -rp "  Press [ENTER] to install dependencies and launch the platform..."
+else
+  echo ""
+  info "Auto-confirming installation (--yes or non-interactive terminal)..."
+fi
 
 # ═══════════════════════════════════════════════════════════════════
 #  STEP 1: Python Dependencies
 # ═══════════════════════════════════════════════════════════════════
 step "[1/7] Installing Python dependencies..."
+
+# Set up virtual environment on Linux/Ubuntu to avoid PEP 668 managed environment restrictions
+VENV_DIR="$PROJECT_ROOT/.venv"
+if [ ! -d "$VENV_DIR" ]; then
+  info "Creating Python virtual environment (.venv)..."
+  if $PYTHON_CMD -m venv "$VENV_DIR" 2>/dev/null; then
+    ok "Virtual environment created at .venv"
+  else
+    warn "Could not create venv — system python will be used"
+  fi
+fi
+
+if [ -f "$VENV_DIR/bin/activate" ]; then
+  source "$VENV_DIR/bin/activate"
+  PYTHON_CMD="python"
+  PIP_CMD="pip"
+  ok "Activated virtual environment (.venv)"
+fi
 
 # Upgrade pip (non-fatal if it fails)
 $PYTHON_CMD -m pip install --upgrade pip --quiet 2>/dev/null || warn "pip upgrade skipped (non-fatal)"
@@ -433,44 +568,65 @@ else
 fi
 
 # ── 7c. Frontend (Port 5173) ──
-info "Starting React Frontend (Vite dev server)..."
+info "Starting React Frontend (Vite dev server on 0.0.0.0)..."
 cd "$PROJECT_ROOT/frontend" || { fail "Cannot cd to frontend/"; exit 1; }
-npm run dev &>/dev/null &
+npm run dev -- --host 0.0.0.0 &>/dev/null &
 FRONTEND_PID=$!
 cd "$PROJECT_ROOT"
 
 info "Waiting for Frontend on port 5173..."
 if wait_for_port 5173 30; then
-  ok "Frontend is live on http://localhost:5173"
+  ok "Frontend is live on port 5173"
 else
   warn "Frontend did not respond within 30s — it may still be starting"
   warn "Check logs with: cd frontend && npm run dev"
 fi
 
-# ── 7d. Grafana (Docker, optional) ──
-if check_cmd docker && docker info &>/dev/null 2>&1; then
-  if [ -f "docker-compose.grafana.yml" ]; then
-    info "Starting Grafana monitoring container..."
-    if docker compose -f docker-compose.grafana.yml up -d 2>&1; then
+# ── Detect Network IP for Ubuntu Server ──
+SERVER_IP="localhost"
+if check_cmd hostname; then
+  DETECTED_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  [ -n "$DETECTED_IP" ] && SERVER_IP="$DETECTED_IP"
+fi
+
+# ── 7d. Grafana (Docker Container) ──
+if [ -f "docker-compose.grafana.yml" ]; then
+  info "Starting Grafana monitoring container on port 3005..."
+  
+  DOCKER_COMPOSE_CMD=""
+  if docker compose version &>/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+  elif check_cmd docker-compose; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+  elif check_cmd sudo && sudo docker compose version &>/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="sudo docker compose"
+  elif check_cmd sudo && sudo command -v docker-compose &>/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="sudo docker-compose"
+  fi
+
+  if [ -n "$DOCKER_COMPOSE_CMD" ]; then
+    if $DOCKER_COMPOSE_CMD -f docker-compose.grafana.yml up -d 2>&1; then
       ok "Grafana container started on http://localhost:3005"
+    elif run_sudo docker compose -f docker-compose.grafana.yml up -d 2>&1; then
+      ok "Grafana container started on http://localhost:3005 (with sudo)"
     else
       warn "Grafana container failed to start (non-fatal)"
     fi
+  else
+    warn "Docker Compose not found — Grafana container skipped"
   fi
-else
-  echo -e "  ${DIM}[-] Docker not available — Grafana skipped${NC}"
 fi
 
-# ── 7e. Open browser ──
+# ── 7e. Open browser if GUI is available ──
 sleep 2  # Give frontend a moment to fully initialize
-if check_cmd xdg-open; then
-  xdg-open "http://localhost:5173" &>/dev/null 2>&1 &
-elif check_cmd open; then
-  open "http://localhost:5173" &>/dev/null 2>&1 &
-elif check_cmd sensible-browser; then
-  sensible-browser "http://localhost:5173" &>/dev/null 2>&1 &
-else
-  info "Open http://localhost:5173 in your browser manually"
+if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+  if check_cmd xdg-open; then
+    xdg-open "http://localhost:5173" &>/dev/null 2>&1 &
+  elif check_cmd open; then
+    open "http://localhost:5173" &>/dev/null 2>&1 &
+  elif check_cmd sensible-browser; then
+    sensible-browser "http://localhost:5173" &>/dev/null 2>&1 &
+  fi
 fi
 
 # ═══════════════════════════════════════════════════════════════════
@@ -480,10 +636,19 @@ echo ""
 echo -e "${BOLD}${GREEN}═════════════════════════════════════════════════════════════${NC}"
 echo -e "${BOLD}${GREEN}       Digital Twin Engine Started Successfully!            ${NC}"
 echo -e "${BOLD}${GREEN}═════════════════════════════════════════════════════════════${NC}"
-echo -e "  ${CYAN}Frontend Web App${NC}  : ${BOLD}http://localhost:5173${NC}"
+echo -e "  ${CYAN}Frontend Local${NC}    : ${BOLD}http://localhost:5173${NC}"
+if [ "$SERVER_IP" != "localhost" ] && [ -n "$SERVER_IP" ]; then
+echo -e "  ${CYAN}Frontend Network${NC}  : ${BOLD}http://${SERVER_IP}:5173${NC}"
+echo -e "  ${CYAN}Backend REST API${NC}  : ${BOLD}http://${SERVER_IP}:3001${NC}"
+else
 echo -e "  ${CYAN}Backend REST API${NC}  : ${BOLD}http://localhost:3001${NC}"
+fi
 echo -e "  ${CYAN}Embedded MQTT${NC}     : ${BOLD}tcp://localhost:1884${NC}"
-echo -e "  ${CYAN}Grafana Dashboard${NC} : ${BOLD}http://localhost:3005${NC} ${DIM}(requires Docker)${NC}"
+if [ "$SERVER_IP" != "localhost" ] && [ -n "$SERVER_IP" ]; then
+echo -e "  ${CYAN}Grafana Dashboard${NC} : ${BOLD}http://${SERVER_IP}:3005${NC} ${DIM}(admin / admin)${NC}"
+else
+echo -e "  ${CYAN}Grafana Dashboard${NC} : ${BOLD}http://localhost:3005${NC} ${DIM}(admin / admin)${NC}"
+fi
 echo -e "${BOLD}═════════════════════════════════════════════════════════════${NC}"
 echo ""
 echo -e "  ${DIM}Press Ctrl+C to stop all services and exit.${NC}"

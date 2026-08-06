@@ -38,42 +38,46 @@ class HydroDigitalTwinEngine {
   public async initDbMapping() {
     if (this.dbMappingInitialized) return;
     
-    // Find the Hydroponic Topology
-    const topology = await prisma.topology.findFirst({
-      where: { name: 'Hydroponic Topology' }
-    });
+    try {
+      // Find the Hydroponic Topology
+      const topology = await prisma.topology.findFirst({
+        where: { name: 'Hydroponic Topology' }
+      });
 
-    if (!topology) {
-      console.log('HydroDigitalTwinEngine: Hydroponic Topology not found. Skipping mapping.');
-      return;
-    }
-
-    // Find nodes belonging only to this hydroponics topology
-    const nodes = await prisma.node.findMany({
-      where: { topologyId: topology.id },
-      include: { sensors: true }
-    });
-    
-    const nodeNameMap: Record<string, string> = {
-      'CENTRAL': 'Central Reservoir',
-      'T1': 'Tier 1',
-      'T2': 'Tier 2',
-      'T3': 'Tier 3',
-      'T4': 'Tier 4',
-      'PUMP': 'Pump P1'
-    };
-
-    for (const [slug, mappedName] of Object.entries(nodeNameMap)) {
-      const dbNode = nodes.find(n => n.nodeName.toLowerCase() === mappedName.toLowerCase());
-      if (dbNode) {
-        this.state[slug].dbNodeId = dbNode.id;
-        this.state[slug].status = dbNode.status;
-        this.state[slug].dbSensors = dbNode.sensors;
+      if (!topology) {
+        console.log('HydroDigitalTwinEngine: Hydroponic Topology not found. Skipping mapping.');
+        return;
       }
+
+      // Find nodes belonging only to this hydroponics topology
+      const nodes = await prisma.node.findMany({
+        where: { topologyId: topology.id },
+        include: { sensors: true }
+      });
+      
+      const nodeNameMap: Record<string, string> = {
+        'CENTRAL': 'Central Reservoir',
+        'T1': 'Tier 1',
+        'T2': 'Tier 2',
+        'T3': 'Tier 3',
+        'T4': 'Tier 4',
+        'PUMP': 'Pump P1'
+      };
+
+      for (const [slug, mappedName] of Object.entries(nodeNameMap)) {
+        const dbNode = nodes.find(n => n.nodeName.toLowerCase() === mappedName.toLowerCase());
+        if (dbNode) {
+          this.state[slug].dbNodeId = dbNode.id;
+          this.state[slug].status = dbNode.status;
+          this.state[slug].dbSensors = dbNode.sensors;
+        }
+      }
+      
+      this.dbMappingInitialized = true;
+      console.log('HydroDigitalTwinEngine: DB mapping initialized successfully.');
+    } catch (err: any) {
+      console.warn('⚠️ [Hydro Twin Service] DB mapping skipped (PostgreSQL unavailable):', err.message || err);
     }
-    
-    this.dbMappingInitialized = true;
-    console.log('HydroDigitalTwinEngine: DB mapping initialized successfully.');
   }
 
   public getTwinState() {

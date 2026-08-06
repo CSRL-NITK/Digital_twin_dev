@@ -36,80 +36,62 @@ class DigitalTwinEngine {
   public async initDbMapping() {
     if (this.dbMappingInitialized) return;
     
-    const nodes = await prisma.node.findMany({ include: { sensors: true } });
-    
-    const nodeNameMap: Record<string, string> = {
-      'CENTRAL': 'Central Tank',
-      'T1': 'T1',
-      'T2': 'T2',
-      'T3': 'T3',
-      'T4': 'T4',
-      'PUMP': 'Pump P1'
-    };
+    try {
+      const nodes = await prisma.node.findMany({ include: { sensors: true } });
+      const state = await this.getTwinState();
 
-    const state = await this.getTwinState();
-    
-    for (const [slug, mappedName] of Object.entries(nodeNameMap)) {
-      const dbNode = nodes.find(n => n.nodeName.toLowerCase() === mappedName.toLowerCase());
-      if (dbNode) {
-        if (!state[slug]) state[slug] = {};
-        state[slug].dbNodeId = dbNode.id;
-        state[slug].status = dbNode.status;
-        state[slug].dbSensors = dbNode.sensors;
-      }
-    }
-    
-    // Also map any newly added dynamic nodes from DB
-    for (const dbNode of nodes) {
-      const slug = dbNode.id.toString();
-      
-      let wl = 65, ph = 7.1, tds = 210, temp = 24;
-      let lastSeen = null;
+      for (const dbNode of nodes) {
+        const slug = dbNode.id.toString();
+        let wl = 65, ph = 7.1, tds = 210, temp = 24;
+        let lastSeen = null;
 
-      if (dbNode.sensors && dbNode.sensors.length > 0) {
-        for (const sensor of dbNode.sensors) {
-          const latestReading = await prisma.sensorReading.findFirst({
-            where: { sensorId: sensor.id },
-            orderBy: { id: 'desc' }
-          });
-          if (latestReading) {
-            if (sensor.sensorType === 'water_level') wl = latestReading.value;
-            if (sensor.sensorType === 'ph') ph = latestReading.value;
-            if (sensor.sensorType === 'tds') tds = latestReading.value;
-            if (sensor.sensorType === 'temperature') temp = latestReading.value;
-            if (!lastSeen || latestReading.createdAt > lastSeen) {
-              lastSeen = latestReading.createdAt;
+        if (dbNode.sensors && dbNode.sensors.length > 0) {
+          for (const sensor of dbNode.sensors) {
+            const latestReading = await prisma.sensorReading.findFirst({
+              where: { sensorId: sensor.id },
+              orderBy: { id: 'desc' }
+            });
+            if (latestReading) {
+              if (sensor.sensorType === 'water_level') wl = latestReading.value;
+              if (sensor.sensorType === 'ph') ph = latestReading.value;
+              if (sensor.sensorType === 'tds') tds = latestReading.value;
+              if (sensor.sensorType === 'temperature') temp = latestReading.value;
+              if (!lastSeen || latestReading.createdAt > lastSeen) {
+                lastSeen = latestReading.createdAt;
+              }
             }
           }
         }
+
+        if (!state[slug]) {
+          state[slug] = {
+            dbNodeId: dbNode.id,
+            status: dbNode.status,
+            dbSensors: dbNode.sensors,
+            waterLevel: wl,
+            ph: ph,
+            tds: tds,
+            temperature: temp,
+            lastUpdated: lastSeen || new Date()
+          };
+        } else {
+          state[slug].dbNodeId = dbNode.id;
+          state[slug].status = dbNode.status;
+          state[slug].dbSensors = dbNode.sensors;
+          if (state[slug].waterLevel === undefined) state[slug].waterLevel = wl;
+          if (state[slug].ph === undefined) state[slug].ph = ph;
+          if (state[slug].tds === undefined) state[slug].tds = tds;
+          if (state[slug].temperature === undefined) state[slug].temperature = temp;
+          if (!state[slug].lastUpdated && lastSeen) state[slug].lastUpdated = lastSeen;
+        }
       }
 
-      if (!state[slug]) {
-        state[slug] = {
-          dbNodeId: dbNode.id,
-          status: dbNode.status,
-          dbSensors: dbNode.sensors,
-          waterLevel: wl,
-          ph: ph,
-          tds: tds,
-          temperature: temp,
-          lastUpdated: lastSeen || new Date()
-        };
-      } else {
-        state[slug].dbNodeId = dbNode.id;
-        state[slug].status = dbNode.status;
-        state[slug].dbSensors = dbNode.sensors;
-        if (state[slug].waterLevel === undefined) state[slug].waterLevel = wl;
-        if (state[slug].ph === undefined) state[slug].ph = ph;
-        if (state[slug].tds === undefined) state[slug].tds = tds;
-        if (state[slug].temperature === undefined) state[slug].temperature = temp;
-        if (!state[slug].lastUpdated && lastSeen) state[slug].lastUpdated = lastSeen;
-      }
+      await this.saveState(state);
+      this.dbMappingInitialized = true;
+      console.log('Digital Twin Engine: DB mapping initialized in Redis cache');
+    } catch (err: any) {
+      console.warn('⚠️ [Twin Service] DB mapping skipped (PostgreSQL unavailable):', err.message || err);
     }
-
-    await this.saveState(state);
-    this.dbMappingInitialized = true;
-    console.log('Digital Twin Engine: DB mapping initialized in Redis cache');
   }
 
   public async reloadDbMapping() {
