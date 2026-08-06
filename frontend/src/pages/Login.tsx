@@ -6,6 +6,8 @@ import axios from 'axios';
 import { Droplets, Loader2, AlertCircle, CheckCircle2, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 
+import { API_BASE } from '../apiConfig';
+
 axios.defaults.withCredentials = true;
 
 const schema = z.object({
@@ -31,10 +33,10 @@ export default function Login() {
   const onSubmit = async (values: FormData) => {
     setLoading(true); setError('');
     try {
-      const res = await axios.post('http://localhost:3001/api/auth/login', values);
+      const res = await axios.post(`${API_BASE}/auth/login`, values);
       if (res.status === 200) {
         setSuccess(true);
-        setTimeout(() => { window.location.href = '/'; }, 1000);
+        setTimeout(() => { window.location.hash = '#/'; }, 1000);
       }
     } catch (err: any) {
       if (err.response?.status === 429) setError('Too many attempts. Try again later.');
