@@ -2054,12 +2054,12 @@ export default function TopologyCanvas() {
 
     const fetchTopology = async () => {
       try {
-        const { data } = await axios.get(`${API_BASE}/api/topologies/${id}`);
-        setTopologyName(data.name || '');
+        const { data } = await axios.get(`${API_BASE}/topologies/${id}`);
+        setTopologyName(data?.name || '');
 
         let vpConfig = { x: -500, y: -250, w: 1000, h: 500 };
         let customConfigs: Record<string, any> = {};
-        if (data.description) {
+        if (data?.description) {
           try {
             const parsed = JSON.parse(data.description);
             if (parsed.viewport && parsed.viewport.w) vpConfig = parsed.viewport;
@@ -2067,11 +2067,12 @@ export default function TopologyCanvas() {
           } catch (e) { }
         }
 
-        const formattedNodes = data.nodes
+        const rawNodes = data?.nodes || [];
+        const formattedNodes = rawNodes
           .filter((node: any) => node.nodeType !== 'switch')
           .map((node: any) => {
             const cfg = { ...(customConfigs[node.id] || {}), ...(node.attributes || {}) };
-            const parentNode = cfg.parentAssetId ? data.nodes.find((n: any) => n.id === cfg.parentAssetId) : null;
+            const parentNode = cfg.parentAssetId ? rawNodes.find((n: any) => n.id === cfg.parentAssetId) : null;
             const defDims = getDefaultNodeDimensions(node.nodeType);
             const w = cfg.customWidth || (node.width && node.height ? node.width : defDims.width);
             const h = cfg.customHeight || (node.width && node.height ? node.height : defDims.height);
@@ -2137,8 +2138,9 @@ export default function TopologyCanvas() {
               },
             };
           });
-        const formattedEdges = data.edges.map((edge: any) => {
-          const isFlowing = evaluateEdgeFlow(edge, data.edges, formattedNodes);
+        const rawEdges = data?.edges || [];
+        const formattedEdges = rawEdges.map((edge: any) => {
+          const isFlowing = evaluateEdgeFlow(edge, rawEdges, formattedNodes);
 
           return {
             id: edge.id.toString(),
