@@ -9,22 +9,52 @@ import os
 from urllib.parse import urlparse
 
 def get_db_config():
+    possible_env_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "backend", ".env"),
+        os.path.join(os.path.dirname(__file__), "backend", ".env"),
+        os.path.join(os.getcwd(), "..", "backend", ".env"),
+        os.path.join(os.getcwd(), "backend", ".env"),
+    ]
+
     db_url = os.getenv("DATABASE_URL")
+
+    if not db_url:
+        for env_path in possible_env_paths:
+            if os.path.exists(env_path):
+                try:
+                    with open(env_path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith("DATABASE_URL="):
+                                raw_val = line.split("=", 1)[1].strip()
+                                if (raw_val.startswith('"') and raw_val.endswith('"')) or (raw_val.startswith("'") and raw_val.endswith("'")):
+                                    raw_val = raw_val[1:-1]
+                                db_url = raw_val
+                                break
+                    if db_url:
+                        break
+                except Exception:
+                    pass
+
     if db_url:
-        result = urlparse(db_url)
-        return {
-            "host": result.hostname or "localhost",
-            "port": result.port or 5432,
-            "dbname": result.path.lstrip("/").split("?")[0] or "DT-MAIN",
-            "user": result.username or "postgres",
-            "password": result.password or "postgres123",
-        }
+        try:
+            result = urlparse(db_url)
+            return {
+                "host": result.hostname or "localhost",
+                "port": result.port or 5432,
+                "dbname": result.path.lstrip("/").split("?")[0] or "dummyDb_DT",
+                "user": result.username or "postgres",
+                "password": result.password or "jeethu0808",
+            }
+        except Exception:
+            pass
+
     return {
-        "host": os.getenv("DB_HOST", "localhost"),
-        "port": int(os.getenv("DB_PORT", 5432)),
-        "dbname": os.getenv("DB_NAME", "DT-MAIN"),
-        "user": os.getenv("DB_USER", "postgres"),
-        "password": os.getenv("DB_PASSWORD", "postgres123"),
+        "host": "localhost",
+        "port": 5432,
+        "dbname": "dummyDb_DT",
+        "user": "postgres",
+        "password": "jeethu0808",
     }
 
 DB_CONFIG = get_db_config()

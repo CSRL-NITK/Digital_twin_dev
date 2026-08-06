@@ -15,14 +15,57 @@ import json
 import os
 from urllib.parse import urlparse
 
-# ── Config ──────────────────────────────────────────────
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "dbname": "dummyDb_DT",
-    "user": "postgres",
-    "password": "jeethu0808",
-}
+# ── Dynamic Config from backend/.env ─────────────────────
+def load_backend_db_config():
+    possible_env_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "backend", ".env"),
+        os.path.join(os.path.dirname(__file__), "backend", ".env"),
+        os.path.join(os.getcwd(), "..", "backend", ".env"),
+        os.path.join(os.getcwd(), "backend", ".env"),
+    ]
+
+    db_url = os.getenv("DATABASE_URL")
+
+    if not db_url:
+        for env_path in possible_env_paths:
+            if os.path.exists(env_path):
+                try:
+                    with open(env_path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith("DATABASE_URL="):
+                                raw_val = line.split("=", 1)[1].strip()
+                                if (raw_val.startswith('"') and raw_val.endswith('"')) or (raw_val.startswith("'") and raw_val.endswith("'")):
+                                    raw_val = raw_val[1:-1]
+                                db_url = raw_val
+                                break
+                    if db_url:
+                        break
+                except Exception as e:
+                    print(f"[WARNING] Could not read {env_path}: {e}")
+
+    if db_url:
+        try:
+            result = urlparse(db_url)
+            return {
+                "host": result.hostname or "localhost",
+                "port": result.port or 5432,
+                "dbname": result.path.lstrip("/").split("?")[0] or "dummyDb_DT",
+                "user": result.username or "postgres",
+                "password": result.password or "jeethu0808",
+            }
+        except Exception as e:
+            print(f"[WARNING] Failed to parse DATABASE_URL '{db_url}': {e}")
+
+    return {
+        "host": "localhost",
+        "port": 5432,
+        "dbname": "dummyDb_DT",
+        "user": "postgres",
+        "password": "jeethu0808",
+    }
+
+DB_CONFIG = load_backend_db_config()
 
 BACKEND_WEBHOOK = "http://localhost:3001/api/telemetry/thingsboard"
 
