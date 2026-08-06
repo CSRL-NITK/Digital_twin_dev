@@ -370,7 +370,7 @@ class StarTopologySimulator:
 
     def print_status(self):
         ts = datetime.now().strftime("%H:%M:%S")
-        print(f"\n-- Tick [{ts}] --------------------------")
+        print(f"\n-- Tick [{ts}] Topology #{self.topology_id} --------------------------")
         for cid in self.central_tanks:
             s = self.state[cid]
             print(f"  Central Tank #{cid}: WL={s['waterLevel']:6.2f}%  V=[IN:{s['inletValveOn']} OUT:{s['outletValveOn']}]")
@@ -381,35 +381,65 @@ class StarTopologySimulator:
             ps = self.state[pid]
             print(f"  Pump         #{pid}: State={ps['pumpOn']} -> Health={ps['status']} (Vib:{ps['vibration']:.2f})")
 
-    # ── Main Loop ───────────────────────────────────────
-    def start(self):
-        self.connect_db()
-        if not self.load_topology():
-            print("Exiting. Please create a Star Topology with nodes first.")
-            return
+if __name__ == "__main__":
+    import threading
+    import sys
 
-        print("\n" + "=" * 55)
-        print("  AQUATWIN STAR TOPOLOGY SIMULATOR - RUNNING")
-        print("  Press Ctrl+C to stop")
-        print("=" * 55)
+    # Topologies to simulate: Star (1), Line (5), Bus (6)
+    topology_ids = [1, 5, 6]
+    simulators = []
 
+    print("\n" + "=" * 65)
+    print("  AQUATWIN MULTI-TOPOLOGY SIMULATION ENGINE - RUNNING")
+    print("  Simulating Topologies: Star (1), Line (5), Bus (6) simultaneously")
+    print("  Press Ctrl+C to stop all processes")
+    print("=" * 65)
+
+    for topo_id in topology_ids:
+        sim = StarTopologySimulator(topo_id)
+        try:
+            sim.connect_db()
+            if sim.load_topology():
+                simulators.append(sim)
+            else:
+                print(f"WARNING: Failed to load topology ID {topo_id}. Skipping.")
+        except Exception as err:
+            print(f"ERROR: Cannot connect/load topology ID {topo_id}: {err}. Skipping.")
+
+    if not simulators:
+        print("ERROR: No topologies could be loaded. Exiting.")
+        sys.exit(1)
+
+    # Thread target to run tick updates for a topology simulator
+    def run_simulator_loop(simulator):
         try:
             while True:
-                self.run_tick()
-                self.write_to_db()
-                self.notify_backend()
-                self.print_status()
+                simulator.run_tick()
+                simulator.write_to_db()
+                simulator.notify_backend()
                 time.sleep(2.0)
-        except KeyboardInterrupt:
-            print("\nStopped.")
+        except Exception as err:
+            print(f"\n[Thread-Topology-{simulator.topology_id}] Simulator loop error: {err}")
 
-if __name__ == "__main__":
-    topo_id_input = input("Enter the Topology ID to simulate: ")
+    # Start a daemon thread for each simulator
+    threads = []
+    for sim in simulators:
+        t = threading.Thread(target=run_simulator_loop, args=(sim,), daemon=True)
+        t.start()
+        threads.append(t)
+        print(f"Started simulation thread for Topology ID {sim.topology_id}")
+
+    # Main thread prints a clean combined overview every 2 seconds
     try:
-        topo_id = int(topo_id_input.strip())
-    except ValueError:
-        print("Invalid Topology ID. Must be an integer.")
-        exit(1)
-
-    sim = StarTopologySimulator(topo_id)
-    sim.start()
+        while True:
+            time.sleep(2.0)
+            ts = datetime.now().strftime("%H:%M:%S")
+            print(f"\n-- Multi-Simulation Tick [{ts}] --------------------------")
+            for sim in simulators:
+                pumps_on = sum(1 for pid in sim.pumps if sim.state[pid]["pumpOn"])
+                total_wl = sum(sim.state[sid]["waterLevel"] for sid in sim.all_tank_ids)
+                avg_wl = total_wl / len(sim.all_tank_ids) if sim.all_tank_ids else 0.0
+                print(f"  Topology #{sim.topology_id}: Pumps ON={pumps_on}/{len(sim.pumps)} | Avg Water Level={avg_wl:6.2f}%")
+    except KeyboardInterrupt:
+        print("\nStopping all topology simulations...")
+        print("All processes stopped. Goodbye!")
