@@ -20,12 +20,12 @@ seed :
  npx ts-node src/hydro-seed.ts
 ```
 
-3 - ydroponic 7-Day History Seed (Seeds 7 days of dummy historical telemetry data) 
+3 - Hydroponic 7-Day History Seed (Seeds 7 days of dummy historical telemetry data) 
 ```bash
 npx ts-node src/hydro-seed-history.ts
 ```
 
-4 - tandalone Users Seed (Ensures default user accounts are created)
+4 - Standalone Users Seed (Ensures default user accounts are created)
 ```bash
 npx ts-node src/seed_users.ts
 ```
