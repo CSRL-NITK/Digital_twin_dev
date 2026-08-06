@@ -23,8 +23,8 @@ import { StarCoordinatorAgent } from './agents/Star-Coordinator.agent';
 
 // Sync admin, operator, and viewer credentials from .env
 async function syncAdminUser() {
-  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin@CSRL';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'CSRLdt@0608';
   
   try {
     // Admin

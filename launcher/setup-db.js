@@ -91,8 +91,8 @@ async function setupDatabase() {
 
     if (!envLines.some(l => l.startsWith('PORT='))) envLines.push('PORT=3001');
     if (!envLines.some(l => l.startsWith('JWT_SECRET='))) envLines.push('JWT_SECRET="super-secret-dt-key-2026"');
-    if (!envLines.some(l => l.startsWith('ADMIN_USERNAME='))) envLines.push('ADMIN_USERNAME="admin"');
-    if (!envLines.some(l => l.startsWith('ADMIN_PASSWORD='))) envLines.push('ADMIN_PASSWORD="password123"');
+    if (!envLines.some(l => l.startsWith('ADMIN_USERNAME='))) envLines.push('ADMIN_USERNAME="admin@CSRL"');
+    if (!envLines.some(l => l.startsWith('ADMIN_PASSWORD='))) envLines.push('ADMIN_PASSWORD="CSRLdt@0608"');
     if (!envLines.some(l => l.startsWith('MQTT_PORT='))) envLines.push('MQTT_PORT=1884');
 
     fs.writeFileSync(envPath, envLines.join('\n') + '\n', 'utf8');
