@@ -399,7 +399,7 @@ const TopBar = memo(function TopBar() {
                     boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
                     zIndex: 100, display: 'flex', flexDirection: 'column'
                   }}>
-                    {topologies.map(t => {
+                    {(Array.isArray(topologies) ? topologies : []).map(t => {
                       const isTopologyPage = pathname.startsWith('/topology/');
                       const isAnalyticsPage = pathname.startsWith('/analytics/');
                       
