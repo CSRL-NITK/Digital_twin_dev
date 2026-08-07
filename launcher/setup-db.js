@@ -60,22 +60,17 @@ async function setupDatabase() {
     process.exit(0);
   }
 
-  try {
-    // 2. Query existing databases to find available name starting with Digital_twin_dev
-    const res = await workingClient.query("SELECT datname FROM pg_database WHERE datname LIKE 'digital_twin_dev%' OR datname LIKE 'Digital_twin_dev%'");
+    const res = await workingClient.query("SELECT datname FROM pg_database");
     const existingDbs = res.rows.map(r => r.datname.toLowerCase());
-
     let targetDb = 'Digital_twin_dev';
-    let counter = 1;
 
-    while (existingDbs.includes(targetDb.toLowerCase())) {
-      targetDb = `Digital_twin_dev_${counter}`;
-      counter++;
+    if (!existingDbs.includes(targetDb.toLowerCase())) {
+      console.log(`Creating database '${targetDb}'...`);
+      await workingClient.query(`CREATE DATABASE "${targetDb}"`);
+      console.log(`Database '${targetDb}' created successfully!`);
+    } else {
+      console.log(`Database '${targetDb}' already exists. Using existing database.`);
     }
-
-    console.log(`Creating database '${targetDb}'...`);
-    await workingClient.query(`CREATE DATABASE "${targetDb}"`);
-    console.log(`Database '${targetDb}' created successfully!`);
     await workingClient.end();
 
     // 3. Write or update backend/.env
