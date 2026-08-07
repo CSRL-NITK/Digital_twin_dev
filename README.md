@@ -184,7 +184,7 @@ Add the following location blocks to the HTTPS (Port 443) server block:
 ```nginx
     # Digital Twin Frontend (Port 5173)
     location /digital-twin-app/ {
-        proxy_pass http://127.0.0.1:5173/;
+        proxy_pass http://127.0.0.1:5173;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
