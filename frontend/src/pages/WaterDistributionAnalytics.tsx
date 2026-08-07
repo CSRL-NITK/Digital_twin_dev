@@ -54,31 +54,31 @@ const deriveTankState = (data: any) => {
 };
 
 const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): boolean => {
-  const getTargetId = (e: any) => e.target || e.targetNodeId?.toString();
-  const getSourceId = (e: any) => e.source || e.sourceNodeId?.toString();
+  const getTargetId = (e: any) => (e.target || e.targetNodeId)?.toString();
+  const getSourceId = (e: any) => (e.source || e.sourceNodeId)?.toString();
 
-  const tgtNode = allNodes.find((n: any) => n.id === getTargetId(edge));
+  const tgtNode = allNodes.find((n: any) => n.id?.toString() === getTargetId(edge));
   if (tgtNode) {
     if (tgtNode.type === 'pump' && tgtNode.data?.pumpOn === false) return false;
   }
 
   const isNodeSupplied = (nodeId: string, visited = new Set<string>()): boolean => {
-    if (visited.has(nodeId)) return false;
+    if (!nodeId || visited.has(nodeId)) return false;
     visited.add(nodeId);
 
-    const node = allNodes.find((n: any) => n.id === nodeId);
-    if (!node) return false;
+    const node = allNodes.find((n: any) => n.id?.toString() === nodeId);
+    if (!node) return true;
 
-    if (node.type === 'central_tank' || node.type === 'tank') {
+    if (node.type === 'central_tank' || node.type === 'tank' || node.type === 'source_tank' || node.type === 'source') {
       if (node.data?.outletValveOn === false) return false;
-      const wl = node.data?.waterLevel ?? 0;
-      return wl > 1;
+      const wl = node.data?.waterLevel ?? 50;
+      return wl >= 0;
     }
 
     if (node.type === 'pump') {
       if (node.data?.pumpOn === false) return false;
       const incomingEdges = allEdges.filter((e: any) => getTargetId(e) === nodeId);
-      if (incomingEdges.length === 0) return true; // Assume supplied if isolated source
+      if (incomingEdges.length === 0) return true; // Assume supplied if isolated pump
       return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
     }
 
