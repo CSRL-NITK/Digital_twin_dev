@@ -56,7 +56,7 @@ const Sidebar = memo(function Sidebar() {
   ];
 
   const logout = async () => {
-    try { await axios.post('${API_BASE}/auth/logout'); } catch (err) { console.error(err); }
+    try { await axios.post(`${API_BASE}/auth/logout`); } catch (err) { console.error(err); }
     window.location.href = '/login';
   };
 
@@ -255,7 +255,7 @@ const TopBar = memo(function TopBar() {
 
   const handleClearAllAlerts = async () => {
     try {
-      await axios.put('${API_BASE}/alerts/clear');
+      await axios.put(`${API_BASE}/alerts/clear`);
       setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
     } catch (err) {
       console.error('Failed to clear active alerts:', err);
@@ -359,8 +359,8 @@ const TopBar = memo(function TopBar() {
                   id="topology-selector"
                   onClick={() => {
                     if (!menuOpen) {
-                      axios.get('${API_BASE}/topologies')
-                        .then(res => setTopologies(res.data))
+                      axios.get(`${API_BASE}/topologies`)
+                        .then(res => setTopologies(Array.isArray(res.data) ? res.data : []))
                         .catch(err => console.error(err));
                     }
                     setMenuOpen(!menuOpen);
@@ -1892,8 +1892,8 @@ export default function MainLayout() {
 
   // Pre-load topologies once at root mount
   useEffect(() => {
-    axios.get('${API_BASE}/topologies')
-      .then(res => setTopologies(res.data))
+    axios.get(`${API_BASE}/topologies`)
+      .then(res => setTopologies(Array.isArray(res.data) ? res.data : []))
       .catch(err => console.error('Failed to pre-fetch topologies:', err));
   }, []);
 
