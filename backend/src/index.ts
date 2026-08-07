@@ -21,10 +21,25 @@ import { LineCoordinatorAgent } from './agents/Line-Coordinator.agent';
 import { BusCoordinatorAgent } from './agents/Bus-Coordinator.agent';
 import { StarCoordinatorAgent } from './agents/Star-Coordinator.agent';
 
+import { execSync } from 'child_process';
+
 // Sync admin, operator, and viewer credentials from .env
 async function syncAdminUser() {
   const adminUsername = process.env.ADMIN_USERNAME || 'admin@CSRL';
   const adminPassword = process.env.ADMIN_PASSWORD || 'CSRLdt@0608';
+
+  // Check if database tables exist, otherwise auto-push Prisma schema
+  try {
+    await prisma.user.count();
+  } catch (dbErr: any) {
+    console.log('⚡ Database tables missing. Automatically pushing Prisma schema...');
+    try {
+      execSync('npx prisma db push --accept-data-loss', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
+      console.log('✔ Prisma schema pushed successfully!');
+    } catch (pushErr) {
+      console.error('Failed to auto-push Prisma schema:', pushErr);
+    }
+  }
   
   try {
     // Admin
