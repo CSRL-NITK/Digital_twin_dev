@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState, useMemo } from 'react';
+import { Suspense, useEffect, useRef, useState, useMemo, Component, ReactNode } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, useProgress, Html, Center, useAnimations, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -86,7 +86,10 @@ function Loader() {
 
 // Inner component that loads the GLTF model, sets camera, lights, and controls dynamically
 function ModelContent({ url, isFlowing }: { url: string; isFlowing: boolean }) {
-  const { scene, animations, nodes } = useGLTF(url) as any;
+  const targetUrl = (typeof url === 'string' && url.startsWith('/') && typeof window !== 'undefined' && window.location.protocol === 'https:')
+    ? `${window.location.origin}/digital-twin-app${url}`
+    : url;
+  const { scene, animations, nodes } = useGLTF(targetUrl) as any;
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
 
@@ -562,6 +565,200 @@ export default function ModelViewer({ url = defaultModelUrl, isPumpOn: propIsPum
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
             )}
           </span>
+    return () => {
+      // Clean up meshes and dispose geometries/materials
+      newMeshes.forEach(({ name, mesh, material, actualParent }) => {
+        if (actualParent) {
+          actualParent.remove(mesh);
+        }
+        mesh.geometry.dispose();
+        material.dispose();
+        
+        // Restore visibility
+        const parentNode = nodes[name];
+        if (parentNode) {
+          parentNode.visible = true;
+        }
+      });
+      meshesRef.current = [];
+    };
+  }, [nodes, scene]);
+
+  // Play normal animations when flow toggles
+  useEffect(() => {
+    if (!actions || Object.keys(actions).length === 0) return;
+
+    if (isFlowing) {
+      Object.keys(actions).forEach((key) => {
+        if (actions[key]) {
+          actions[key].reset().play();
+        }
+      });
+    } else {
+      Object.keys(actions).forEach((key) => {
+        if (actions[key]) actions[key].stop();
+      });
+    }
+  }, [isFlowing, actions]);
+
+  // React Three Fiber loop: Update frame animations and uniforms
+  useFrame((_state, delta) => {
+    timeRef.current += delta;
+
+    if (isFlowing) {
+      frameRef.current += delta * 30.0;
+      if (frameRef.current > 250.0) {
+        frameRef.current = 250.0; // Clamp at 250.0 so pipes stay filled
+      }
+    } else {
+      frameRef.current = 1.0; // Reset to start (empty) when pump is turned off
+    }
+
+    const currentFrame = frameRef.current;
+
+    meshesRef.current.forEach(({ material, config }) => {
+      material.uniforms.uTime.value = timeRef.current;
+
+      const { startFrame, endFrame, type } = config;
+      let startVal = 0.0;
+      let endVal = 0.0;
+
+      if (type === 'start') {
+        if (currentFrame < startFrame) {
+          startVal = 1.0;
+          endVal = 1.0;
+        } else if (currentFrame >= endFrame) {
+          startVal = 0.0;
+          endVal = 1.0;
+        } else {
+          const progress = (currentFrame - startFrame) / (endFrame - startFrame);
+          startVal = 1.0 - progress;
+          endVal = 1.0;
+        }
+      } else {
+        if (currentFrame < startFrame) {
+          startVal = 0.0;
+          endVal = 0.0;
+        } else if (currentFrame >= endFrame) {
+          startVal = 0.0;
+          endVal = 1.0;
+        } else {
+          const progress = (currentFrame - startFrame) / (endFrame - startFrame);
+          startVal = 0.0;
+          endVal = progress;
+        }
+      }
+
+      material.uniforms.uStart.value = startVal;
+      material.uniforms.uEnd.value = endVal;
+    });
+  });
+
+  return (
+    <>
+      <hemisphereLight color="#ffffff" groundColor="#888888" intensity={0.5} />
+      <directionalLight
+        position={[8, 10, 8]}
+        intensity={1.2}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
+      <directionalLight
+        position={[-8, 6, -8]}
+        intensity={0.4}
+      />
+      <pointLight position={[0, 8, 0]} intensity={0.3} />
+
+      <Center>
+        <group scale={[scaleFactor, scaleFactor, scaleFactor]}>
+          <primitive object={scene} />
+        </group>
+      </Center>
+
+      <OrbitControls
+        ref={controlsRef}
+        makeDefault
+        enableDamping
+        dampingFactor={0.05}
+        maxPolarAngle={Math.PI / 1.8}
+      />
+    </>
+  );
+}
+
+const defaultModelUrl = typeof window !== 'undefined' && window.location.protocol === 'https:' ? `${window.location.origin}/digital-twin-app/test.glb` : '/test.glb';
+
+export default function ModelViewer({ url = defaultModelUrl, isPumpOn: propIsPumpOn, onPumpToggle }: ModelViewerProps) {
+  const hydroState = useHydroState();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [internalFlowing, setInternalFlowing] = useState(false);
+  const isHydro = url.toLowerCase().includes('hydroponic');
+  const bgColor = isHydro ? '#ebebeb' : '#2e3240';
+
+  const isFlowing = propIsPumpOn !== undefined 
+    ? propIsPumpOn 
+    : (isHydro ? hydroState.isPumpOn : internalFlowing);
+
+  const handlePumpToggle = () => {
+    if (onPumpToggle) {
+      onPumpToggle(!isFlowing);
+    } else if (isHydro) {
+      hydroState.togglePump(!isFlowing);
+    } else {
+      setInternalFlowing(!internalFlowing);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
+    <div 
+      className={
+        isFullscreen 
+          ? 'fixed inset-0 z-50 p-6 flex flex-col animate-in fade-in duration-200' 
+          : `w-full h-full relative rounded-[24px] overflow-hidden border ${isHydro ? 'border-slate-300' : 'border-slate-700/80'} shadow-sm`
+      }
+      style={{ backgroundColor: bgColor }}
+    >
+      {/* Title overlay in top-left corner */}
+      <div className="absolute top-4 left-6 z-10 pointer-events-none select-none">
+        <h3 className={`text-base font-semibold tracking-wide flex items-center gap-2 ${isHydro ? 'text-slate-800' : 'text-slate-100'}`}>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          3D Digital Twin View
+        </h3>
+        <p className={`text-xs mt-0.5 ${isHydro ? 'text-slate-500' : 'text-slate-350'}`}>Use mouse to rotate, pan, and zoom</p>
+      </div>
+
+      {/* Sleek Controls Overlay in top-right corner */}
+      <div className="absolute top-4 right-6 z-20 flex items-center gap-2.5 select-none">
+        <button
+          onClick={handlePumpToggle}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border shadow-md backdrop-blur-md transition-all duration-200 cursor-pointer ${
+            isFlowing 
+              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80' 
+              : 'bg-slate-900/80 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+          }`}
+          title={isFlowing ? "Stop Water Pump" : "Start Water Pump"}
+        >
+          <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+            {isFlowing ? (
+              <>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </>
+            ) : (
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+            )}
+          </span>
           <span className="text-xs font-bold tracking-wide">
             {isFlowing ? 'Pump ON' : 'Pump OFF'}
           </span>
@@ -586,7 +783,9 @@ export default function ModelViewer({ url = defaultModelUrl, isPumpOn: propIsPum
           <color attach="background" args={[bgColor]} />
           
           <Suspense fallback={<Loader />}>
-            <ModelContent url={url} isFlowing={isFlowing} />
+            <GLTFErrorBoundary fallback={null}>
+              <ModelContent url={url} isFlowing={isFlowing} />
+            </GLTFErrorBoundary>
           </Suspense>
         </Canvas>
       </div>
