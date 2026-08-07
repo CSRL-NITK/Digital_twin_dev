@@ -72,7 +72,7 @@ export default function WaterDistributionLiveAnalytics({ globalTopologyId }: { g
     if (!globalTopologyId) return;
     setSimulatedLogs(prev => [`[Sandbox] Initializing offline sandbox layout for topology...`, ...prev].slice(0, 100));
     
-    axios.get(`${BACKEND_URL}/api/topologies/${globalTopologyId}?bypass=true`)
+    axios.get(`${BACKEND_URL}/topologies/${globalTopologyId}?bypass=true`)
       .then(res => {
         setTopologyName(res.data.name || 'Simulation Sandbox');
         
@@ -132,7 +132,7 @@ export default function WaterDistributionLiveAnalytics({ globalTopologyId }: { g
 
       // Intercept layout query — SIMULATION ONLY
       const currentTopologyId = globalTopologyIdRef.current;
-      if (currentTopologyId && url.includes(`/api/topologies/${currentTopologyId}`) && !url.includes('bypass=true')) {
+      if (currentTopologyId && url.includes(`/topologies/${currentTopologyId}`) && !url.includes('bypass=true')) {
         config.adapter = async () => {
           const currentData = simStateRef.current.localTopologyData;
           if (!currentData) {
