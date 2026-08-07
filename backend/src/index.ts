@@ -30,11 +30,16 @@ async function syncAdminUser() {
     // Admin
     const adminHash = await bcrypt.hash(adminPassword, 10);
     await prisma.user.upsert({
+      where: { username: 'admin' },
+      update: { passwordHash: adminHash, role: 'admin', name: 'System Administrator' },
+      create: { username: 'admin', passwordHash: adminHash, role: 'admin', name: 'System Administrator' }
+    });
+    await prisma.user.upsert({
       where: { username: adminUsername },
       update: { passwordHash: adminHash, role: 'admin', name: 'System Administrator' },
       create: { username: adminUsername, passwordHash: adminHash, role: 'admin', name: 'System Administrator' }
     });
-    console.log(`User '${adminUsername}' (admin) synced`);
+    console.log(`User 'admin' & '${adminUsername}' synced`);
 
     // Operator
     const operatorHash = await bcrypt.hash('operator123', 10);
