@@ -232,7 +232,7 @@ const TopBar = memo(function TopBar() {
     }
   }, [pathname, globalTopologyId, setGlobalTopologyId]);
 
-  const currentTopology = topologies.find(t => t.id.toString() === globalTopologyId);
+  const currentTopology = Array.isArray(topologies) ? topologies.find(t => t && t.id && t.id.toString() === globalTopologyId?.toString()) : undefined;
 
   const isHydroponics = Boolean(
     currentTopology?.name.toLowerCase().includes('hydroponic') || pathname.startsWith('/hydro')
