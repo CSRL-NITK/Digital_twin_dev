@@ -490,7 +490,9 @@ function ModelContent({ url, isFlowing }: { url: string; isFlowing: boolean }) {
   );
 }
 
-export default function ModelViewer({ url = '/test.glb', isPumpOn: propIsPumpOn, onPumpToggle }: ModelViewerProps) {
+const defaultModelUrl = `${import.meta.env.BASE_URL}test.glb`.replace(/\/\//g, '/');
+
+export default function ModelViewer({ url = defaultModelUrl, isPumpOn: propIsPumpOn, onPumpToggle }: ModelViewerProps) {
   const hydroState = useHydroState();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [internalFlowing, setInternalFlowing] = useState(false);
@@ -543,10 +545,10 @@ export default function ModelViewer({ url = '/test.glb', isPumpOn: propIsPumpOn,
       <div className="absolute top-4 right-6 z-20 flex items-center gap-2.5 select-none">
         <button
           onClick={handlePumpToggle}
-          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full border shadow-md backdrop-blur-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:scale-105 active:scale-95 ${
-            isFlowing
-              ? 'bg-emerald-950/90 hover:bg-emerald-900/90 text-emerald-300 border-emerald-500/50 shadow-emerald-950/40'
-              : 'bg-slate-900/90 hover:bg-slate-800/90 text-rose-300 border-rose-500/50 shadow-slate-950/40'
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border shadow-md backdrop-blur-md transition-all duration-200 cursor-pointer ${
+            isFlowing 
+              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80' 
+              : 'bg-slate-900/80 border-slate-700/60 text-slate-300 hover:bg-slate-800'
           }`}
           title={isFlowing ? "Stop Water Pump" : "Start Water Pump"}
         >
@@ -593,5 +595,6 @@ export default function ModelViewer({ url = '/test.glb', isPumpOn: propIsPumpOn,
 }
 
 // Pre-load the GLTF file to speed up rendering
-useGLTF.preload('/test.glb');
-
+try {
+  useGLTF.preload(defaultModelUrl);
+} catch (e) {}
