@@ -60,6 +60,7 @@ async function setupDatabase() {
     process.exit(0);
   }
 
+  try {
     const res = await workingClient.query("SELECT datname FROM pg_database");
     const existingDbs = res.rows.map(r => r.datname.toLowerCase());
     let targetDb = 'Digital_twin_dev';
