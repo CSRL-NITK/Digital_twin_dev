@@ -490,7 +490,7 @@ function ModelContent({ url, isFlowing }: { url: string; isFlowing: boolean }) {
   );
 }
 
-const defaultModelUrl = `${import.meta.env.BASE_URL}test.glb`.replace(/\/\//g, '/');
+const defaultModelUrl = typeof window !== 'undefined' && window.location.protocol === 'https:' ? `${window.location.origin}/digital-twin-app/test.glb` : '/test.glb';
 
 export default function ModelViewer({ url = defaultModelUrl, isPumpOn: propIsPumpOn, onPumpToggle }: ModelViewerProps) {
   const hydroState = useHydroState();

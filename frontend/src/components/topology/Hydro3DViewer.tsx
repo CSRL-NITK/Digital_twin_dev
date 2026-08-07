@@ -296,9 +296,8 @@ export default function Hydro3DViewer() {
 
         <Suspense fallback={null}>
           <Center>
-            {/* The primary GLTF model load */}
             <ModelContent
-              url={`${import.meta.env.BASE_URL}hydroponic.glb`.replace(/\/\//g, '/')}
+              url={typeof window !== 'undefined' && window.location.protocol === 'https:' ? `${window.location.origin}/digital-twin-app/hydroponic.glb` : '/hydroponic.glb'}
               setCurves={setCurves}
               onLoaded={() => setLoading(false)}
             />
