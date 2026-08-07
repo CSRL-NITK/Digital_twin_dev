@@ -36,11 +36,21 @@ async function syncAdminUser() {
     try {
       execSync('npx prisma db push --accept-data-loss', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
       console.log('✔ Prisma schema pushed successfully!');
-    } catch (pushErr) {
-      console.error('Failed to auto-push Prisma schema:', pushErr);
+  // Check if topologies exist, otherwise auto-seed initial topologies
+  try {
+    const topologyCount = await prisma.topology.count();
+    if (topologyCount === 0) {
+      console.log('⚡ No topologies found in database. Auto-seeding initial topologies...');
+      try {
+        execSync('npx ts-node src/seed.ts', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
+        execSync('npx ts-node src/seed-hydroponic.ts', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
+        console.log('✔ Topologies seeded successfully!');
+      } catch (seedErr) {
+        console.error('Failed to auto-seed topologies:', seedErr);
+      }
     }
-  }
-  
+  } catch (e) {}
+
   try {
     // Admin
     const adminHash = await bcrypt.hash(adminPassword, 10);

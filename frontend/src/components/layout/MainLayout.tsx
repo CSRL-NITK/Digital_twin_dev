@@ -193,19 +193,19 @@ const TopBar = memo(function TopBar() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState<boolean>(false);
 
-  const unreadCount = useMemo(() => alerts.filter(a => !a.isRead).length, [alerts]);
+  const unreadCount = useMemo(() => (Array.isArray(alerts) ? alerts : []).filter(a => !a.isRead).length, [alerts]);
 
   useEffect(() => {
-    axios.get('${API_BASE}/topologies')
-      .then(res => setTopologies(res.data))
+    axios.get(`${API_BASE}/topologies`)
+      .then(res => setTopologies(Array.isArray(res.data) ? res.data : []))
       .catch(err => console.error(err));
   }, [pathname]);
 
   // Initial Alert Fetching
   useEffect(() => {
-    axios.get('${API_BASE}/alerts')
+    axios.get(`${API_BASE}/alerts`)
       .then(res => {
-        setAlerts(res.data);
+        setAlerts(Array.isArray(res.data) ? res.data : []);
       })
       .catch(err => console.error('Failed to fetch initial alerts:', err));
   }, []);
