@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense, Component, ReactNode } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Center, useGLTF } from '@react-three/drei';
@@ -294,13 +294,34 @@ export default function Hydro3DViewer() {
           position={[0, -0.01, 0]}
         />
 
+class GLTFErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any) {
+    console.warn('GLTF 3D Asset load notice, using procedural fallback:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
         <Suspense fallback={null}>
           <Center>
-            <ModelContent
-              url={typeof window !== 'undefined' && window.location.protocol === 'https:' ? `${window.location.origin}/digital-twin-app/hydroponic.glb` : '/hydroponic.glb'}
-              setCurves={setCurves}
-              onLoaded={() => setLoading(false)}
-            />
+            <GLTFErrorBoundary fallback={null}>
+              <ModelContent
+                url={typeof window !== 'undefined' && window.location.protocol === 'https:' ? `${window.location.origin}/digital-twin-app/hydroponic.glb` : '/hydroponic.glb'}
+                setCurves={setCurves}
+                onLoaded={() => setLoading(false)}
+              />
+            </GLTFErrorBoundary>
 
             {/* Dynmically generated R3F fluid tubes using custom shader material */}
             {curves.map(({ name, curve }) => (
