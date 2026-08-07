@@ -171,4 +171,63 @@ docker compose -f docker-compose.grafana.yml logs -f grafana
 
 ```bash
 docker compose -f docker-compose.grafana.yml down
+```
+
+---
+
+## Nginx Reverse Proxy & CSRL Website Embedding
+
+### 1. Server Nginx Configuration (`/etc/nginx/sites-available/csrl`)
+
+Add the following location blocks to the HTTPS (Port 443) server block:
+
+```nginx
+    # Digital Twin Frontend (Port 5173)
+    location /digital-twin-app/ {
+        proxy_pass http://127.0.0.1:5173/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+
+    # Digital Twin Backend REST API (Port 3001)
+    location /digital-twin-api/ {
+        proxy_pass http://127.0.0.1:3001/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Digital Twin Real-Time WebSockets / Socket.IO (Port 3001)
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3001/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+```
+
+Reload Nginx after editing:
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 2. Embed in CSRL Website (`DigitalTwin.js`)
+
+In your main CSRL frontend component (`DigitalTwin.js`), embed the application via an iframe:
+
+```jsx
+<iframe 
+  src="https://csrl.nitk.ac.in/digital-twin-app/" 
+  width="100%" 
+  height="900px" 
+  style={{ border: 'none', borderRadius: '8px' }} 
+  title="Digital Twin Engine"
+/>
+```
 
