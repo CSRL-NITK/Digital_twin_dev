@@ -13,6 +13,25 @@ interface ModelViewerProps {
   onPumpToggle?: (on: boolean) => void;
 }
 
+class GLTFErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any) {
+    console.warn('ModelViewer 3D GLTF load error fallback:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
 // Configuration of frame ratios for each water flow path based on Blender's keyframes
 const pathConfigs: Record<string, { startFrame: number; endFrame: number; type: 'start' | 'end' }> = {
   Path_Main_Flow: {
