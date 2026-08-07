@@ -900,11 +900,11 @@ function MainLayoutContent() {
 
   const [topologies, setTopologies] = useState<any[]>([]);
   useEffect(() => {
-    axios.get('${API_BASE}/topologies')
-      .then(res => setTopologies(res.data))
+    axios.get(`${API_BASE}/topologies`)
+      .then(res => setTopologies(Array.isArray(res.data) ? res.data : []))
       .catch(err => console.error(err));
   }, []);
-  const currentTopology = topologies.find(t => t.id.toString() === globalTopologyId);
+  const currentTopology = Array.isArray(topologies) ? topologies.find(t => t.id?.toString() === globalTopologyId?.toString()) : undefined;
   const isHydroponics = Boolean(
     currentTopology?.name.toLowerCase().includes('hydroponic') || pathname.startsWith('/hydro')
   );
