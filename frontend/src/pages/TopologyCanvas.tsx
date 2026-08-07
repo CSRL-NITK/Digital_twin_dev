@@ -1597,7 +1597,7 @@ export default function TopologyCanvas() {
         })
       );
       try {
-        await axios.patch(`${API_BASE}/api/topologies/${id}/viewport`, {
+        await axios.patch(`${API_BASE}/topologies/${id}/viewport`, {
           x: newX, y: newY, w: newW, h: newH,
         });
       } catch (e) { }
@@ -1632,21 +1632,21 @@ export default function TopologyCanvas() {
             n.position = newPos;
 
             // Patch child sensor position in backend
-            axios.patch(`${API_BASE}/api/nodes/${n.id}/position`, {
+            axios.patch(`${API_BASE}/nodes/${n.id}/position`, {
               positionX: newPos.x, positionY: newPos.y
             }).catch(console.error);
           }
         });
       }
 
-      axios.patch(`${API_BASE}/api/nodes/${targetId}`, {
+      axios.patch(`${API_BASE}/nodes/${targetId}`, {
         attributes: { customWidth: newW, customHeight: newH }
       }).catch(console.error);
       return updatedNodes;
     });
 
     try {
-      await axios.patch(`${API_BASE}/api/nodes/${targetId}/position`, {
+      await axios.patch(`${API_BASE}/nodes/${targetId}/position`, {
         positionX: newX, positionY: newY,
       });
     } catch (e) { console.error('Failed to save resize position', e); }
@@ -1673,7 +1673,7 @@ export default function TopologyCanvas() {
       return prev;
     });
     try {
-      await axios.patch(`${API_BASE}/api/nodes/${id}`, { attributes: { pumpOn: nextPumpOn } });
+      await axios.patch(`${API_BASE}/nodes/${id}`, { attributes: { pumpOn: nextPumpOn } });
     } catch (e) {
       console.error('Failed to toggle pump status:', e);
     }
@@ -1721,7 +1721,7 @@ export default function TopologyCanvas() {
 
       const updatedNode = updatedNodes.find((n) => n.id === id);
       if (updatedNode) {
-        axios.patch(`${API_BASE}/api/nodes/${id}`, {
+        axios.patch(`${API_BASE}/nodes/${id}`, {
           attributes: {
             ...updatedNode.data
           }
@@ -1743,7 +1743,7 @@ export default function TopologyCanvas() {
           };
 
           // Send to node's attributes column
-          axios.patch(`${API_BASE}/api/nodes/${id}`, {
+          axios.patch(`${API_BASE}/nodes/${id}`, {
             attributes: {
               inletValveOn: updatedData.inletValveOn,
               outletValveOn: updatedData.outletValveOn,
@@ -1779,7 +1779,7 @@ export default function TopologyCanvas() {
         return n;
       });
 
-      axios.patch(`${API_BASE}/api/nodes/${id}`, { attributes: { targetPumpId } }).catch(console.error);
+      axios.patch(`${API_BASE}/nodes/${id}`, { attributes: { targetPumpId } }).catch(console.error);
       return updatedNodes;
     });
   }, [setNodes]);
@@ -1800,7 +1800,7 @@ export default function TopologyCanvas() {
         return n;
       });
 
-      axios.patch(`${API_BASE}/api/nodes/${id}`, { attributes: { hideSwitch: true } }).catch(console.error);
+      axios.patch(`${API_BASE}/nodes/${id}`, { attributes: { hideSwitch: true } }).catch(console.error);
       return updatedNodes;
     });
   }, [setNodes]);
@@ -1821,7 +1821,7 @@ export default function TopologyCanvas() {
         return n;
       });
 
-      axios.patch(`${API_BASE}/api/nodes/${id}`, {
+      axios.patch(`${API_BASE}/nodes/${id}`, {
         attributes: { [valveType === 'inlet' ? 'inletHideSwitch' : 'outletHideSwitch']: true }
       }).catch(console.error);
       return updatedNodes;
@@ -1831,7 +1831,7 @@ export default function TopologyCanvas() {
   /* ── Delete Node Helper ──────────────────────────────── */
   const handleDeleteNode = useCallback(async (id: string) => {
     try {
-      await axios.delete(`${API_BASE}/api/nodes/${id}`);
+      await axios.delete(`${API_BASE}/nodes/${id}`);
     } catch (e) {
       console.warn('Backend delete node notice:', e);
     } finally {
@@ -1871,7 +1871,7 @@ export default function TopologyCanvas() {
       if (!editMode) {
         nds.forEach((n) => {
           if (n.id !== 'viewport-box' && !n.id.startsWith('temp-')) {
-            axios.patch(`${API_BASE}/api/nodes/${n.id}/position`, {
+            axios.patch(`${API_BASE}/nodes/${n.id}/position`, {
               positionX: Math.round(n.position?.x ?? 0),
               positionY: Math.round(n.position?.y ?? 0),
             }).catch(() => { });
@@ -2199,7 +2199,7 @@ export default function TopologyCanvas() {
                 })
               );
 
-              axios.patch(`${API_BASE}/api/topologies/${id}/viewport`, {
+              axios.patch(`${API_BASE}/topologies/${id}/viewport`, {
                 x: newX, y: newY,
                 w: newW, h: newH
               }).catch(console.error);
@@ -2382,14 +2382,14 @@ export default function TopologyCanvas() {
       for (const move of (action.moves || [])) {
         if (move.nodeId === 'viewport-box') {
           try {
-            await axios.patch(`${API_BASE}/api/topologies/${id}/viewport`, {
+            await axios.patch(`${API_BASE}/topologies/${id}/viewport`, {
               x: move.oldValue.x, y: move.oldValue.y,
               w: move.oldValue.w || 1000, h: move.oldValue.h || 500
             });
           } catch (e) {}
         } else {
           try {
-            await axios.patch(`${API_BASE}/api/nodes/${move.nodeId}/position`, {
+            await axios.patch(`${API_BASE}/nodes/${move.nodeId}/position`, {
               positionX: move.oldValue.x, positionY: move.oldValue.y,
             });
           } catch (e) {}
@@ -2400,7 +2400,7 @@ export default function TopologyCanvas() {
       setEdges(eds => eds.filter(e => e.id !== action.edge.id));
       // Remove edge from DB
       try {
-        await axios.delete(`${API_BASE}/api/edges/${action.edge.id}`);
+        await axios.delete(`${API_BASE}/edges/${action.edge.id}`);
       } catch (e) {}
     } else if (action.type === 'delete_edges' && action.edges) {
       // Restore edges visually
@@ -2408,7 +2408,7 @@ export default function TopologyCanvas() {
       // Restore edges in DB
       for (const edge of (action.edges || [])) {
         try {
-          const res = await axios.post(`${API_BASE}/api/edges`, {
+          const res = await axios.post(`${API_BASE}/edges`, {
             topologyId: id,
             source: edge.source,
             target: edge.target,
@@ -2437,14 +2437,14 @@ export default function TopologyCanvas() {
       // Apply to DB
       if (action.nodeId === 'viewport-box') {
         try {
-          await axios.patch(`${API_BASE}/api/topologies/${id}/viewport`, {
+          await axios.patch(`${API_BASE}/topologies/${id}/viewport`, {
             x: action.oldValue!.x, y: action.oldValue!.y,
             w: action.oldValue!.w || 1000, h: action.oldValue!.h || 500
           });
         } catch (e) { }
       } else {
         try {
-          await axios.patch(`${API_BASE}/api/nodes/${action.nodeId}/position`, {
+          await axios.patch(`${API_BASE}/nodes/${action.nodeId}/position`, {
             positionX: action.oldValue!.x, positionY: action.oldValue!.y,
           });
         } catch (e) { }
@@ -2476,14 +2476,14 @@ export default function TopologyCanvas() {
       for (const move of (action.moves || [])) {
         if (move.nodeId === 'viewport-box') {
           try {
-            await axios.patch(`${API_BASE}/api/topologies/${id}/viewport`, {
+            await axios.patch(`${API_BASE}/topologies/${id}/viewport`, {
               x: move.newValue.x, y: move.newValue.y,
               w: move.newValue.w || 1000, h: move.newValue.h || 500
             });
           } catch (e) {}
         } else {
           try {
-            await axios.patch(`${API_BASE}/api/nodes/${move.nodeId}/position`, {
+            await axios.patch(`${API_BASE}/nodes/${move.nodeId}/position`, {
               positionX: move.newValue.x, positionY: move.newValue.y,
             });
           } catch (e) {}
@@ -2494,7 +2494,7 @@ export default function TopologyCanvas() {
       setEdges(eds => [...eds, action.edge]);
       // Restore edge in DB
       try {
-        const res = await axios.post(`${API_BASE}/api/edges`, {
+        const res = await axios.post(`${API_BASE}/edges`, {
           topologyId: id,
           source: action.edge.source,
           target: action.edge.target,
@@ -2513,7 +2513,7 @@ export default function TopologyCanvas() {
       // Delete edges from DB
       for (const edge of (action.edges || [])) {
         try {
-          await axios.delete(`${API_BASE}/api/edges/${edge.id}`);
+          await axios.delete(`${API_BASE}/edges/${edge.id}`);
         } catch (e) {}
       }
     } else {
@@ -2532,14 +2532,14 @@ export default function TopologyCanvas() {
       // Apply to DB
       if (action.nodeId === 'viewport-box') {
         try {
-          await axios.patch(`${API_BASE}/api/topologies/${id}/viewport`, {
+          await axios.patch(`${API_BASE}/topologies/${id}/viewport`, {
             x: action.newValue!.x, y: action.newValue!.y,
             w: action.newValue!.w || 1000, h: action.newValue!.h || 500
           });
         } catch (e) { }
       } else {
         try {
-          await axios.patch(`${API_BASE}/api/nodes/${action.nodeId}/position`, {
+          await axios.patch(`${API_BASE}/nodes/${action.nodeId}/position`, {
             positionX: action.newValue!.x, positionY: action.newValue!.y,
           });
         } catch (e) { }
@@ -2672,7 +2672,7 @@ export default function TopologyCanvas() {
 
     if (node.id === 'viewport-box') {
       try {
-        await axios.patch(`${API_BASE}/api/topologies/${id}/viewport`, {
+        await axios.patch(`${API_BASE}/topologies/${id}/viewport`, {
           x: newX, y: newY, w: newW, h: newH
         });
       } catch (e) { }
@@ -2680,7 +2680,7 @@ export default function TopologyCanvas() {
     }
 
     try {
-      await axios.patch(`${API_BASE}/api/nodes/${node.id}/position`, {
+      await axios.patch(`${API_BASE}/nodes/${node.id}/position`, {
         positionX: newX, positionY: newY,
       });
     } catch (e) { console.error('Failed to save position', e); }
@@ -2696,7 +2696,7 @@ export default function TopologyCanvas() {
           const childX = Math.round(startPos.x + dx);
           const childY = Math.round(startPos.y + dy);
           try {
-            await axios.patch(`${API_BASE}/api/nodes/${child.id}/position`, {
+            await axios.patch(`${API_BASE}/nodes/${child.id}/position`, {
               positionX: childX, positionY: childY,
             });
           } catch (e) { console.error('Failed to save child sensor position', e); }
@@ -2709,7 +2709,7 @@ export default function TopologyCanvas() {
   const handleSaveCustomNode = async (nodeId: string, updatedProps: any) => {
     try {
       if (updatedProps.nodeName) {
-        await axios.patch(`${API_BASE}/api/nodes/${nodeId}`, {
+        await axios.patch(`${API_BASE}/nodes/${nodeId}`, {
           nodeName: updatedProps.nodeName,
         });
       }
@@ -2768,7 +2768,7 @@ export default function TopologyCanvas() {
               n.position = newPos;
 
               // Save new sensor position to database
-              axios.patch(`${API_BASE}/api/nodes/${n.id}/position`, {
+              axios.patch(`${API_BASE}/nodes/${n.id}/position`, {
                 positionX: newPos.x, positionY: newPos.y
               }).catch(console.error);
             }
@@ -2794,7 +2794,7 @@ export default function TopologyCanvas() {
             }
 
             // Save new sensor position to database
-            axios.patch(`${API_BASE}/api/nodes/${nodeId}/position`, {
+            axios.patch(`${API_BASE}/nodes/${nodeId}/position`, {
               positionX: newPos.x, positionY: newPos.y
             }).catch(console.error);
           }
@@ -2819,7 +2819,7 @@ export default function TopologyCanvas() {
             inlet3On: updatedNode.data.inlet3On,
             inlet4On: updatedNode.data.inlet4On,
           };
-          axios.patch(`${API_BASE}/api/nodes/${nodeId}`, { attributes }).catch(console.error);
+          axios.patch(`${API_BASE}/nodes/${nodeId}`, { attributes }).catch(console.error);
         }
         return updatedNodes;
       });
@@ -2839,7 +2839,7 @@ export default function TopologyCanvas() {
       return;
     }
     try {
-      const nodeRes = await axios.get(`${API_BASE}/api/nodes`);
+      const nodeRes = await axios.get(`${API_BASE}/nodes`);
       const target = nodeRes.data.find((n: any) => n.id === node.id);
       setNodeHistory([]);
       setSelectedNode({ id: node.id, ...node.data, sensors: target?.sensors || [] });
@@ -2901,7 +2901,7 @@ export default function TopologyCanvas() {
       setEdges((eds) => addEdge(edgeToAdd, eds));
 
       try {
-        const res = await axios.post(`${API_BASE}/api/edges`, {
+        const res = await axios.post(`${API_BASE}/edges`, {
           topologyId: id,
           source: params.source,
           target: params.target,
@@ -2935,7 +2935,7 @@ export default function TopologyCanvas() {
       setRedoStack([]);
 
       deletedEdges.forEach((edge) => {
-        axios.delete(`${API_BASE}/api/edges/${edge.id}`).catch(() => { });
+        axios.delete(`${API_BASE}/edges/${edge.id}`).catch(() => { });
       });
     },
     [setUndoStack, setRedoStack]
@@ -3018,7 +3018,7 @@ export default function TopologyCanvas() {
     setNodes((nds) => [...nds, optimisticNode]);
 
     try {
-      const res = await axios.post(`${API_BASE}/api/nodes`, {
+      const res = await axios.post(`${API_BASE}/nodes`, {
         topologyId: id,
         topologyName: 'Star Topology',
         nodeName: targetName,
@@ -3446,7 +3446,7 @@ export default function TopologyCanvas() {
                     onSaveEdge={onConnect}
                     onDeleteEdge={(edgeId) => {
                       setEdges(eds => eds.filter(e => e.id !== edgeId));
-                      axios.delete(`${API_BASE}/api/edges/${edgeId}`).catch(console.error);
+                      axios.delete(`${API_BASE}/edges/${edgeId}`).catch(console.error);
                     }}
                     activeNodeId={activeConnectNodeId}
                   />
