@@ -264,7 +264,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
                     />
                   ) : (
                     <img 
-                      src={`/assets/sensors/${item.svgName}.svg`} 
+                      src={`${import.meta.env.BASE_URL}assets/sensors/${item.svgName}.svg`} 
                       alt={item.name} 
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />

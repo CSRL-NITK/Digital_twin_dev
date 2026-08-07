@@ -1060,7 +1060,7 @@ function SensorNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
             />
           ) : (
             <img 
-              src={`/assets/sensors/${displaySvgName}.svg`} 
+              src={`${import.meta.env.BASE_URL}assets/sensors/${displaySvgName}.svg`} 
               alt={name}
               style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
             />

@@ -639,7 +639,7 @@ export default function TopologyManagement() {
                           />
                         ) : (
                           <img 
-                            src={`/assets/sensors/${sensor.svgName}.svg`} 
+                            src={`${import.meta.env.BASE_URL}assets/sensors/${sensor.svgName}.svg`} 
                             alt={sensor.name} 
                             style={{ width: '80%', height: '80%', objectFit: 'contain' }}
                           />
@@ -1173,7 +1173,7 @@ export default function TopologyManagement() {
                 />
               ) : (
                 <img 
-                  src={`/assets/sensors/${previewSvg.svgName}.svg`} 
+                  src={`${import.meta.env.BASE_URL}assets/sensors/${previewSvg.svgName}.svg`} 
                   alt={previewSvg.name} 
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />

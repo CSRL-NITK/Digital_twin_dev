@@ -504,7 +504,7 @@ function SensorNodeView({ data }: { data: any }) {
           transition: 'all 0.16s ease',
         }}>
           <img 
-            src={`/assets/sensors/${cfg.svgName}.svg`} 
+            src={`${import.meta.env.BASE_URL}assets/sensors/${cfg.svgName}.svg`} 
             alt={name}
             style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
           />
