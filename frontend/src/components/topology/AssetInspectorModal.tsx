@@ -32,7 +32,12 @@ export const AssetInspectorModal: React.FC<AssetInspectorModalProps> = ({
   onSave,
 }) => {
   const isSensor = ['water_level', 'ph', 'tds', 'temperature'].includes(node.type);
-  const isIndustrial = ['tank', 'central_tank', 'source_tank', 'pump'].includes(node.type);
+  const isIndustrial = [
+    'tank', 'central_tank', 'source_tank', 'pump',
+    'solar_panel', 'control_box', 'solenoid_valve',
+    'smart_garden_solar_panel', 'smart_garden_control_box', 'smart_garden_solenoid_valve',
+    'industrial_solar_panel', 'electronic_control_box', 'valve_assembly'
+  ].includes(node.type);
   const isPump = node.type === 'pump';
 
   const defaultCapacity = isPump ? 3000 : node.type === 'source_tank' ? 15000 : node.type === 'central_tank' ? 10000 : 5000;

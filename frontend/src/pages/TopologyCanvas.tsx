@@ -30,6 +30,10 @@ import { WaterTank as SourceWaterTank } from '../components/nodes/SourceWaterTan
 import { CentrifugalPumpSvg } from '../components/nodes/CentrifugalPump';
 import { Pump3DSwitch } from '../components/nodes/Pump3DSwitch';
 import { FloatingNodePalette } from '../components/topology/FloatingNodePalette';
+import { SmartGardenPalette } from '../components/smart-garden/SmartGardenPalette';
+import { SolarPanelNodeView } from '../components/smart-garden/SolarPanelNodeView';
+import { ControlBoxNodeView } from '../components/smart-garden/ControlBoxNodeView';
+import { SolenoidValveNodeView } from '../components/smart-garden/SolenoidValveNodeView';
 import { AssetInspectorModal } from '../components/topology/AssetInspectorModal';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../components/ThemeProvider';
@@ -137,6 +141,15 @@ const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
   }
   if (type === 'pump') {
     return { width: 387, height: 242 };
+  }
+  if (type.includes('solar') || type.includes('panel')) {
+    return { width: 160, height: 240 };
+  }
+  if (type.includes('control') || type.includes('box')) {
+    return { width: 280, height: 320 };
+  }
+  if (type.includes('valve') || type.includes('solenoid') || type.includes('meter')) {
+    return { width: 340, height: 180 };
   }
   if (type.includes('central') || type.includes('source') || type === 'source' || type.includes('tank')) {
     return { width: 295, height: 376 };
@@ -1110,6 +1123,9 @@ const SourceTankNodeViewMemo = memo(SourceTankNodeView);
 const SwitchNodeViewMemo = memo(SwitchNodeView);
 const PumpNodeViewMemo = memo(PumpNodeView);
 const SensorNodeViewMemo = memo(SensorNodeView);
+const SolarPanelNodeViewMemo = memo(SolarPanelNodeView);
+const ControlBoxNodeViewMemo = memo(ControlBoxNodeView);
+const SolenoidValveNodeViewMemo = memo(SolenoidValveNodeView);
 
 
 const nodeTypes = {
@@ -1125,6 +1141,15 @@ const nodeTypes = {
   tds: SensorNodeViewMemo,
   temperature: SensorNodeViewMemo,
   sensor: SensorNodeViewMemo,
+  solar_panel: SolarPanelNodeViewMemo,
+  smart_garden_solar_panel: SolarPanelNodeViewMemo,
+  industrial_solar_panel: SolarPanelNodeViewMemo,
+  control_box: ControlBoxNodeViewMemo,
+  electronic_control_box: ControlBoxNodeViewMemo,
+  smart_garden_control_box: ControlBoxNodeViewMemo,
+  solenoid_valve: SolenoidValveNodeViewMemo,
+  smart_garden_solenoid_valve: SolenoidValveNodeViewMemo,
+  valve_assembly: SolenoidValveNodeViewMemo,
 };
 
 const edgeTypes = {
@@ -1475,6 +1500,13 @@ export const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): b
       return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
     }
 
+    if (node.type && (node.type.includes('valve') || node.type.includes('solenoid'))) {
+      if (node.data?.valveOn === false || node.data?.inletValveOn === false) return false;
+      const incomingEdges = allEdges.filter((e: any) => getTargetId(e) === nodeId);
+      if (incomingEdges.length === 0) return true;
+      return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
+    }
+
     return true;
   };
 
@@ -1511,6 +1543,7 @@ export default function TopologyCanvas() {
   const [showPaletteMenu, setShowPaletteMenu] = useState(false);
   const [showNodePalette, setShowNodePalette] = useState(false);
   const [showSensorPalette, setShowSensorPalette] = useState(false);
+  const [showSmartGardenPalette, setShowSmartGardenPalette] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [allowDeleteNodes, setAllowDeleteNodes] = useState(false);
   const [allowCustomizeNodes, setAllowCustomizeNodes] = useState(false);
@@ -1859,6 +1892,7 @@ export default function TopologyCanvas() {
       setShowPaletteMenu(false);
       setShowNodePalette(false);
       setShowSensorPalette(false);
+      setShowSmartGardenPalette(false);
       setShowDeleteMenu(false);
       setAllowDeleteNodes(false);
       setAllowCustomizeNodes(false);
@@ -3142,6 +3176,7 @@ export default function TopologyCanvas() {
                 if (showPaletteMenu) {
                   setShowNodePalette(false);
                   setShowSensorPalette(false);
+                  setShowSmartGardenPalette(false);
                 } else {
                   setAllowMoveResize(false);
                   setShowDeleteMenu(false);
@@ -3182,11 +3217,13 @@ export default function TopologyCanvas() {
                 position: 'absolute', top: '100%', left: 0, marginTop: 6,
                 background: 'rgba(23, 24, 28, 0.70)', border: '1px solid rgba(255,255,255,0.10)',
                 borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.20)', minWidth: 170, zIndex: 50, backdropFilter: 'blur(10px)'
+                boxShadow: '0 8px 24px rgba(0,0,0,0.20)', minWidth: 190, zIndex: 50, backdropFilter: 'blur(10px)'
               }}>
                 <Switch checked={showNodePalette} onChange={setShowNodePalette} label="Node Palette" />
                 <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
                 <Switch checked={showSensorPalette} onChange={setShowSensorPalette} label="Sensor Palette" />
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+                <Switch checked={showSmartGardenPalette} onChange={setShowSmartGardenPalette} label="Smart Garden Palette" />
               </div>
             )}
           </div>
@@ -3475,6 +3512,9 @@ export default function TopologyCanvas() {
       {editMode && <EditModeBanner />}
       {editMode && (showNodePalette || showSensorPalette) && (
         <FloatingNodePalette showNodePalette={showNodePalette} showSensorPalette={showSensorPalette} isMenuOpen={showPaletteMenu} />
+      )}
+      {editMode && showSmartGardenPalette && (
+        <SmartGardenPalette showSmartGardenPalette={showSmartGardenPalette} showNodePalette={showNodePalette} showSensorPalette={showSensorPalette} isMenuOpen={showPaletteMenu} />
       )}
 
       {/* Viewport Guide box moved inside ReactFlow */}
