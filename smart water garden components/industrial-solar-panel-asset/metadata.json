@@ -1,0 +1,6 @@
+{
+  "name": "Industrial Solar Panel Asset",
+  "description": "Interactive Industrial Solar Panel vector component with layered SVG inspector, material customizer, and SCADA HMI telemetry dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
