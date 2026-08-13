@@ -218,17 +218,6 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <rect x="272" y="317" width="10" height="10" rx="1" fill="#0f172a" stroke="#334155" strokeWidth="1" />
           </g>
 
-          {/* Solenoid Top Coil Indicator */}
-          <g id="component-solenoid_coil">
-            <rect x="252" y="185" width="50" height="12" rx="2" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1" />
-            <rect x="255" y="132" width="44" height="55" rx="6" fill="url(#solenoid-black)" stroke="#0f172a" strokeWidth="1.5" />
-            
-            {valveState && (
-              <rect x="255" y="132" width="44" height="55" rx="6" fill="none" stroke="#10b981" strokeWidth="2.5" className="animate-pulse" />
-            )}
-            <rect x="267" y="120" width="20" height="14" rx="3" fill="url(#silver-grad)" stroke="#0f172a" strokeWidth="1" />
-            <circle cx="277" cy="122" r="4" fill="#0f172a" />
-          </g>
 
           {/* Amber/Gold 4-Blade Turbine Impeller Cross (Bus Topology Reference) */}
           <g id="component-bus_solenoid_turbine">
