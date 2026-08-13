@@ -328,34 +328,7 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <rect x="768" y="228" width="76" height="44" fill="url(#bronze-grad)" stroke="#4e2c07" strokeWidth="1.5" />
           </g>
 
-          {/* 3D ILLUMINATED ROCKER POWER SWITCH (MATCHING IMAGE 2 AT RED BOX LOCATION) */}
-          <g id="component-rocker_switch" transform="translate(718, 145)">
-            {/* Outer Mounting Frame Bezel */}
-            <rect x="0" y="0" width="44" height="68" rx="6" fill="#1e1e24" stroke="#0f172a" strokeWidth="2" />
-            <rect x="3" y="3" width="38" height="62" rx="4" fill="#0f1217" stroke="#334155" strokeWidth="1" />
 
-            {/* Rocker Switch Button (Dynamic ON/OFF State) */}
-            {valveState ? (
-              <g id="rocker-on">
-                <rect x="6" y="6" width="32" height="56" rx="3" fill="url(#switch-green-grad)" stroke="#16a34a" strokeWidth="1.5" />
-                <path d="M 6 6 L 38 6 L 34 18 L 10 18 Z" fill="rgba(255,255,255,0.35)" />
-                <rect x="6" y="6" width="32" height="56" rx="3" fill="none" stroke="#4ade80" strokeWidth="1.5" className="animate-pulse" />
-                {/* 'I' ON Symbol */}
-                <line x1="22" y1="16" x2="22" y2="28" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round" />
-                {/* 'O' OFF Symbol */}
-                <circle cx="22" cy="44" r="6" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" />
-              </g>
-            ) : (
-              <g id="rocker-off">
-                <rect x="6" y="6" width="32" height="56" rx="3" fill="url(#switch-red-grad)" stroke="#dc2626" strokeWidth="1.5" />
-                <path d="M 6 50 L 38 50 L 34 62 L 10 62 Z" fill="rgba(0,0,0,0.4)" />
-                {/* 'I' ON Symbol */}
-                <line x1="22" y1="18" x2="22" y2="26" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" />
-                {/* 'O' OFF Symbol */}
-                <circle cx="22" cy="42" r="6.5" fill="none" stroke="#ffffff" strokeWidth="3" />
-              </g>
-            )}
-          </g>
 
           <g id="component-bronze_elbow">
             <path

@@ -1,7 +1,8 @@
 import React from 'react';
-import { NodeResizer, Handle, Position, useEdges } from 'reactflow';
+import { NodeResizer, Handle, Position, useEdges, useReactFlow } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { SolenoidValveAssemblySVG } from './SolenoidValveAssemblySVG';
+import { Pump3DSwitch } from '../nodes/Pump3DSwitch';
 import { Trash2 } from 'lucide-react';
 
 function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: string; nodeName?: string; allowDelete?: boolean; onDelete?: (id: string) => void }) {
@@ -77,11 +78,33 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
   const nodeName = data?.nodeName || 'Solenoid Valve & Flow Meter';
   const isFlipped = !!data?.flipHorizontal;
   const edges = useEdges();
+  const reactFlow = useReactFlow();
 
   // Evaluate if water is flowing into this valve node
   const incomingEdge = edges.find(e => e.target === id);
   const isIncomingFlowing = incomingEdge ? ((incomingEdge.data as any)?.isFlowing !== false) : true;
+  
+  // Track valve state
   const valveState = data?.valveOn !== false && data?.inletValveOn !== false;
+
+  const handleToggleSwitch = () => {
+    const nextState = !valveState;
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === id) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              valveOn: nextState,
+              inletValveOn: nextState,
+            },
+          };
+        }
+        return n;
+      })
+    );
+  };
 
   return (
     <div
@@ -96,7 +119,7 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
       }}
     >
       <AdminNodeDeleteBtn id={id} nodeName={nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
@@ -149,7 +172,7 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
       />
 
       {/* Vector SVG Model View with Horizontal Flip */}
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease', position: 'relative' }}>
         <SolenoidValveAssemblySVG
           valveState={valveState}
           isFlowing={isIncomingFlowing}
@@ -157,6 +180,27 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
           turbineRpm={data?.turbineRpm ?? 1450}
           className="w-full h-full object-contain"
         />
+
+        {/* Interactive 3D Rocker Switch Replica (Bus Topology Reference - Positioned at marked red box location) */}
+        <div
+          className="nodrag nopan"
+          style={{
+            position: 'absolute',
+            left: isFlipped ? '25%' : '75.2%',
+            top: '23.5%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 60,
+            cursor: 'pointer',
+          }}
+          title={valveState ? 'Click 3D switch to turn Valve OFF' : 'Click 3D switch to turn Valve ON'}
+        >
+          <Pump3DSwitch
+            isOn={valveState}
+            canControl={true}
+            onToggle={handleToggleSwitch}
+            scale={0.24}
+          />
+        </div>
       </div>
 
       {/* Floating Node Label Badge */}
