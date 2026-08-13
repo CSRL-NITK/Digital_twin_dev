@@ -186,8 +186,8 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
           className="nodrag nopan"
           style={{
             position: 'absolute',
-            left: isFlipped ? '25%' : '75.2%',
-            top: '23.5%',
+            left: isFlipped ? '25.5%' : '74.5%',
+            top: '26%',
             transform: 'translate(-50%, -50%)',
             zIndex: 60,
             cursor: 'pointer',
@@ -198,7 +198,7 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
             isOn={valveState}
             canControl={true}
             onToggle={handleToggleSwitch}
-            scale={0.24}
+            scale={0.28}
           />
         </div>
       </div>
