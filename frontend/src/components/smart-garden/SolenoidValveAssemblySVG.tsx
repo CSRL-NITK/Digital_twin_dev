@@ -104,6 +104,12 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <stop offset="100%" stopColor="#0d3b11" />
           </linearGradient>
 
+          <linearGradient id="gold-impeller" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fbbf24" />
+            <stop offset="50%" stopColor="#f59e0b" />
+            <stop offset="100%" stopColor="#b45309" />
+          </linearGradient>
+
           <linearGradient id="water-stream" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(14, 165, 233, 0.85)" />
             <stop offset="50%" stopColor="rgba(56, 189, 248, 0.95)" />
@@ -177,20 +183,42 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <rect x="148" y="224" width="42" height="52" rx="3" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1.5" />
           </g>
 
-          {/* 2. SOLENOID VALVE ASSEMBLY */}
+          {/* 2. BUS TOPOLOGY REFERENCE SOLENOID VALVE ASSEMBLY */}
           <g id="component-solenoid_body">
+            {/* Side Connectors */}
             <rect x="190" y="228" width="28" height="44" rx="3" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1.5" />
-            <rect x="218" y="195" width="118" height="110" rx="12" fill="url(#solenoid-black)" stroke="#0f172a" strokeWidth="2" />
-            <rect x="224" y="201" width="106" height="98" rx="8" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
-            
-            {/* Real Photo Circular Solenoid Dial Housing Rim */}
-            <circle cx="277" cy="250" r="30" fill="#141923" stroke="#3b82f6" strokeWidth="2" />
-            <circle cx="277" cy="250" r="26" fill="rgba(6, 182, 212, 0.15)" stroke="#06b6d4" strokeWidth="1.5" />
-
             <rect x="336" y="228" width="28" height="44" rx="3" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1.5" />
+
+            {/* Main Dark Body Enclosure */}
+            <rect x="218" y="195" width="118" height="110" rx="14" fill="url(#solenoid-black)" stroke="#0f172a" strokeWidth="2.5" />
+            <rect x="224" y="201" width="106" height="98" rx="10" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
+
+            {/* Corner Mounting Tabs (4 Screws) */}
+            <g id="solenoid-screw-tabs">
+              <circle cx="234" cy="211" r="7" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+              <circle cx="234" cy="211" r="3" fill="#0f172a" stroke="#94a3b8" strokeWidth="1" />
+
+              <circle cx="320" cy="211" r="7" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+              <circle cx="320" cy="211" r="3" fill="#0f172a" stroke="#94a3b8" strokeWidth="1" />
+
+              <circle cx="234" cy="289" r="7" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+              <circle cx="234" cy="289" r="3" fill="#0f172a" stroke="#94a3b8" strokeWidth="1" />
+
+              <circle cx="320" cy="289" r="7" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+              <circle cx="320" cy="289" r="3" fill="#0f172a" stroke="#94a3b8" strokeWidth="1" />
+            </g>
+
+            {/* Outer Dark Circular Bezel */}
+            <circle cx="277" cy="250" r="38" fill="#111827" stroke="#374151" strokeWidth="2.5" />
+            <circle cx="277" cy="250" r="32" fill="#1e293b" stroke="#0284c7" strokeWidth="2" />
+            <circle cx="277" cy="250" r="27" fill="#0f172a" stroke="#0f172a" strokeWidth="1.5" />
+
+            {/* Cable Gland Connector at Bottom */}
+            <rect x="270" y="305" width="14" height="12" rx="2" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1" />
+            <rect x="272" y="317" width="10" height="10" rx="1" fill="#0f172a" stroke="#334155" strokeWidth="1" />
           </g>
 
-          {/* Solenoid Top Coil Housing */}
+          {/* Solenoid Top Coil Indicator */}
           <g id="component-solenoid_coil">
             <rect x="252" y="185" width="50" height="12" rx="2" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1" />
             <rect x="255" y="132" width="44" height="55" rx="6" fill="url(#solenoid-black)" stroke="#0f172a" strokeWidth="1.5" />
@@ -202,19 +230,17 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <circle cx="277" cy="122" r="4" fill="#0f172a" />
           </g>
 
-          {/* Turbine Rotor Assembly Shifted Inside Solenoid Valve Dial */}
-          <g id="component-flow_meter_turbine">
-            <circle cx="277" cy="250" r="10" fill="url(#silver-grad)" stroke="#0f172a" strokeWidth="1.5" />
+          {/* Amber/Gold 4-Blade Turbine Impeller Cross (Bus Topology Reference) */}
+          <g id="component-bus_solenoid_turbine">
+            <circle cx="277" cy="250" r="8" fill="url(#silver-grad)" stroke="#0f172a" strokeWidth="1.5" />
             <g className={activeFlow ? "spinning-rotor" : ""}>
-              <path d="M 277 250 C 277 220, 297 210, 312 215 C 297 230, 282 245, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 277 250 C 302 235, 317 250, 312 268 C 292 260, 282 252, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 277 250 C 292 270, 282 288, 265 285 C 269 265, 275 255, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 277 250 C 277 280, 257 290, 242 285 C 257 270, 272 255, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 277 250 C 252 265, 237 250, 242 232 C 262 240, 272 248, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 277 250 C 262 230, 272 212, 289 215 C 285 235, 279 245, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <circle cx="307" cy="218" r="3.5" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
+              <path d="M 277 250 C 277 225, 292 218, 300 225 C 290 236, 282 245, 277 250 Z" fill="url(#gold-impeller)" stroke="#78350f" strokeWidth="1" />
+              <path d="M 277 250 C 302 250, 309 265, 302 273 C 291 263, 282 255, 277 250 Z" fill="url(#gold-impeller)" stroke="#78350f" strokeWidth="1" />
+              <path d="M 277 250 C 277 275, 262 282, 254 275 C 264 264, 272 255, 277 250 Z" fill="url(#gold-impeller)" stroke="#78350f" strokeWidth="1" />
+              <path d="M 277 250 C 252 250, 245 235, 252 227 C 263 237, 272 245, 277 250 Z" fill="url(#gold-impeller)" stroke="#78350f" strokeWidth="1" />
+              <circle cx="295" cy="228" r="3" fill="#ef4444" stroke="#ffffff" strokeWidth="0.8" />
             </g>
-            <circle cx="277" cy="250" r="5" fill="#f8fafc" />
+            <circle cx="277" cy="250" r="4" fill="#f8fafc" />
           </g>
 
           {/* 3. PVC CONNECTOR WITH DOWNWARD T-SOCKET */}
