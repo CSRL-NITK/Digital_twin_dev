@@ -21,7 +21,7 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
   return (
     <div className={`relative w-full h-full flex items-center justify-center overflow-hidden select-none ${className}`}>
       <svg
-        viewBox="0 0 1000 480"
+        viewBox="70 40 860 460"
         className="w-full h-full max-h-[85vh] drop-shadow-xl transition-transform duration-200 ease-out object-contain"
       >
         <defs>
@@ -183,11 +183,12 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <rect x="218" y="195" width="118" height="110" rx="12" fill="url(#solenoid-black)" stroke="#0f172a" strokeWidth="2" />
             <rect x="224" y="201" width="106" height="98" rx="8" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
             
-            <rect x="242" y="235" width="70" height="34" rx="3" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1" />
-            <rect x="248" y="240" width="38" height="4" fill="#0284c7" />
-            <text x="248" y="254" fontSize="6" fontFamily="sans-serif" fontWeight="bold" fill="#0f172a">SOLENOID VALVE</text>
-            <text x="248" y="262" fontSize="5" fontFamily="monospace" fill="#475569">12VDC 0.02-0.8MPa</text>
-            <path d="M 240 282 L 260 282 L 260 279 L 268 284 L 260 289 L 260 286 L 240 286 Z" fill="#64748b" />
+            {/* Real Photo Circular Solenoid Dial / Cap */}
+            <circle cx="277" cy="250" r="28" fill="#181e29" stroke="#475569" strokeWidth="2" />
+            <circle cx="277" cy="250" r="22" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
+            <rect x="260" y="244" width="34" height="12" rx="2" fill="#ffffff" stroke="#94a3b8" strokeWidth="0.8" />
+            <line x1="264" y1="247" x2="290" y2="247" stroke="#0f172a" strokeWidth="1.5" strokeDasharray="2,1" />
+            <line x1="264" y1="251" x2="290" y2="251" stroke="#0f172a" strokeWidth="1.5" strokeDasharray="3,1" />
 
             <rect x="336" y="228" width="28" height="44" rx="3" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1.5" />
           </g>
@@ -204,16 +205,61 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <circle cx="277" cy="122" r="4" fill="#0f172a" />
           </g>
 
-          {/* 3. PVC CONNECTOR */}
+          {/* 3. PVC CONNECTOR WITH DOWNWARD T-SOCKET */}
           <g id="component-pvc_connector">
             <rect x="364" y="214" width="86" height="72" rx="6" fill="url(#pvc-gray)" stroke="#334155" strokeWidth="1.5" />
             <rect x="376" y="210" width="14" height="80" rx="3" fill="url(#dark-pvc-ring)" stroke="#0f172a" strokeWidth="1" />
             <rect x="424" y="210" width="14" height="80" rx="3" fill="url(#dark-pvc-ring)" stroke="#0f172a" strokeWidth="1" />
             <rect x="450" y="225" width="98" height="50" fill="url(#pvc-gray)" stroke="#334155" strokeWidth="1" />
             <rect x="522" y="218" width="22" height="64" rx="3" fill="url(#dark-pvc-ring)" stroke="#0f172a" strokeWidth="1" />
+
+            {/* Downward PVC T-Socket Branch for Conduit Loop */}
+            <rect x="395" y="275" width="22" height="24" rx="3" fill="url(#pvc-gray)" stroke="#334155" strokeWidth="1.5" />
+            <rect x="393" y="295" width="26" height="10" rx="2" fill="url(#dark-pvc-ring)" stroke="#0f172a" strokeWidth="1" />
           </g>
 
-          {/* 4. TRANSPARENT WATER FLOW METER */}
+          {/* 4. BLACK FLEXIBLE CORRUGATED CONDUIT LOOP (REAL PHOTO MATCH) */}
+          <g id="corrugated-conduit-loop">
+            {/* Outer Flexible Conduit Pipe */}
+            <path
+              d="M 406 303 C 406 430, 640 430, 640 338"
+              fill="none"
+              stroke="#11161d"
+              strokeWidth="15"
+              strokeLinecap="round"
+            />
+            {/* Corrugated Outer Ribbed Texture */}
+            <path
+              d="M 406 303 C 406 430, 640 430, 640 338"
+              fill="none"
+              stroke="#334155"
+              strokeWidth="5"
+              strokeDasharray="5,6"
+              strokeLinecap="round"
+            />
+            {/* Inner Core Accent */}
+            <path
+              d="M 406 303 C 406 430, 640 430, 640 338"
+              fill="none"
+              stroke="#0f172a"
+              strokeWidth="2"
+            />
+          </g>
+
+          {/* WHITE CABLE ZIP TIES (REAL PHOTO MATCH) */}
+          <g id="zip-ties">
+            {/* Left Zip Tie */}
+            <rect x="442" y="218" width="5" height="64" rx="2" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+            <rect x="441" y="214" width="7" height="6" rx="1" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+            <line x1="444.5" y1="195" x2="444.5" y2="214" stroke="#f8fafc" strokeWidth="2.5" />
+            
+            {/* Right Zip Tie */}
+            <rect x="702" y="216" width="5" height="68" rx="2" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+            <rect x="701" y="212" width="7" height="6" rx="1" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+            <line x1="704.5" y1="195" x2="704.5" y2="212" stroke="#f8fafc" strokeWidth="2.5" />
+          </g>
+
+          {/* 5. TRANSPARENT WATER FLOW METER */}
           <g id="component-flow_meter_housing">
             <rect x="544" y="222" width="168" height="56" rx="4" fill="url(#pvc-gray)" stroke="#334155" strokeWidth="1.5" />
             <rect x="558" y="218" width="18" height="64" rx="2" fill="url(#dark-pvc-ring)" />
@@ -243,7 +289,15 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <circle cx="640" cy="150" r="5" fill="#f8fafc" />
           </g>
 
-          {/* 5. RIGHT PIPE EXTENSION & 90° BRONZE ELBOW */}
+          {/* Flow Meter Lower Transducer Base */}
+          <g id="component-flow_meter_base">
+            <rect x="620" y="278" width="40" height="20" rx="3" fill="url(#solenoid-black)" stroke="#0f172a" strokeWidth="1.5" />
+            <rect x="628" y="298" width="24" height="42" rx="4" fill="#f8fafc" stroke="#64748b" strokeWidth="1.5" />
+            <line x1="628" y1="310" x2="652" y2="310" stroke="#cbd5e1" strokeWidth="1.5" />
+            <line x1="628" y1="324" x2="652" y2="324" stroke="#cbd5e1" strokeWidth="1.5" />
+          </g>
+
+          {/* 6. RIGHT PIPE EXTENSION & 90° BRONZE ELBOW */}
           <g id="component-pipe_extension">
             <rect x="712" y="222" width="56" height="56" rx="4" fill="url(#pvc-gray)" stroke="#334155" strokeWidth="1.5" />
             <rect x="720" y="218" width="12" height="64" rx="2" fill="url(#dark-pvc-ring)" />
