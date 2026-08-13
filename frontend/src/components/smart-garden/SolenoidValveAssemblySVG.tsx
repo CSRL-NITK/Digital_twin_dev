@@ -144,7 +144,7 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
           {activeFlow && (
             <g className="opacity-95">
               <path
-                d="M 80 250 L 860 250 L 860 410"
+                d="M 80 250 L 884 250 L 884 410"
                 fill="none"
                 stroke="url(#water-stream)"
                 strokeWidth={20}
@@ -157,7 +157,7 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
               <path d="M 610 155 Q 640 130 670 155 Q 640 180 610 155" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.5" className="animated-flow" />
               
               <path
-                d="M 845 410 Q 860 450 850 470 M 860 410 L 860 475 M 875 410 Q 860 450 870 470"
+                d="M 869 410 Q 884 450 874 470 M 884 410 L 884 475 M 899 410 Q 884 450 894 470"
                 fill="none"
                 stroke="rgba(56, 189, 248, 0.85)"
                 strokeWidth="3.5"
