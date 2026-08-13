@@ -183,12 +183,9 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <rect x="218" y="195" width="118" height="110" rx="12" fill="url(#solenoid-black)" stroke="#0f172a" strokeWidth="2" />
             <rect x="224" y="201" width="106" height="98" rx="8" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
             
-            {/* Real Photo Circular Solenoid Dial / Cap */}
-            <circle cx="277" cy="250" r="28" fill="#181e29" stroke="#475569" strokeWidth="2" />
-            <circle cx="277" cy="250" r="22" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
-            <rect x="260" y="244" width="34" height="12" rx="2" fill="#ffffff" stroke="#94a3b8" strokeWidth="0.8" />
-            <line x1="264" y1="247" x2="290" y2="247" stroke="#0f172a" strokeWidth="1.5" strokeDasharray="2,1" />
-            <line x1="264" y1="251" x2="290" y2="251" stroke="#0f172a" strokeWidth="1.5" strokeDasharray="3,1" />
+            {/* Real Photo Circular Solenoid Dial Housing Rim */}
+            <circle cx="277" cy="250" r="30" fill="#141923" stroke="#3b82f6" strokeWidth="2" />
+            <circle cx="277" cy="250" r="26" fill="rgba(6, 182, 212, 0.15)" stroke="#06b6d4" strokeWidth="1.5" />
 
             <rect x="336" y="228" width="28" height="44" rx="3" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1.5" />
           </g>
@@ -203,6 +200,21 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             )}
             <rect x="267" y="120" width="20" height="14" rx="3" fill="url(#silver-grad)" stroke="#0f172a" strokeWidth="1" />
             <circle cx="277" cy="122" r="4" fill="#0f172a" />
+          </g>
+
+          {/* Turbine Rotor Assembly Shifted Inside Solenoid Valve Dial */}
+          <g id="component-flow_meter_turbine">
+            <circle cx="277" cy="250" r="10" fill="url(#silver-grad)" stroke="#0f172a" strokeWidth="1.5" />
+            <g className={activeFlow ? "spinning-rotor" : ""}>
+              <path d="M 277 250 C 277 220, 297 210, 312 215 C 297 230, 282 245, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
+              <path d="M 277 250 C 302 235, 317 250, 312 268 C 292 260, 282 252, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
+              <path d="M 277 250 C 292 270, 282 288, 265 285 C 269 265, 275 255, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
+              <path d="M 277 250 C 277 280, 257 290, 242 285 C 257 270, 272 255, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
+              <path d="M 277 250 C 252 265, 237 250, 242 232 C 262 240, 272 248, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
+              <path d="M 277 250 C 262 230, 272 212, 289 215 C 285 235, 279 245, 277 250 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
+              <circle cx="307" cy="218" r="3.5" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
+            </g>
+            <circle cx="277" cy="250" r="5" fill="#f8fafc" />
           </g>
 
           {/* 3. PVC CONNECTOR WITH DOWNWARD T-SOCKET */}
@@ -272,21 +284,6 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             <path d="M 588 74 L 596 74 L 596 218 L 588 218 Z" fill="url(#glass-specular)" />
             <ellipse cx="640" cy="115" rx="58" ry="8" fill="none" stroke="rgba(100, 116, 139, 0.6)" strokeWidth="3" />
             <ellipse cx="640" cy="175" rx="58" ry="8" fill="none" stroke="rgba(100, 116, 139, 0.6)" strokeWidth="3" />
-          </g>
-
-          {/* Turbine Rotor Assembly */}
-          <g id="component-flow_meter_turbine">
-            <circle cx="640" cy="150" r="10" fill="url(#silver-grad)" stroke="#0f172a" strokeWidth="1.5" />
-            <g className={activeFlow ? "spinning-rotor" : ""}>
-              <path d="M 640 150 C 640 120, 660 110, 675 115 C 660 130, 645 145, 640 150 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 640 150 C 665 135, 680 150, 675 168 C 655 160, 645 152, 640 150 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 640 150 C 655 170, 645 188, 628 185 C 632 165, 638 155, 640 150 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 640 150 C 640 180, 620 190, 605 185 C 620 170, 635 155, 640 150 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 640 150 C 615 165, 600 150, 605 132 C 625 140, 635 148, 640 150 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <path d="M 640 150 C 625 130, 635 112, 652 115 C 648 135, 642 145, 640 150 Z" fill="url(#turbine-green)" stroke="#0d3b11" strokeWidth="1" />
-              <circle cx="670" cy="118" r="3.5" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
-            </g>
-            <circle cx="640" cy="150" r="5" fill="#f8fafc" />
           </g>
 
           {/* Flow Meter Lower Transducer Base */}
