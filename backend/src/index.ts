@@ -451,7 +451,7 @@ app.delete('/api/nodes/:id', async (req, res) => {
 });
 
 app.post('/api/edges', async (req, res) => {
-  const { topologyId, source, target, sourceHandle, targetHandle, topologyName } = req.body;
+  const { topologyId, source, target, sourceHandle, targetHandle, topologyName, edgeType } = req.body;
   try {
     let topology = null;
     if (topologyId) {
@@ -472,7 +472,7 @@ app.post('/api/edges', async (req, res) => {
         targetNodeId: parseInt(target, 10),
         sourcePortId: sourceHandle || null,
         targetPortId: targetHandle || null,
-        edgeType: 'pipe',
+        edgeType: edgeType || 'pipe',
         status: 'normal'
       }
     });

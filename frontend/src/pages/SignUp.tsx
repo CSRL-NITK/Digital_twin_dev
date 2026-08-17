@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import axios from 'axios';
 import {
-  Droplets, Loader2, AlertCircle, CheckCircle2, Moon, Sun,
+  Loader2, AlertCircle, CheckCircle2, Moon, Sun,
   User, AtSign, Mail, Lock, Eye, EyeOff, CheckCircle, XCircle, Clock
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
@@ -154,14 +154,14 @@ export default function SignUp() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 38, height: 38, borderRadius: 10, background: '#17181c',
+              width: 38, height: 38, borderRadius: 10,
+              background: 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.20)',
             }}>
-              <Droplets size={19} color="#00ffff" strokeWidth={2.3} />
+              <img src="/csrl_logo.png" alt="CSRL Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div>
-              <p style={{ fontSize: 15, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.4px', lineHeight: 1.2 }}>AquaTwin</p>
+              <p style={{ fontSize: 15, fontWeight: 800, color: dark ? '#f0f0f2' : '#17181c', letterSpacing: '-0.4px', lineHeight: 1.2 }}>CSRL</p>
               <p style={{ fontSize: 10.5, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>Digital Twin Platform</p>
             </div>
           </div>

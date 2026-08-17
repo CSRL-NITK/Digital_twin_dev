@@ -68,7 +68,7 @@ const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): boolean 
     const node = allNodes.find((n: any) => n.id === nodeId);
     if (!node) return false;
 
-    if (node.type === 'central_tank' || node.type === 'tank') {
+    if (node.type && (node.type.includes('tank') || node.type === 'source')) {
       if (node.data?.outletValveOn === false) return false;
       const wl = node.data?.waterLevel ?? 0;
       return wl > 1;

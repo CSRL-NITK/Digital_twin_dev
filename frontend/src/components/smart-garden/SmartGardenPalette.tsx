@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Sprout, Cpu, Gauge, Droplet, Plus } from 'lucide-react';
+import { Sun, Sprout, Cpu, Droplet, ToggleRight } from 'lucide-react';
 
 export interface SmartGardenPaletteItem {
   nodeType: string;
@@ -30,6 +30,13 @@ const SMART_GARDEN_PALETTE_ITEMS: SmartGardenPaletteItem[] = [
     description: '12VDC Solenoid with Turbine Flow Meter',
     icon: <Droplet size={18} />,
     color: '#10b981',
+  },
+  {
+    nodeType: 'smart_garden_switch',
+    label: '3D Power Switch',
+    description: 'Illuminated 3D Rocker Switch for Smart Garden',
+    icon: <ToggleRight size={18} />,
+    color: '#22c55e',
   },
 ];
 

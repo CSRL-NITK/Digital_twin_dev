@@ -2,7 +2,6 @@ import React from 'react';
 import { NodeResizer, Handle, Position, useEdges, useReactFlow } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { SolenoidValveAssemblySVG } from './SolenoidValveAssemblySVG';
-import { Pump3DSwitch } from '../nodes/Pump3DSwitch';
 import { Trash2 } from 'lucide-react';
 
 function AdminNodeDeleteBtn({ id, nodeName, allowDelete, onDelete }: { id: string; nodeName?: string; allowDelete?: boolean; onDelete?: (id: string) => void }) {
@@ -84,11 +83,14 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
   const incomingEdge = edges.find(e => e.target === id);
   const isIncomingFlowing = incomingEdge ? ((incomingEdge.data as any)?.isFlowing !== false) : true;
   
-  // Track valve state
-  const valveState = data?.valveOn !== false && data?.inletValveOn !== false;
+  // Electrical Switch State (3D Rocker Power Switch)
+  const electricSwitchOn = data?.valveOn !== false && data?.inletValveOn !== false;
+  
+  // Manual Mechanical Ball Valve State (Vertical Lever Valve)
+  const manualValveOpen = data?.manualValveOn !== false;
 
-  const handleToggleSwitch = () => {
-    const nextState = !valveState;
+  const handleToggleElectricSwitch = () => {
+    const nextState = !electricSwitchOn;
     reactFlow.setNodes((nds) =>
       nds.map((n) => {
         if (n.id === id) {
@@ -98,6 +100,24 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
               ...n.data,
               valveOn: nextState,
               inletValveOn: nextState,
+            },
+          };
+        }
+        return n;
+      })
+    );
+  };
+
+  const handleToggleManualValve = () => {
+    const nextState = !manualValveOpen;
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === id) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              manualValveOn: nextState,
             },
           };
         }
@@ -161,9 +181,7 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
         id="outlet-1"
         style={{
           right: 0,
-          top: '85%',
-          width: 8,
-          height: 8,
+          top: '92%',
           background: 'transparent',
           border: 'none',
           opacity: 0,
@@ -171,41 +189,97 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
         }}
       />
 
+      {/* Solenoid Wire Connection Handles for Control Box Link */}
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="solenoid-port-in-bottom"
+        style={{
+          left: isFlipped ? '29.9%' : '70.1%',
+          top: '44.5%',
+          transform: 'translate(-50%, -50%)',
+          width: 14,
+          height: 14,
+          background: '#00ffff',
+          border: '2px solid #ffffff',
+          borderRadius: '50%',
+          boxShadow: '0 0 8px #00ffff',
+          opacity: 0.95,
+          zIndex: 65,
+          cursor: 'pointer',
+        }}
+        isConnectable={true}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="solenoid-port-out-bottom"
+        style={{
+          left: isFlipped ? '29.9%' : '70.1%',
+          top: '44.5%',
+          transform: 'translate(-50%, -50%)',
+          width: 14,
+          height: 14,
+          background: '#00ffff',
+          border: '2px solid #ffffff',
+          borderRadius: '50%',
+          boxShadow: '0 0 8px #00ffff',
+          opacity: 0.95,
+          zIndex: 64,
+          cursor: 'pointer',
+        }}
+        isConnectable={true}
+      />
+
       {/* Vector SVG Model View with Horizontal Flip */}
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease', position: 'relative' }}>
         <SolenoidValveAssemblySVG
-          valveState={valveState}
+          valveState={electricSwitchOn}
+          manualValveOpen={manualValveOpen}
           isFlowing={isIncomingFlowing}
           flowRateLmin={data?.flowRate ?? 18.5}
           turbineRpm={data?.turbineRpm ?? 1450}
-          className="w-full h-full object-contain"
         />
 
-        {/* Interactive 3D Rocker Switch Replica (Bus Topology Reference - Positioned at marked red box location) */}
+        {/* 1. Hot-Spot for Electrical 3D Rocker Switch */}
         <div
           className="nodrag nopan"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleElectricSwitch();
+          }}
           style={{
             position: 'absolute',
-            left: isFlipped ? '25.5%' : '74.5%',
-            top: '26%',
+            left: isFlipped ? '19.6%' : '80.4%',
+            top: '23.5%',
+            width: '12%',
+            height: '26%',
             transform: 'translate(-50%, -50%)',
             zIndex: 60,
             cursor: 'pointer',
           }}
-          title={valveState ? 'Click 3D switch to turn Valve OFF' : 'Click 3D switch to turn Valve ON'}
-        >
-          <Pump3DSwitch
-            isOn={valveState}
-            canControl={true}
-            onToggle={handleToggleSwitch}
-            scale={0.28}
-          />
-        </div>
-      </div>
+          title={electricSwitchOn ? 'Click 3D Rocker Switch to turn Electrical Power OFF' : 'Click 3D Rocker Switch to turn Electrical Power ON'}
+        />
 
-      {/* Floating Node Label Badge */}
-      <div className="absolute top-[88%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
-        {nodeName}
+        {/* 2. Hot-Spot for Manual Mechanical Ball Valve on Vertical Pipe */}
+        <div
+          className="nodrag nopan"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleManualValve();
+          }}
+          style={{
+            position: 'absolute',
+            left: isFlipped ? '5.2%' : '94.8%',
+            top: '83%',
+            width: '14%',
+            height: '28%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 60,
+            cursor: 'pointer',
+          }}
+          title={manualValveOpen ? 'Click Manual Lever Handle to CLOSE water pathway' : 'Click Manual Lever Handle to OPEN water pathway'}
+        />
       </div>
     </div>
   );

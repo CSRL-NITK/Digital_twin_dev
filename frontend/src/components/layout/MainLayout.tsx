@@ -294,11 +294,10 @@ const TopBar = memo(function TopBar() {
           {/* Icon badge */}
           <div style={{
             width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-            background: '#17181c',
+            background: 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 10px rgba(23,24,28,0.18)',
           }}>
-            <Droplets size={18} color="#00ffff" strokeWidth={2.3} />
+            <img src="/csrl_logo.png" alt="CSRL Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           {/* Brand text */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -307,15 +306,15 @@ const TopBar = memo(function TopBar() {
               color: dark ? '#f0f0f2' : '#17181c',
               fontFamily: 'var(--font)',
             }}>
-              BrandName
+              CSRL
             </span>
             <span style={{
               fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em',
               textTransform: 'uppercase', lineHeight: 1,
-              color: dark ? '#374151' : '#00ffff',
+              color: dark ? '#9ca3af' : '#17181c',
               fontFamily: 'var(--font)',
-              background: dark ? 'transparent' : '#17181c',
-              padding: dark ? '0' : '1px 5px',
+              background: 'transparent',
+              padding: 0,
               borderRadius: 4,
             }}>
               Digital Twin

@@ -18,6 +18,12 @@ export const Pump3DSwitch: React.FC<Pump3DSwitchProps> = ({
     <StyledWrapper $scale={scale} $canControl={canControl}>
       <div
         className={`switch ${isOn ? 'is-checked' : ''}`}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
         onClick={(e) => {
           e.stopPropagation();
           if (onToggle && canControl) {

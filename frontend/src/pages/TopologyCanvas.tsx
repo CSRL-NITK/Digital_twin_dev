@@ -24,6 +24,7 @@ import { Pencil, Lock, Check, RotateCcw, Maximize2, Minimize2, Frame, Crosshair,
 
 import FlowConnectionsMenu from '../components/topology/FlowConnectionsMenu';
 import WaterFlowEdge from '../components/topology/WaterFlowEdge';
+import CorrugatedCableEdge from '../components/topology/CorrugatedCableEdge';
 import { WaterTank as TankWaterTank } from '../components/nodes/WaterTank';
 import { CentralWaterTank } from '../components/nodes/CentralWaterTank';
 import { WaterTank as SourceWaterTank } from '../components/nodes/SourceWaterTank';
@@ -34,6 +35,7 @@ import { SmartGardenPalette } from '../components/smart-garden/SmartGardenPalett
 import { SolarPanelNodeView } from '../components/smart-garden/SolarPanelNodeView';
 import { ControlBoxNodeView } from '../components/smart-garden/ControlBoxNodeView';
 import { SolenoidValveNodeView } from '../components/smart-garden/SolenoidValveNodeView';
+import { SmartGardenSwitchNodeView } from '../components/smart-garden/SmartGardenSwitchNodeView';
 import { AssetInspectorModal } from '../components/topology/AssetInspectorModal';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../components/ThemeProvider';
@@ -114,6 +116,46 @@ const deriveTankState = (data: LiveNodeData) => {
   } as const;
 };
 
+const getEdgeType = (
+  sourceNode?: any,
+  targetNode?: any,
+  sourceHandle?: string | null,
+  targetHandle?: string | null,
+  dbEdgeType?: string | null
+) => {
+  if (dbEdgeType) {
+    if (dbEdgeType === 'cable' || dbEdgeType === 'corrugatedCable') {
+      return 'corrugatedCable';
+    }
+    if (dbEdgeType === 'waterFlow' || dbEdgeType === 'pipe') {
+      return 'waterFlow';
+    }
+  }
+
+  const isWireHandle = (handleId?: string | null) =>
+    handleId && (
+      handleId.startsWith('power') ||
+      handleId.startsWith('control') ||
+      handleId.includes('port')
+    );
+
+  if (isWireHandle(sourceHandle) || isWireHandle(targetHandle)) {
+    return 'corrugatedCable';
+  }
+
+  const srcType = sourceNode?.type || sourceNode?.nodeType;
+  const tgtType = targetNode?.type || targetNode?.nodeType;
+
+  if (
+    (srcType && (srcType.includes('solar') || srcType.includes('control'))) ||
+    (tgtType && (tgtType.includes('solar') || tgtType.includes('control')))
+  ) {
+    return 'corrugatedCable';
+  }
+
+  return 'waterFlow';
+};
+
 const SENSOR_RATIOS: Record<string, { pctX: number; pctY: number; w: number; h: number }> = {
   water_level: { pctX: 0.3412, pctY: 0.1602, w: 97, h: 93 },
   ph: { pctX: 0.5180, pctY: 0.4502, w: 162, h: 164 },
@@ -138,6 +180,9 @@ const getDefaultNodeDimensions = (type: string = '', isSensor?: boolean) => {
   }
   if (type === 'switch') {
     return { width: 140, height: 180 };
+  }
+  if (type === 'smart_garden_switch' || type.includes('smart_switch')) {
+    return { width: 90, height: 120 };
   }
   if (type === 'pump') {
     return { width: 387, height: 242 };
@@ -401,7 +446,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           left: actualEffInletX,
           width: inletWidth,
           height: 195 * effInletScale,
-          zIndex: 35,
+          zIndex: 65,
           border: isEditSwitches ? '2px solid #00ffff' : 'none',
           backgroundColor: isEditSwitches ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
           borderRadius: 6,
@@ -436,8 +481,17 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         )}
         <div
           className="nodrag nopan"
-          onMouseDown={(e) => handleSwitchDrag(e, 'inlet')}
-          style={{ width: '100%', height: '100%', cursor: isEditSwitches ? 'move' : 'default' }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            if (isEditSwitches) handleSwitchDrag(e, 'inlet');
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isEditSwitches) {
+              data?.onToggleTankValve?.(id, 'inlet', !inletOn);
+            }
+          }}
+          style={{ width: '100%', height: '100%', cursor: isEditSwitches ? 'move' : 'pointer' }}
         >
           <Pump3DSwitch
             isOn={inletOn}
@@ -467,7 +521,7 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           left: actualEffOutletX,
           width: outletWidth,
           height: 195 * effOutletScale,
-          zIndex: 35,
+          zIndex: 65,
           border: isEditSwitches ? '2px solid #00ffff' : 'none',
           backgroundColor: isEditSwitches ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
           borderRadius: 6,
@@ -502,8 +556,17 @@ function TankNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         )}
         <div
           className="nodrag nopan"
-          onMouseDown={(e) => handleSwitchDrag(e, 'outlet')}
-          style={{ width: '100%', height: '100%', cursor: isEditSwitches ? 'move' : 'default' }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            if (isEditSwitches) handleSwitchDrag(e, 'outlet');
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isEditSwitches) {
+              data?.onToggleTankValve?.(id, 'outlet', !outletOn);
+            }
+          }}
+          style={{ width: '100%', height: '100%', cursor: isEditSwitches ? 'move' : 'pointer' }}
         >
           <Pump3DSwitch
             isOn={outletOn}
@@ -917,7 +980,7 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
           left: actualEffX,
           width: switchWidth,
           height: 195 * effScale,
-          zIndex: 35,
+          zIndex: 65,
           border: isEditSwitches ? '2px solid #00ffff' : 'none',
           backgroundColor: isEditSwitches ? 'rgba(0, 255, 255, 0.08)' : 'transparent',
           borderRadius: 6,
@@ -952,11 +1015,17 @@ function PumpNodeView({ id, data, selected }: NodeProps<LiveNodeData>) {
         )}
         <div
           className="nodrag nopan"
-          onMouseDown={isEditSwitches ? handleSwitchMouseDown : undefined}
+          onMouseDown={isEditSwitches ? handleSwitchMouseDown : (e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isEditSwitches) {
+              data?.onTogglePump?.(targetPumpId || id, isOn);
+            }
+          }}
           style={{
             width: '100%',
             height: '100%',
-            cursor: isEditSwitches ? 'move' : 'default',
+            cursor: isEditSwitches ? 'move' : 'pointer',
           }}
         >
           <Pump3DSwitch
@@ -1126,6 +1195,7 @@ const SensorNodeViewMemo = memo(SensorNodeView);
 const SolarPanelNodeViewMemo = memo(SolarPanelNodeView);
 const ControlBoxNodeViewMemo = memo(ControlBoxNodeView);
 const SolenoidValveNodeViewMemo = memo(SolenoidValveNodeView);
+const SmartGardenSwitchNodeViewMemo = memo(SmartGardenSwitchNodeView);
 
 
 const nodeTypes = {
@@ -1150,10 +1220,16 @@ const nodeTypes = {
   solenoid_valve: SolenoidValveNodeViewMemo,
   smart_garden_solenoid_valve: SolenoidValveNodeViewMemo,
   valve_assembly: SolenoidValveNodeViewMemo,
+  smart_garden_switch: SmartGardenSwitchNodeViewMemo,
+  smart_switch: SmartGardenSwitchNodeViewMemo,
 };
+
+const CorrugatedCableEdgeMemo = memo(CorrugatedCableEdge);
 
 const edgeTypes = {
   waterFlow: WaterFlowEdge,
+  corrugatedCable: CorrugatedCableEdgeMemo,
+  cable: CorrugatedCableEdgeMemo,
 };
 
 const BACKEND_URL = 'http://localhost:3001';
@@ -1487,7 +1563,7 @@ export const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): b
     const node = allNodes.find((n: any) => n.id === nodeId);
     if (!node) return false;
 
-    if (node.type === 'central_tank' || node.type === 'tank') {
+    if (node.type && (node.type.includes('tank') || node.type === 'source')) {
       if (node.data?.outletValveOn === false) return false;
       const wl = node.data?.waterLevel ?? 0;
       return wl > 1;
@@ -1501,7 +1577,7 @@ export const evaluateEdgeFlow = (edge: any, allEdges: any[], allNodes: any[]): b
     }
 
     if (node.type && (node.type.includes('valve') || node.type.includes('solenoid'))) {
-      if (node.data?.valveOn === false || node.data?.inletValveOn === false) return false;
+      if (node.data?.valveOn === false || node.data?.inletValveOn === false || node.data?.manualValveOn === false) return false;
       const incomingEdges = allEdges.filter((e: any) => getTargetId(e) === nodeId);
       if (incomingEdges.length === 0) return true;
       return incomingEdges.some((e: any) => isNodeSupplied(getSourceId(e), visited));
@@ -1540,6 +1616,7 @@ export default function TopologyCanvas() {
   const [allowResizeViewport, setAllowResizeViewport] = useState(false); // drag + resize nodes
   const [allowMoveSwitches, setAllowMoveSwitches] = useState(false); // move & resize switches
   const [allowEditPipes, setAllowEditPipes] = useState(false); // waypoint routing
+  const [allowEditWires, setAllowEditWires] = useState(false); // waypoint routing for wires
   const [showPaletteMenu, setShowPaletteMenu] = useState(false);
   const [showNodePalette, setShowNodePalette] = useState(false);
   const [showSensorPalette, setShowSensorPalette] = useState(false);
@@ -1555,10 +1632,10 @@ export default function TopologyCanvas() {
   const [activeConnectNodeId, setActiveConnectNodeId] = useState<string | null>(null);
   const [showCustomizeMenu, setShowCustomizeMenu] = useState(false);
 
-  const { isAdmin, role } = useAuth();
+  const { isAdmin } = useAuth();
   const { theme } = useTheme();
   const dark = theme === 'dark';
-  const canControlPump = isAdmin || role === 'operator';
+  const canControlPump = true;
   const containerRef = useRef<HTMLDivElement>(null);
   const interactivityRef = useRef({
     editMode: false,
@@ -1568,7 +1645,8 @@ export default function TopologyCanvas() {
     allowDeleteNodes: false,
     allowMoveSwitches: false,
     allowEditPipes: false,
-    canControlPump: false,
+    allowEditWires: false,
+    canControlPump: true,
   });
 
   /* ── inject pulse keyframe once ─────────────────────────── */
@@ -1878,7 +1956,7 @@ export default function TopologyCanvas() {
 
   /* ── Unified Effect: push editMode/allowMoveResize/showViewport into nodes ─ */
   useEffect(() => {
-    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes, allowMoveSwitches, allowEditPipes, canControlPump };
+    interactivityRef.current = { editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowDeleteNodes, allowMoveSwitches, allowEditPipes, allowEditWires, canControlPump };
 
     if (editMode) {
       setSelectedNode(null);
@@ -1963,10 +2041,10 @@ export default function TopologyCanvas() {
     });
   }, [editMode, allowMoveResize, allowMoveNodes, allowResizeNodes, allowMoveSwitches, allowMoveViewport, allowResizeViewport, showViewport, allowDeleteNodes, canControlPump, handleTogglePump, handleToggleTankValve, handleSwitchTransformEnd, handleConnectSwitchToPump, handleHidePumpSwitch, handleHideTankSwitch, setNodes, setSelectedNode, handleDeleteNode, handleNodeResizeStart, handleNodeResizeEnd]);
 
-  // Push allowEditPipes to all edges
+  // Push allowEditPipes, allowEditWires, and allowDeleteNodes to all edges
   useEffect(() => {
-    setEdges((eds) => eds.map((e) => ({ ...e, data: { ...e.data, allowEditPipes } })));
-  }, [allowEditPipes, setEdges]);
+    setEdges((eds) => eds.map((e) => ({ ...e, data: { ...e.data, allowEditPipes, allowEditWires, allowDeleteNodes } })));
+  }, [allowEditPipes, allowEditWires, allowDeleteNodes, setEdges]);
 
   /* ── Live size tracking: useLayoutEffect captures size synchronously on first
      render (before fullscreen can interfere), ResizeObserver keeps it updated,
@@ -2173,6 +2251,9 @@ export default function TopologyCanvas() {
           });
         const formattedEdges = data.edges.map((edge: any) => {
           const isFlowing = evaluateEdgeFlow(edge, data.edges, formattedNodes);
+          const srcNode = formattedNodes.find((n: any) => n.id === edge.sourceNodeId.toString());
+          const tgtNode = formattedNodes.find((n: any) => n.id === edge.targetNodeId.toString());
+          const edgeType = getEdgeType(srcNode, tgtNode, edge.sourcePortId, edge.targetPortId, edge.edgeType);
 
           return {
             id: edge.id.toString(),
@@ -2180,7 +2261,7 @@ export default function TopologyCanvas() {
             target: edge.targetNodeId.toString(),
             sourceHandle: edge.sourcePortId,
             targetHandle: edge.targetPortId,
-            type: 'waterFlow',
+            type: edgeType,
             zIndex: isFlowing ? 10 : 0,
             data: {
               isFlowing,
@@ -2884,11 +2965,23 @@ export default function TopologyCanvas() {
     if (connection.source === connection.target) return false;
 
     const targetNode = nodes.find(n => n.id === connection.target);
+    const sourceNode = nodes.find(n => n.id === connection.source);
+
+    const isElectrical = (node: any, handleId: string | null) => {
+      if (!node) return false;
+      const type = node.type || '';
+      if (type.includes('solar') || type.includes('control') || type.includes('solenoid') || type.includes('valve')) return true;
+      if (handleId && (handleId.startsWith('power') || handleId.startsWith('control') || handleId.startsWith('solenoid'))) return true;
+      return false;
+    };
+
     if (targetNode) {
       const inletConnsCount = edges.filter(e => e.target === connection.target && e.targetHandle === connection.targetHandle).length;
 
       let maxInlets = 1;
-      if (targetNode.type === 'central_tank') {
+      if (isElectrical(targetNode, connection.targetHandle)) {
+        maxInlets = 100;
+      } else if (targetNode.type === 'central_tank') {
         const in1 = targetNode.data?.inlet1On ?? true;
         const in2 = targetNode.data?.inlet2On ?? true;
         const in3 = targetNode.data?.inlet3On ?? true;
@@ -2902,11 +2995,12 @@ export default function TopologyCanvas() {
       if (inletConnsCount >= maxInlets) return false;
     }
 
-    const sourceNode = nodes.find(n => n.id === connection.source);
     if (sourceNode) {
       const outletConnsCount = edges.filter(e => e.source === connection.source && e.sourceHandle === connection.sourceHandle).length;
       let maxOutlets = 1;
-      if (sourceNode.type === 'pump') {
+      if (isElectrical(sourceNode, connection.sourceHandle)) {
+        maxOutlets = 100;
+      } else if (sourceNode.type === 'pump') {
         maxOutlets = sourceNode.data?.maxPumpOutlets || 2;
       }
       if (outletConnsCount >= maxOutlets) return false;
@@ -2918,6 +3012,10 @@ export default function TopologyCanvas() {
     async (params: Connection | Edge) => {
       if (!params.source || !params.target) return;
 
+      const sourceNode = nodes.find(n => n.id === params.source);
+      const targetNode = nodes.find(n => n.id === params.target);
+      const edgeType = getEdgeType(sourceNode, targetNode, params.sourceHandle, params.targetHandle);
+
       const tempId = 'id' in params ? params.id : `temp-${Date.now()}`;
       const edgeToAdd: Edge = {
         id: tempId,
@@ -2925,7 +3023,7 @@ export default function TopologyCanvas() {
         target: params.target,
         sourceHandle: params.sourceHandle,
         targetHandle: params.targetHandle,
-        type: 'waterFlow',
+        type: edgeType,
         zIndex: 10,
         data: { isFlowing: true }
       };
@@ -2939,6 +3037,7 @@ export default function TopologyCanvas() {
           target: params.target,
           sourceHandle: params.sourceHandle,
           targetHandle: params.targetHandle,
+          edgeType: edgeType === 'corrugatedCable' ? 'cable' : 'pipe',
         });
 
         if (res.data && res.data.id) {
@@ -3378,6 +3477,12 @@ export default function TopologyCanvas() {
                       checked={allowEditPipes}
                       onChange={setAllowEditPipes}
                       label="Edit Pipes"
+                    />
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+                    <Switch
+                      checked={allowEditWires}
+                      onChange={setAllowEditWires}
+                      label="Edit Wires"
                     />
                     {showViewport && (
                       <>

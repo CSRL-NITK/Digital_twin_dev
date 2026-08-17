@@ -6,10 +6,6 @@ import { getSmartEdge } from '@tisoap/react-flow-smart-edge';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
-// Global store to keep track of the exact rendered orthogonal path segments of EVERY pipe
-// This allows us to instantly detect if ANY pipe passes straight through a corner to form a T-Junction!
-export const globalEdgeSegments = new Map<string, {x: number, y: number}[]>();
-
 function getRoundedPath(points: {x: number, y: number}[], radius: number = 12) {
   if (points.length < 2) return '';
   let path = `M ${points[0].x} ${points[0].y}`;
@@ -36,7 +32,7 @@ function getRoundedPath(points: {x: number, y: number}[], radius: number = 12) {
   return path;
 }
 
-const WaterFlowEdge: React.FC<EdgeProps> = ({
+export const CorrugatedCableEdge: React.FC<EdgeProps> = ({
   id,
   sourceX,
   sourceY,
@@ -50,22 +46,9 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
 }) => {
   const nodes = useNodes();
   const rf = useReactFlow();
-  
-  // Extract flow properties from edge data
-  const isFlowing = data?.isFlowing ?? true;
 
-  // If isFlowing is false, we want it to look inactive/grayed out
-  
-  // Base configuration
-  const strokeColor = isFlowing ? 'var(--dt-accent, #00ffff)' : '#475569';
-  const pipeColor = '#1e293b'; // dark pipe background
-  
-  // Use smart edge routing (obstacle avoidance) if nodes are available
-  // Fallback to smooth step if smart routing fails
-  let finalSvgPathString = '';
-  
   const LEAD_PX = 42;
-  
+
   let modSourceX = sourceX;
   let modSourceY = sourceY;
   if (sourcePosition === Position.Left) modSourceX -= LEAD_PX;
@@ -80,14 +63,13 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
   if (targetPosition === Position.Top) modTargetY -= LEAD_PX;
   if (targetPosition === Position.Bottom) modTargetY += LEAD_PX;
 
-  const allowEditPipes = data?.allowEditPipes ?? false;
-  const allowDeletePipes = data?.allowDeleteNodes ?? false;
+  const allowEditWires = data?.allowEditWires ?? false;
+  const allowDeleteWires = data?.allowDeleteNodes ?? false;
 
   let pts: {x: number, y: number}[] = [];
   let allCorners: {x: number, y: number}[] = [];
 
   if (data?.customPoints && data.customPoints.length > 0) {
-    // Deep copy to prevent React state mutation which causes tracking bugs!
     const p = data.customPoints.map((pt: any) => ({ ...pt }));
     
     if (Math.abs(modSourceX - p[0].x) < Math.abs(modSourceY - p[0].y)) {
@@ -119,9 +101,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
       }
     } catch { }
     
-    // Safely parse the path into perfectly orthogonal points
     if (!smartEdgeSuccess) {
-      // Force borderRadius: 0 so we don't extract arcs which cause diagonal slants!
       const [orthoPath] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 0, offset: LEAD_PX });
       parsePath = orthoPath;
     }
@@ -136,7 +116,6 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
       }
     }
     
-    // Strip all collinear inline points so dragging doesn't break
     const corners = [];
     for (let i = 0; i < extracted.length; i++) {
       if (i === 0 || i === extracted.length - 1) {
@@ -166,7 +145,7 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
     pts = [{x: modSourceX, y: modSourceY}, ...p, {x: modTargetX, y: modTargetY}];
   }
   
-  finalSvgPathString = getRoundedPath(allCorners, 12);
+  const finalSvgPathString = getRoundedPath(allCorners, 12);
   const svgPathString = finalSvgPathString;
 
   let midX = (sourceX + targetX) / 2;
@@ -178,199 +157,54 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
     midX = (p1.x + p2.x) / 2;
     midY = (p1.y + p2.y) / 2;
   }
-  
-  // Simplify collinear segments out of allCorners to perfectly detect straight overlaps
-  const simplifiedPoints: {x: number, y: number}[] = [];
-  if (allCorners.length > 0) simplifiedPoints.push(allCorners[0]);
-  for (let i = 1; i < allCorners.length - 1; i++) {
-    const prev = simplifiedPoints[simplifiedPoints.length - 1];
-    const curr = allCorners[i];
-    const next = allCorners[i+1];
-    const isCollinearX = Math.abs(prev.x - curr.x) < 5 && Math.abs(curr.x - next.x) < 5;
-    const isCollinearY = Math.abs(prev.y - curr.y) < 5 && Math.abs(curr.y - next.y) < 5;
-    if (!isCollinearX && !isCollinearY) {
-      simplifiedPoints.push(curr);
-    }
-  }
-  if (allCorners.length > 1) simplifiedPoints.push(allCorners[allCorners.length - 1]);
 
-  // Register our exact computed orthogonal path to the global store
-  globalEdgeSegments.set(id, simplifiedPoints);
-
-  // Clean up if this edge is deleted
-  React.useEffect(() => {
-    return () => {
-      globalEdgeSegments.delete(id);
-    };
-  }, [id]);
-
-  const tJunctions = simplifiedPoints.filter((corner, idx) => {
-    // Ignore start and end points
-    if (idx === 0 || idx === simplifiedPoints.length - 1) return false;
-    
-    // Check if this corner lies STRICTLY on any segment of ANY OTHER edge in the entire canvas
-    for (const [otherId, otherOrthoPoints] of globalEdgeSegments.entries()) {
-      if (otherId === id) continue;
-      
-      for (let i = 0; i < otherOrthoPoints.length - 1; i++) {
-        const p1 = otherOrthoPoints[i];
-        const p2 = otherOrthoPoints[i+1];
-        
-        // Is it a vertical segment?
-        if (Math.abs(p1.x - p2.x) < 5) {
-          if (Math.abs(corner.x - p1.x) < 10) { // Corner shares X
-            const minY = Math.min(p1.y, p2.y);
-            const maxY = Math.max(p1.y, p2.y);
-            // Strictly between (meaning the pipe goes straight past the corner)
-            if (corner.y > minY + 2 && corner.y < maxY - 2) return true;
-          }
-        } 
-        // Is it a horizontal segment?
-        else if (Math.abs(p1.y - p2.y) < 5) {
-          if (Math.abs(corner.y - p1.y) < 10) { // Corner shares Y
-            const minX = Math.min(p1.x, p2.x);
-            const maxX = Math.max(p1.x, p2.x);
-            if (corner.x > minX + 2 && corner.x < maxX - 2) return true;
-          }
-        }
-      }
-    }
-    return false;
-  });
-
-  
   return (
     <>
-      {isFlowing && (
-        <style>{`
-          @keyframes edgeStreamFlowFast {
-            0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -60; }
-          }
-          @keyframes edgeStreamFlowSuperFast {
-            0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -80; }
-          }
-          @keyframes edgeShimmerPulse {
-            0% { opacity: 0.35; }
-            50% { opacity: 0.6; }
-            100% { opacity: 0.35; }
-          }
-        `}</style>
-      )}
-
-      {/* 1. Base Pipe (Thick dark background) */}
+      {/* Outer Flexible Black Conduit Pipe */}
       <BaseEdge
-        id={`${id}-base`}
+        id={`${id}-conduit-outer`}
         path={svgPathString}
         style={{
           ...style,
-          stroke: pipeColor,
-          strokeWidth: isFlowing ? 14 : 10,
+          stroke: '#11161d',
+          strokeWidth: 8,
+          strokeLinecap: 'round',
           strokeLinejoin: 'round',
           fill: 'none',
         }}
       />
-      
-      {isFlowing ? (
-        <>
-          {/* 2. Outer Shimmer Glow */}
-          <BaseEdge
-            id={`${id}-shimmer`}
-            path={svgPathString}
-            style={{
-              ...style,
-              stroke: 'var(--water-pipe-shimmer, #A5F3FC)',
-              strokeWidth: 10,
-              strokeLinejoin: 'round',
-              fill: 'none',
-              animation: 'edgeShimmerPulse 1.2s ease-in-out infinite',
-            }}
-          />
 
-          {/* 3. Core Fluid Flow */}
-          <BaseEdge
-            id={`${id}-core`}
-            path={svgPathString}
-            style={{
-              ...style,
-              stroke: 'var(--water-pipe-core, #06B6D4)',
-              strokeWidth: 8,
-              strokeLinejoin: 'round',
-              opacity: 0.95,
-              fill: 'none',
-            }}
-          />
+      {/* Corrugated Outer Ribbed Texture */}
+      <BaseEdge
+        id={`${id}-conduit-ribs`}
+        path={svgPathString}
+        style={{
+          ...style,
+          stroke: '#334155',
+          strokeWidth: 3,
+          strokeDasharray: '3,4',
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          fill: 'none',
+        }}
+      />
 
-          {/* 4. Stream Fast 1 */}
-          <BaseEdge
-            id={`${id}-fast1`}
-            path={svgPathString}
-            style={{
-              ...style,
-              stroke: 'var(--water-pipe-fast1, #22D3EE)',
-              strokeWidth: 2,
-              strokeDasharray: '12, 16',
-              strokeLinejoin: 'round',
-              opacity: 0.85,
-              fill: 'none',
-              animation: 'edgeStreamFlowFast 0.45s linear infinite',
-            }}
-          />
+      {/* Inner Core Cable Accent */}
+      <BaseEdge
+        id={`${id}-conduit-core`}
+        path={svgPathString}
+        markerEnd={markerEnd}
+        style={{
+          ...style,
+          stroke: '#0f172a',
+          strokeWidth: 1,
+          strokeLinejoin: 'round',
+          fill: 'none',
+        }}
+      />
 
-          {/* 5. Stream Super Fast (Main bubbly stream) */}
-          <BaseEdge
-            id={`${id}-super`}
-            path={svgPathString}
-            markerEnd={markerEnd}
-            style={{
-              ...style,
-              stroke: '#FFFFFF',
-              strokeWidth: 3,
-              strokeDasharray: '8, 12',
-              strokeLinejoin: 'round',
-              opacity: 0.95,
-              fill: 'none',
-              animation: 'edgeStreamFlowSuperFast 0.3s linear infinite',
-            }}
-          />
-
-          {/* 6. Stream Fast 2 */}
-          <BaseEdge
-            id={`${id}-fast2`}
-            path={svgPathString}
-            style={{
-              ...style,
-              stroke: 'var(--water-pipe-fast2, #0D9488)',
-              strokeWidth: 2,
-              strokeDasharray: '16, 20',
-              strokeLinejoin: 'round',
-              opacity: 0.75,
-              fill: 'none',
-              animation: 'edgeStreamFlowFast 0.45s linear infinite',
-            }}
-          />
-        </>
-      ) : (
-        /* Off state */
-        <BaseEdge
-          id={id}
-          path={svgPathString}
-          markerEnd={markerEnd}
-          style={{
-            ...style,
-            stroke: strokeColor,
-            strokeWidth: 2,
-            strokeDasharray: '4, 4',
-            opacity: 0.4,
-            strokeLinecap: 'round',
-            fill: 'none',
-          }}
-        />
-      )}
-
-      {/* Invisible interaction paths to drag the pipe lines */}
-      {allowEditPipes && pts.length >= 2 && pts.slice(0, -1).map((p1, i) => {
+      {/* Invisible interaction paths to drag the wire lines */}
+      {allowEditWires && pts.length >= 2 && pts.slice(0, -1).map((p1, i) => {
         const p2 = pts[i+1];
         const isHorizontal = Math.abs(p1.y - p2.y) < 1;
         return (
@@ -388,8 +222,8 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
                         const newData = { ...edge.data };
                         delete newData.customPoints;
                         return { ...edge, data: newData };
-                     }
-                     return edge;
+                      }
+                      return edge;
                }));
                axios.patch(`${BACKEND_URL}/api/edges/${id.replace('-base', '').replace('-core', '')}/attributes`, {
                   attributes: {}
@@ -464,37 +298,13 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
                
                target.addEventListener('pointermove', onPointerMove);
                target.addEventListener('pointerup', onPointerUp);
-            }}
+             }}
           />
         );
       })}
 
-      {/* 7. Edge Label Renderer for UI Connectors (always on top) */}
-      <EdgeLabelRenderer>
-        {/* 8. T-Junctions for overlapped 90-degree turns */}
-        {tJunctions.map((j, idx) => (
-          <div
-            key={`t-j-${idx}`}
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${j.x}px, ${j.y}px)`,
-              zIndex: 1000,
-            }}
-            className="nodrag nopan"
-          >
-            <svg width={32} height={32} viewBox="-16 -16 32 32" style={{ overflow: 'visible' }}>
-              <rect x={-16} y={-16} width={32} height={32} rx={6} fill="#3d4048" stroke="#1a1c23" strokeWidth={1.5} filter="drop-shadow(0 4px 6px rgba(0,0,0,0.4))" />
-              <circle cx={0} cy={0} r={9} fill="#1e293b" stroke="#1a1c23" strokeWidth={1} />
-              {isFlowing && <circle cx={0} cy={0} r={5} fill="#06B6D4" className="animate-pulse" />}
-              <circle cx={-11} cy={-11} r={1.5} fill="#94a3b8" />
-              <circle cx={11} cy={-11} r={1.5} fill="#94a3b8" />
-              <circle cx={-11} cy={11} r={1.5} fill="#94a3b8" />
-              <circle cx={11} cy={11} r={1.5} fill="#94a3b8" />
-            </svg>
-          </div>
-        ))}
-
-        {allowDeletePipes && (
+      {allowDeleteWires && (
+        <EdgeLabelRenderer>
           <div
             style={{
               position: 'absolute',
@@ -507,11 +317,9 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm('Delete this pipe?')) {
-                  rf.setEdges((eds) => eds.filter((edge) => edge.id !== id));
-                  const cleanId = id.replace('-base', '').replace('-core', '');
-                  axios.delete(`${BACKEND_URL}/api/edges/${cleanId}`).catch(console.error);
-                }
+                rf.setEdges((eds) => eds.filter((edge) => edge.id !== id));
+                const cleanId = id.replace('-base', '').replace('-core', '');
+                axios.delete(`${BACKEND_URL}/api/edges/${cleanId}`).catch(console.error);
               }}
               style={{
                 width: 22,
@@ -538,15 +346,15 @@ const WaterFlowEdge: React.FC<EdgeProps> = ({
                 e.currentTarget.style.transform = 'scale(1)';
                 e.currentTarget.style.background = '#ef4444';
               }}
-              title="Delete Pipe"
+              title="Delete Wire"
             >
               ✕
             </button>
           </div>
-        )}
-      </EdgeLabelRenderer>
+        </EdgeLabelRenderer>
+      )}
     </>
   );
 };
 
-export default WaterFlowEdge;
+export default CorrugatedCableEdge;

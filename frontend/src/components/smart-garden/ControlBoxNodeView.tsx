@@ -90,7 +90,7 @@ export function ControlBoxNodeView({ id, data, selected }: NodeProps<any>) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
       }}
     >
       <AdminNodeDeleteBtn id={id} nodeName={nodeName} allowDelete={data?.allowDeleteNodes} onDelete={data?.onDeleteNode} />
@@ -108,22 +108,46 @@ export function ControlBoxNodeView({ id, data, selected }: NodeProps<any>) {
         />
       )}
 
-      {/* Invisible Handles */}
+      {/* Cable Input / Output Handles at Top Port */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="control-in-top"
+        style={{
+          left: isFlipped ? '51%' : '49%',
+          top: 0,
+          width: 12,
+          height: 12,
+          background: '#00ffff',
+          border: '2px solid #ffffff',
+          borderRadius: '50%',
+          boxShadow: '0 0 6px #00ffff',
+          opacity: 0.95,
+          zIndex: 65,
+          cursor: 'pointer',
+        }}
+        isConnectable={true}
+      />
       <Handle
         type="source"
-        position={Position.Right}
-        id="control-out"
+        position={Position.Top}
+        id="control-out-top"
         style={{
-          right: 0,
-          top: '50%',
-          width: 6,
-          height: 6,
-          background: 'transparent',
-          border: 'none',
-          opacity: 0,
-          zIndex: 50,
+          left: isFlipped ? '51%' : '49%',
+          top: 0,
+          width: 12,
+          height: 12,
+          background: '#00ffff',
+          border: '2px solid #ffffff',
+          borderRadius: '50%',
+          boxShadow: '0 0 6px #00ffff',
+          opacity: 0.95,
+          zIndex: 64,
+          cursor: 'pointer',
         }}
+        isConnectable={true}
       />
+
       <Handle
         type="target"
         position={Position.Left}
@@ -131,23 +155,75 @@ export function ControlBoxNodeView({ id, data, selected }: NodeProps<any>) {
         style={{
           left: 0,
           top: '50%',
-          width: 6,
-          height: 6,
-          background: 'transparent',
-          border: 'none',
+          width: 8,
+          height: 8,
+          background: '#38bdf8',
+          border: '1.5px solid #ffffff',
+          opacity: 0,
+          zIndex: 50,
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="control-out"
+        style={{
+          right: 0,
+          top: '50%',
+          width: 8,
+          height: 8,
+          background: '#38bdf8',
+          border: '1.5px solid #ffffff',
           opacity: 0,
           zIndex: 50,
         }}
       />
 
+      {/* Cable Input / Output Handles at Bottom Port */}
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="control-in-bottom"
+        style={{
+          left: isFlipped ? '48%' : '52%',
+          top: '96.5%',
+          transform: 'translate(-50%, -50%)',
+          width: 12,
+          height: 12,
+          background: '#00ffff',
+          border: '2px solid #ffffff',
+          borderRadius: '50%',
+          boxShadow: '0 0 6px #00ffff',
+          opacity: 0.95,
+          zIndex: 65,
+          cursor: 'pointer',
+        }}
+        isConnectable={true}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="control-out-bottom"
+        style={{
+          left: isFlipped ? '48%' : '52%',
+          top: '96.5%',
+          transform: 'translate(-50%, -50%)',
+          width: 12,
+          height: 12,
+          background: '#00ffff',
+          border: '2px solid #ffffff',
+          borderRadius: '50%',
+          boxShadow: '0 0 6px #00ffff',
+          opacity: 0.95,
+          zIndex: 64,
+          cursor: 'pointer',
+        }}
+        isConnectable={true}
+      />
+
       {/* Vector SVG Model View with Horizontal Flip */}
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', transform: isFlipped ? 'scaleX(-1)' : 'none', transition: 'transform 0.25s ease' }}>
         <ControllerModelSvg className="w-full h-full object-contain" />
-      </div>
-
-      {/* Floating Node Label Badge */}
-      <div className="absolute top-[88%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3 py-1 rounded shadow pointer-events-none z-50">
-        {nodeName}
       </div>
     </div>
   );

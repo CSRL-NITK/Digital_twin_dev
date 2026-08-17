@@ -132,7 +132,7 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
   const renderSolarCells = () => {
     const cols = 6;
     const rows = 10;
-    const cells = [];
+    const cells: React.ReactNode[] = [];
     const pad = 3;
 
     for (let r = 0; r < rows; r++) {
@@ -188,7 +188,7 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
       }
     }
 
-    const busbars = [];
+    const busbars: React.ReactNode[] = [];
     for (let c = 0; c < cols; c++) {
       [0.25, 0.5, 0.75].forEach((subRatio, bIdx) => {
         const colRatio = (c + subRatio) / cols;
@@ -210,7 +210,7 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
       });
     }
 
-    const fingers = [];
+    const fingers: React.ReactNode[] = [];
     const totalFingers = 30;
     for (let f = 0; f < totalFingers; f++) {
       const fRatio = (f + 0.5) / totalFingers;
@@ -248,6 +248,14 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
+        {/* Port metallic gradient */}
+        <radialGradient id="port-metal" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#D6DCE0" />
+          <stop offset="50%" stopColor="#8A949E" />
+          <stop offset="85%" stopColor="#4F565E" />
+          <stop offset="100%" stopColor="#2C3136" />
+        </radialGradient>
+
         {/* Cell Gradient */}
         <linearGradient id="pv-cell-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={cellColors.base1} />
@@ -305,6 +313,21 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
           <stop offset="100%" stopColor="#0d0e10" />
         </linearGradient>
 
+        {/* Garden Soil Ground Gradients */}
+        <linearGradient id="soil-surface-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#4a3525" />
+          <stop offset="35%" stopColor="#382618" />
+          <stop offset="70%" stopColor="#291a0e" />
+          <stop offset="100%" stopColor="#1a1008" />
+        </linearGradient>
+
+        <linearGradient id="grass-blade-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#4ade80" />
+          <stop offset="40%" stopColor="#22c55e" />
+          <stop offset="85%" stopColor="#15803d" />
+          <stop offset="100%" stopColor="#14532d" />
+        </linearGradient>
+
         {/* Glow Filter for Active Layer Selection */}
         <filter id="layer-highlight-glow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="6" result="blur" />
@@ -318,8 +341,60 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
         </filter>
       </defs>
 
-      {/* BACKGROUND GROUND REFERENCE AXIS */}
-      <line x1="150" y1="1100" x2="850" y2="1100" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6,6" opacity="0.4" />
+      {/* REALISTIC GARDEN SOIL GROUND BASE (OUTDOOR INSTALLATION) */}
+      <g id="component-garden-ground-base">
+        {/* Soft Ambient Ground Shadow under Base Plate & System */}
+        <ellipse cx="500" cy="1098" rx="260" ry="18" fill="#000000" opacity="0.28" />
+        <ellipse cx="500" cy="1095" rx="140" ry="10" fill="#0a0502" opacity="0.45" />
+
+        {/* Soil Bed Base Surface Layer */}
+        <path
+          d="M 170 1104 Q 280 1098 390 1096 L 610 1096 Q 720 1098 830 1104 L 830 1128 Q 500 1132 170 1128 Z"
+          fill="url(#soil-surface-gradient)"
+          stroke="#26170d"
+          strokeWidth="1.5"
+        />
+
+        {/* Textured Soil Granules / Organic Earth Texture */}
+        <g id="soil-texture-specks" opacity="0.6">
+          <circle cx="210" cy="1108" r="2.5" fill="#60432c" />
+          <circle cx="260" cy="1114" r="1.8" fill="#24160a" />
+          <circle cx="310" cy="1105" r="2.2" fill="#523924" />
+          <circle cx="350" cy="1112" r="1.5" fill="#1b1007" />
+          <circle cx="430" cy="1118" r="2.0" fill="#523924" />
+          <circle cx="480" cy="1114" r="2.8" fill="#24160a" />
+          <circle cx="530" cy="1118" r="1.8" fill="#60432c" />
+          <circle cx="580" cy="1112" r="2.4" fill="#1b1007" />
+          <circle cx="650" cy="1106" r="2.0" fill="#523924" />
+          <circle cx="710" cy="1115" r="2.6" fill="#24160a" />
+          <circle cx="770" cy="1109" r="1.8" fill="#60432c" />
+        </g>
+
+        {/* Short Lush Garden Grass Tufts & Small Vegetation Sprouts around Pole Base Plate */}
+        <g id="garden-grass-tufts">
+          {/* Left Grass Cluster 1 */}
+          <path d="M 220 1104 Q 216 1090 212 1084 Q 220 1092 225 1104 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+          <path d="M 225 1104 Q 226 1086 230 1080 Q 232 1090 231 1104 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+          <path d="M 231 1104 Q 234 1092 240 1086 Q 237 1096 236 1104 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+
+          {/* Left Grass Cluster 2 (Near Base Plate Edge) */}
+          <path d="M 365 1097 Q 360 1085 354 1078 Q 364 1086 370 1097 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+          <path d="M 370 1097 Q 372 1081 378 1074 Q 378 1087 376 1097 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+
+          {/* Center Front Small Sprouts near Base Plate */}
+          <path d="M 465 1115 Q 462 1102 458 1096 Q 467 1103 470 1115 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+          <path d="M 535 1115 Q 538 1103 543 1096 Q 539 1105 530 1115 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+
+          {/* Right Grass Cluster 1 (Near Base Plate Edge) */}
+          <path d="M 625 1097 Q 628 1082 634 1075 Q 631 1087 630 1097 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+          <path d="M 630 1097 Q 636 1086 644 1080 Q 639 1089 635 1097 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+
+          {/* Right Grass Cluster 2 */}
+          <path d="M 760 1104 Q 755 1089 749 1082 Q 758 1091 764 1104 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+          <path d="M 764 1104 Q 767 1087 773 1081 Q 772 1093 770 1104 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+          <path d="M 770 1104 Q 776 1092 783 1086 Q 778 1096 775 1104 Z" fill="url(#grass-blade-gradient)" stroke="#14532d" strokeWidth="0.8" />
+        </g>
+      </g>
 
       {/* SUPPORT POLE */}
       {isVisible('support-pole') && (
@@ -479,36 +554,9 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
         <circle cx="575" cy="480" r="2" fill="#1e293b" />
       </g>
 
-      {/* GROUNDING WIRE */}
-      {isVisible('grounding-wire') && (
-        <g
-          id="grounding-wire"
-          data-layer="grounding-wire"
-          opacity={getOpacity('grounding-wire')}
-          filter={isHighlighted('grounding-wire') ? 'url(#layer-highlight-glow)' : undefined}
-          onMouseEnter={() => onLayerHover?.('grounding-wire')}
-          onMouseLeave={() => onLayerHover?.(null)}
-          onClick={() => onLayerClick?.('grounding-wire')}
-          className="cursor-pointer transition-all duration-200"
-        >
-          <path
-            d="M 465,490 Q 460,540 462,700 Q 464,900 462,1015 Q 460,1070 435,1082"
-            fill="none"
-            stroke="#eab308"
-            strokeWidth="4"
-            strokeDasharray="12,12"
-          />
-          <path
-            d="M 465,490 Q 460,540 462,700 Q 464,900 462,1015 Q 460,1070 435,1082"
-            fill="none"
-            stroke="#22c55e"
-            strokeWidth="4"
-            strokeDasharray="0,12,12,0"
-          />
-          <rect x="458" y="1010" width="10" height="12" rx="2" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
-          <circle cx="463" cy="1016" r="3" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
-        </g>
-      )}
+
+
+
 
       {/* PANEL MOUNTING & FRAME ASSEMBLY */}
       <g id="solar-panel-assembly">
@@ -530,20 +578,6 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
               stroke="#334155"
               strokeWidth="2"
             />
-            <path
-              d="M 515,480 L 595,420 A 75 75 0 0 1 615,525 L 535,525 Z"
-              fill="#94a3b8"
-              stroke="#334155"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M 545,470 A 55 55 0 0 1 585,515"
-              fill="none"
-              stroke="#1e293b"
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
-            <circle cx="572" cy="492" r="6" fill="#f8fafc" stroke="#0f172a" strokeWidth="1.5" />
           </g>
         )}
 
@@ -642,6 +676,19 @@ export const IndustrialSolarPanelSVG: React.FC<SolarPanelProps> = ({
             />
           </g>
         )}
+
+        {/* CONNECTION PORTS */}
+        <g id="solar-panel-ports" className="pointer-events-none">
+          {/* Right side connection port (Circle 1 from screenshot) */}
+          <circle cx="510" cy="500" r="6" fill="url(#port-metal)" stroke="#1e293b" strokeWidth="1.2" />
+          <circle cx="510" cy="500" r="3.5" fill="#091017" />
+          <circle cx="510" cy="500" r="1.5" fill="#00ffff" opacity="0.9" />
+          
+          {/* Symmetrical Left side port (optional but keeps design balanced) */}
+          <circle cx="480" cy="500" r="6" fill="url(#port-metal)" stroke="#1e293b" strokeWidth="1.2" />
+          <circle cx="480" cy="500" r="3.5" fill="#091017" />
+          <circle cx="480" cy="500" r="1.5" fill="#00ffff" opacity="0.9" />
+        </g>
 
         {/* ALUMINUM FRAME */}
         {isVisible('aluminum-frame') && (

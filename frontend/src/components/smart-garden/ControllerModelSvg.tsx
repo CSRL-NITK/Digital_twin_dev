@@ -31,14 +31,11 @@ export const ControllerModelSvg: React.FC<ControllerModelSvgProps> = ({
     ledPower = true,
     redLedBrightness = 90,
     amberLedBrightness = 70,
-    highlightedComponentId = null,
     activeMode = 'model',
   } = viewState;
 
   const redGlowOpacity = ledPower ? (redLedBrightness / 100) : 0.05;
   const amberGlowOpacity = ledPower ? (amberLedBrightness / 100) : 0.05;
-
-  const isHighlighted = (id: string) => highlightedComponentId === id;
 
   return (
     <div className={`relative w-full h-full flex items-center justify-center overflow-hidden select-none ${className}`}>
@@ -158,14 +155,7 @@ export const ControllerModelSvg: React.FC<ControllerModelSvgProps> = ({
           </pattern>
         </defs>
 
-        {/* BACKGROUND MOUNTING POLE */}
-        <g id="mounting-pole" opacity="0.85">
-          <rect x="55" y="0" width="22" height="620" fill="#90A4AE" />
-          <rect x="55" y="0" width="5" height="620" fill="#CFD8DC" />
-          <rect x="72" y="0" width="5" height="620" fill="#546E7A" />
-          <rect x="48" y="140" width="36" height="16" rx="3" fill="#607D8B" stroke="#37474F" strokeWidth="1" />
-          <rect x="48" y="380" width="36" height="16" rx="3" fill="#607D8B" stroke="#37474F" strokeWidth="1" />
-        </g>
+
 
         {/* BOTTOM MOUNTING BRACKET */}
         <g
@@ -209,6 +199,11 @@ export const ControllerModelSvg: React.FC<ControllerModelSvgProps> = ({
             <line key={y} x1="234" y1={y} x2="256" y2={y} stroke="#AAB2BD" strokeWidth="3" />
           ))}
           <rect x="232" y="70" width="26" height="15" rx="3" fill="#505A69" stroke="#333" strokeWidth="1" />
+          
+          {/* Conduit top connection port (Circle 2 from screenshot) */}
+          <rect x="233" y="0" width="24" height="12" rx="2" fill="url(#screw-metal)" stroke="#37474F" strokeWidth="1.5" />
+          <circle cx="245" cy="6" r="5" fill="#091017" />
+          <circle cx="245" cy="6" r="2.5" fill="#00ffff" opacity="0.9" />
         </g>
 
         <g
@@ -231,6 +226,11 @@ export const ControllerModelSvg: React.FC<ControllerModelSvgProps> = ({
             strokeDasharray="8,12"
           />
           <rect x="270" y="440" width="20" height="18" rx="2" fill="#3A3F47" stroke="#111" strokeWidth="1" />
+
+          {/* Cable bottom connection port (Circle replica at bottom of screen) */}
+          <rect x="248" y="608" width="24" height="12" rx="2" fill="url(#screw-metal)" stroke="#37474F" strokeWidth="1.5" />
+          <circle cx="260" cy="614" r="5" fill="#091017" />
+          <circle cx="260" cy="614" r="2.5" fill="#00ffff" opacity="0.9" />
         </g>
 
         {/* MAIN ENCLOSURE BOX FRAME */}
