@@ -1,0 +1,6 @@
+{
+  "name": "Solenoid Valve & Water Flow Meter Assembly Model",
+  "description": "High-fidelity 2D digital engineering model and digital twin simulation of a solenoid valve and transparent water flow meter assembly.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
