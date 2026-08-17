@@ -85,6 +85,12 @@ async function main() {
         "name": "bus topology",
         "description": "{\"customConfigs\":{\"2\":{\"customWidth\":295,\"customHeight\":376,\"inletValveOn\":false,\"outletValveOn\":false},\"4\":{\"customWidth\":295,\"customHeight\":376,\"inletValveOn\":true,\"outletValveOn\":true},\"5\":{\"customWidth\":295,\"customHeight\":376,\"inletValveOn\":false,\"outletValveOn\":false},\"6\":{\"customWidth\":387,\"customHeight\":242,\"inletValveOn\":true,\"outletValveOn\":true},\"8\":{\"customWidth\":436,\"customHeight\":556,\"inletValveOn\":true,\"outletValveOn\":true},\"9\":{\"customWidth\":295,\"customHeight\":376,\"inletValveOn\":false,\"outletValveOn\":false},\"10\":{\"customWidth\":387,\"customHeight\":242,\"inletValveOn\":true,\"outletValveOn\":true}},\"viewport\":{\"x\":-1001,\"y\":-507,\"w\":2084,\"h\":1042}}",
         "createdAt": "2026-07-09T05:14:21.382Z"
+    },
+    {
+        "id": 7,
+        "name": "Smart Garden Topology",
+        "description": "{\"customConfigs\":{},\"viewport\":{\"x\":-600,\"y\":-300,\"w\":1800,\"h\":900}}",
+        "createdAt": "2026-08-17T12:00:00.000Z"
     }
 ]
   });
@@ -1307,6 +1313,48 @@ async function main() {
         "status": "Healthy",
         "attributes": {},
         "createdAt": "2026-07-21T10:20:27.736Z"
+    },
+    {
+        "id": 138,
+        "topologyId": 7,
+        "nodeName": "Solar Panel System",
+        "nodeType": "smart_garden_solar_panel",
+        "positionX": -11,
+        "positionY": -202,
+        "status": "healthy",
+        "attributes": {
+            "customWidth": 569,
+            "customHeight": 743
+        },
+        "createdAt": "2026-08-17T14:25:13.618Z"
+    },
+    {
+        "id": 144,
+        "topologyId": 7,
+        "nodeName": "Electronic Control Box-549",
+        "nodeType": "control_box",
+        "positionX": 225,
+        "positionY": 117,
+        "status": "healthy",
+        "attributes": {
+            "customWidth": 90,
+            "customHeight": 144
+        },
+        "createdAt": "2026-08-17T14:43:54.694Z"
+    },
+    {
+        "id": 145,
+        "topologyId": 7,
+        "nodeName": "Solenoid Valve & Meter-636",
+        "nodeType": "solenoid_valve",
+        "positionX": -325,
+        "positionY": 258,
+        "status": "healthy",
+        "attributes": {
+            "customWidth": 504,
+            "customHeight": 293
+        },
+        "createdAt": "2026-08-17T14:43:58.284Z"
     }
 ]
   });
@@ -1861,6 +1909,30 @@ async function main() {
         "status": "normal",
         "attributes": {},
         "createdAt": "2026-07-13T09:39:15.423Z"
+    },
+    {
+        "id": 189,
+        "topologyId": 7,
+        "sourceNodeId": 144,
+        "targetNodeId": 138,
+        "edgeType": "cable",
+        "sourcePortId": "control-out-top",
+        "targetPortId": "power-in-pivot-left",
+        "status": "normal",
+        "attributes": {},
+        "createdAt": "2026-08-17T14:51:21.681Z"
+    },
+    {
+        "id": 190,
+        "topologyId": 7,
+        "sourceNodeId": 144,
+        "targetNodeId": 145,
+        "edgeType": "cable",
+        "sourcePortId": "control-out-bottom",
+        "targetPortId": "solenoid-port-in-bottom",
+        "status": "normal",
+        "attributes": {},
+        "createdAt": "2026-08-17T14:51:26.491Z"
     }
 ]
   });
@@ -3388,6 +3460,96 @@ async function main() {
         "status": "Healthy",
         "lastSeen": "2026-07-23T05:28:59.078Z",
         "createdAt": "2026-07-08T04:52:37.120Z"
+    },
+    {
+        "id": 411,
+        "nodeId": 138,
+        "sensorName": "Solar Output Power",
+        "sensorType": "power",
+        "status": "Online",
+        "lastSeen": "2026-08-17T14:25:13.651Z",
+        "createdAt": "2026-08-17T14:25:13.651Z"
+    },
+    {
+        "id": 412,
+        "nodeId": 138,
+        "sensorName": "Solar Irradiance",
+        "sensorType": "irradiance",
+        "status": "Online",
+        "lastSeen": "2026-08-17T14:25:13.654Z",
+        "createdAt": "2026-08-17T14:25:13.654Z"
+    },
+    {
+        "id": 416,
+        "nodeId": 144,
+        "sensorName": "Electronic Control Box-549 WATER LEVEL",
+        "sensorType": "water_level",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:54.697Z",
+        "createdAt": "2026-08-17T14:43:54.697Z"
+    },
+    {
+        "id": 417,
+        "nodeId": 144,
+        "sensorName": "Electronic Control Box-549 PH",
+        "sensorType": "ph",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:54.699Z",
+        "createdAt": "2026-08-17T14:43:54.699Z"
+    },
+    {
+        "id": 418,
+        "nodeId": 144,
+        "sensorName": "Electronic Control Box-549 TDS",
+        "sensorType": "tds",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:54.701Z",
+        "createdAt": "2026-08-17T14:43:54.701Z"
+    },
+    {
+        "id": 419,
+        "nodeId": 144,
+        "sensorName": "Electronic Control Box-549 TEMPERATURE",
+        "sensorType": "temperature",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:54.702Z",
+        "createdAt": "2026-08-17T14:43:54.702Z"
+    },
+    {
+        "id": 420,
+        "nodeId": 145,
+        "sensorName": "Solenoid Valve & Meter-636 WATER LEVEL",
+        "sensorType": "water_level",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:58.286Z",
+        "createdAt": "2026-08-17T14:43:58.286Z"
+    },
+    {
+        "id": 421,
+        "nodeId": 145,
+        "sensorName": "Solenoid Valve & Meter-636 PH",
+        "sensorType": "ph",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:58.287Z",
+        "createdAt": "2026-08-17T14:43:58.287Z"
+    },
+    {
+        "id": 422,
+        "nodeId": 145,
+        "sensorName": "Solenoid Valve & Meter-636 TDS",
+        "sensorType": "tds",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:58.289Z",
+        "createdAt": "2026-08-17T14:43:58.289Z"
+    },
+    {
+        "id": 423,
+        "nodeId": 145,
+        "sensorName": "Solenoid Valve & Meter-636 TEMPERATURE",
+        "sensorType": "temperature",
+        "status": "online",
+        "lastSeen": "2026-08-17T14:43:58.291Z",
+        "createdAt": "2026-08-17T14:43:58.291Z"
     }
 ]
   });

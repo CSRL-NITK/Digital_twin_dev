@@ -531,10 +531,10 @@ export const SolenoidValveAssemblySVG: React.FC<SolenoidValveAssemblySVGProps> =
             </g>
           </g>
 
-          {/* Cable loop connection port cap replica at x=640, y=332 (permanently drawn on top) */}
-          <rect x="628" y="326" width="24" height="12" rx="2" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="640" cy="332" r="5" fill="#091017" />
-          <circle cx="640" cy="332" r="2.5" fill="#00ffff" opacity="0.9" />
+          {/* Flow meter transducer base connection port cap replica at x=640, y=338 (exact red dot location) */}
+          <rect x="628" y="332" width="24" height="12" rx="2" fill="url(#silver-grad)" stroke="#1e293b" strokeWidth="1" />
+          <circle cx="640" cy="338" r="5" fill="#091017" />
+          <circle cx="640" cy="338" r="2.5" fill="#00ffff" opacity="0.9" />
         </g>
       </svg>
     </div>

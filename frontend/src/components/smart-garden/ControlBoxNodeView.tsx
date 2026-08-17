@@ -123,10 +123,12 @@ export function ControlBoxNodeView({ id, data, selected }: NodeProps<any>) {
           borderRadius: '50%',
           boxShadow: '0 0 6px #00ffff',
           opacity: 0.95,
-          zIndex: 65,
+          zIndex: 64,
           cursor: 'pointer',
         }}
         isConnectable={true}
+        isConnectableStart={true}
+        isConnectableEnd={true}
       />
       <Handle
         type="source"
@@ -142,10 +144,12 @@ export function ControlBoxNodeView({ id, data, selected }: NodeProps<any>) {
           borderRadius: '50%',
           boxShadow: '0 0 6px #00ffff',
           opacity: 0.95,
-          zIndex: 64,
+          zIndex: 65,
           cursor: 'pointer',
         }}
         isConnectable={true}
+        isConnectableStart={true}
+        isConnectableEnd={true}
       />
 
       <Handle
@@ -195,10 +199,12 @@ export function ControlBoxNodeView({ id, data, selected }: NodeProps<any>) {
           borderRadius: '50%',
           boxShadow: '0 0 6px #00ffff',
           opacity: 0.95,
-          zIndex: 65,
+          zIndex: 64,
           cursor: 'pointer',
         }}
         isConnectable={true}
+        isConnectableStart={true}
+        isConnectableEnd={true}
       />
       <Handle
         type="source"
@@ -215,10 +221,12 @@ export function ControlBoxNodeView({ id, data, selected }: NodeProps<any>) {
           borderRadius: '50%',
           boxShadow: '0 0 6px #00ffff',
           opacity: 0.95,
-          zIndex: 64,
+          zIndex: 65,
           cursor: 'pointer',
         }}
         isConnectable={true}
+        isConnectableStart={true}
+        isConnectableEnd={true}
       />
 
       {/* Vector SVG Model View with Horizontal Flip */}

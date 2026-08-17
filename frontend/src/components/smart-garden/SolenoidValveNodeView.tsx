@@ -196,27 +196,7 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
         id="solenoid-port-in-bottom"
         style={{
           left: isFlipped ? '29.9%' : '70.1%',
-          top: '44.5%',
-          transform: 'translate(-50%, -50%)',
-          width: 14,
-          height: 14,
-          background: '#00ffff',
-          border: '2px solid #ffffff',
-          borderRadius: '50%',
-          boxShadow: '0 0 8px #00ffff',
-          opacity: 0.95,
-          zIndex: 65,
-          cursor: 'pointer',
-        }}
-        isConnectable={true}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="solenoid-port-out-bottom"
-        style={{
-          left: isFlipped ? '29.9%' : '70.1%',
-          top: '44.5%',
+          top: '46.9%',
           transform: 'translate(-50%, -50%)',
           width: 14,
           height: 14,
@@ -229,6 +209,30 @@ export function SolenoidValveNodeView({ id, data, selected }: NodeProps<any>) {
           cursor: 'pointer',
         }}
         isConnectable={true}
+        isConnectableStart={true}
+        isConnectableEnd={true}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="solenoid-port-out-bottom"
+        style={{
+          left: isFlipped ? '29.9%' : '70.1%',
+          top: '46.9%',
+          transform: 'translate(-50%, -50%)',
+          width: 14,
+          height: 14,
+          background: '#00ffff',
+          border: '2px solid #ffffff',
+          borderRadius: '50%',
+          boxShadow: '0 0 8px #00ffff',
+          opacity: 0.95,
+          zIndex: 65,
+          cursor: 'pointer',
+        }}
+        isConnectable={true}
+        isConnectableStart={true}
+        isConnectableEnd={true}
       />
 
       {/* Vector SVG Model View with Horizontal Flip */}
