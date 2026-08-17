@@ -1,6 +1,0 @@
-{
-  "name": "Electronic Control Box 2D Digital Model",
-  "description": "High-fidelity 2D digital model and vector visualization of the electronic controller box with glowing LEDs, detailed PCB layout, and translucent enclosure.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
